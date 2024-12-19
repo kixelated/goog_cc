@@ -37,9 +37,9 @@
 #include "rtc_base/race_checker.h"
 #include "system_wrappers/include/metrics.h"
 
-namespace webrtc {
+
 namespace {
-constexpr TimeDelta kStreamTimeOut = TimeDelta::Seconds(2);
+constexpr TimeDelta kStreamTimeOut = Duration::from_secs(2);
 constexpr TimeDelta kSendTimeGroupLength = TimeDelta::Millis(5);
 
 // This ssrc is used to fulfill the current API but will be removed
@@ -80,10 +80,10 @@ DelayBasedBwe::DelayBasedBwe(const FieldTrialsView* key_value_config,
       last_video_packet_recv_time_(Timestamp::MinusInfinity()),
       network_state_predictor_(network_state_predictor),
       video_delay_detector_(
-          new TrendlineEstimator(key_value_config_, network_state_predictor_)),
+          new TrendlineEstimator(self.key_value_config, self.network_state_predictor)),
       audio_delay_detector_(
-          new TrendlineEstimator(key_value_config_, network_state_predictor_)),
-      active_delay_detector_(video_delay_detector_.get()),
+          new TrendlineEstimator(self.key_value_config, self.network_state_predictor)),
+      active_delay_detector_(self.video_delay_detector.get()),
       last_seen_packet_(Timestamp::MinusInfinity()),
       uma_recorded_(false),
       rate_control_(*key_value_config, /*send_side=*/true),
@@ -91,45 +91,45 @@ DelayBasedBwe::DelayBasedBwe(const FieldTrialsView* key_value_config,
       prev_state_(BandwidthUsage::kBwNormal) {
   RTC_LOG(LS_INFO)
       << "Initialized DelayBasedBwe with separate audio overuse detection"
-      << separate_audio_.Parser()->Encode();
+      << self.separate_audio.Parser()->Encode();
 }
 
 DelayBasedBwe::~DelayBasedBwe() {}
 
-DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbackVector(
+DelayBasedBwe::Result IncomingPacketFeedbackVector(&self /* DelayBasedBwe */,
     const TransportPacketsFeedback& msg,
-    std::optional<DataRate> acked_bitrate,
-    std::optional<DataRate> probe_bitrate,
-    std::optional<NetworkStateEstimate> network_estimate,
+    Option<DataRate> acked_bitrate,
+    Option<DataRate> probe_bitrate,
+    Option<NetworkStateEstimate> network_estimate,
     bool in_alr) {
-  RTC_DCHECK_RUNS_SERIALIZED(&network_race_);
+  assert!_RUNS_SERIALIZED(&self.network_race);
 
-  auto packet_feedback_vector = msg.SortedByReceiveTime();
+let packet_feedback_vector = msg.SortedByReceiveTime();
   // TODO(holmer): An empty feedback vector here likely means that
   // all acks were too late and that the send time history had
   // timed out. We should reduce the rate when this occurs.
   if (packet_feedback_vector.empty()) {
-    RTC_LOG(LS_WARNING) << "Very late feedback received.";
+    tracing::warn!( "Very late feedback received.");
     return DelayBasedBwe::Result();
   }
 
-  if (!uma_recorded_) {
+  if (!self.uma_recorded) {
     RTC_HISTOGRAM_ENUMERATION(kBweTypeHistogram,
                               BweNames::kSendSideTransportSeqNum,
                               BweNames::kBweNamesMax);
-    uma_recorded_ = true;
+    self.uma_recorded = true;
   }
   bool delayed_feedback = true;
   bool recovered_from_overuse = false;
-  BandwidthUsage prev_detector_state = active_delay_detector_->State();
-  for (const auto& packet_feedback : packet_feedback_vector) {
+  BandwidthUsage prev_detector_state = self.active_delay_detector.State();
+  for packet_feedback in &packet_feedback_vector {
     delayed_feedback = false;
     IncomingPacketFeedback(packet_feedback, msg.feedback_time);
     if (prev_detector_state == BandwidthUsage::kBwUnderusing &&
-        active_delay_detector_->State() == BandwidthUsage::kBwNormal) {
+        self.active_delay_detector.State() == BandwidthUsage::kBwNormal) {
       recovered_from_overuse = true;
     }
-    prev_detector_state = active_delay_detector_->State();
+    prev_detector_state = self.active_delay_detector.State();
   }
 
   if (delayed_feedback) {
@@ -137,49 +137,49 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbackVector(
     // against building very large network queues.
     return Result();
   }
-  rate_control_.SetInApplicationLimitedRegion(in_alr);
-  rate_control_.SetNetworkStateEstimate(network_estimate);
+  self.rate_control.SetInApplicationLimitedRegion(in_alr);
+  self.rate_control.SetNetworkStateEstimate(network_estimate);
   return MaybeUpdateEstimate(acked_bitrate, probe_bitrate,
                              std::move(network_estimate),
                              recovered_from_overuse, in_alr, msg.feedback_time);
 }
 
-void DelayBasedBwe::IncomingPacketFeedback(const PacketResult& packet_feedback,
+fn IncomingPacketFeedback(&self /* DelayBasedBwe */,const PacketResult& packet_feedback,
                                            Timestamp at_time) {
   // Reset if the stream has timed out.
-  if (last_seen_packet_.IsInfinite() ||
-      at_time - last_seen_packet_ > kStreamTimeOut) {
-    video_inter_arrival_delta_ =
+  if (self.last_seen_packet.IsInfinite() ||
+      at_time - self.last_seen_packet > kStreamTimeOut) {
+    self.video_inter_arrival_delta =
         std::make_unique<InterArrivalDelta>(kSendTimeGroupLength);
-    audio_inter_arrival_delta_ =
+    self.audio_inter_arrival_delta =
         std::make_unique<InterArrivalDelta>(kSendTimeGroupLength);
 
-    video_delay_detector_.reset(
-        new TrendlineEstimator(key_value_config_, network_state_predictor_));
-    audio_delay_detector_.reset(
-        new TrendlineEstimator(key_value_config_, network_state_predictor_));
-    active_delay_detector_ = video_delay_detector_.get();
+    self.video_delay_detector.reset(
+        new TrendlineEstimator(self.key_value_config, self.network_state_predictor));
+    self.audio_delay_detector.reset(
+        new TrendlineEstimator(self.key_value_config, self.network_state_predictor));
+    self.active_delay_detector = self.video_delay_detector.get();
   }
-  last_seen_packet_ = at_time;
+  self.last_seen_packet = at_time;
 
   // As an alternative to ignoring small packets, we can separate audio and
   // video packets for overuse detection.
   DelayIncreaseDetectorInterface* delay_detector_for_packet =
-      video_delay_detector_.get();
-  if (separate_audio_.enabled) {
+      self.video_delay_detector.get();
+  if (self.separate_audio.enabled) {
     if (packet_feedback.sent_packet.audio) {
-      delay_detector_for_packet = audio_delay_detector_.get();
-      audio_packets_since_last_video_++;
-      if (audio_packets_since_last_video_ > separate_audio_.packet_threshold &&
-          packet_feedback.receive_time - last_video_packet_recv_time_ >
-              separate_audio_.time_threshold) {
-        active_delay_detector_ = audio_delay_detector_.get();
+      delay_detector_for_packet = self.audio_delay_detector.get();
+      self.audio_packets_since_last_video += 1;
+      if (self.audio_packets_since_last_video > self.separate_audio.packet_threshold &&
+          packet_feedback.receive_time - self.last_video_packet_recv_time >
+              self.separate_audio.time_threshold) {
+        self.active_delay_detector = self.audio_delay_detector.get();
       }
     } else {
-      audio_packets_since_last_video_ = 0;
-      last_video_packet_recv_time_ =
-          std::max(last_video_packet_recv_time_, packet_feedback.receive_time);
-      active_delay_detector_ = video_delay_detector_.get();
+      self.audio_packets_since_last_video = 0;
+      self.last_video_packet_recv_time =
+          std::cmp::max(self.last_video_packet_recv_time, packet_feedback.receive_time);
+      self.active_delay_detector = self.video_delay_detector.get();
     }
   }
   DataSize packet_size = packet_feedback.sent_packet.size;
@@ -189,124 +189,124 @@ void DelayBasedBwe::IncomingPacketFeedback(const PacketResult& packet_feedback,
   int size_delta = 0;
 
   InterArrivalDelta* inter_arrival_for_packet =
-      (separate_audio_.enabled && packet_feedback.sent_packet.audio)
-          ? audio_inter_arrival_delta_.get()
-          : video_inter_arrival_delta_.get();
+      (self.separate_audio.enabled && packet_feedback.sent_packet.audio)
+          ? self.audio_inter_arrival_delta.get()
+          : self.video_inter_arrival_delta.get();
   bool calculated_deltas = inter_arrival_for_packet->ComputeDeltas(
       packet_feedback.sent_packet.send_time, packet_feedback.receive_time,
       at_time, packet_size.bytes(), &send_delta, &recv_delta, &size_delta);
 
-  delay_detector_for_packet->Update(recv_delta.ms<double>(),
-                                    send_delta.ms<double>(),
+  delay_detector_for_packet->Update(recv_delta.ms<f64>(),
+                                    send_delta.ms<f64>(),
                                     packet_feedback.sent_packet.send_time.ms(),
                                     packet_feedback.receive_time.ms(),
                                     packet_size.bytes(), calculated_deltas);
 }
 
-DataRate DelayBasedBwe::TriggerOveruse(Timestamp at_time,
-                                       std::optional<DataRate> link_capacity) {
+DataRate TriggerOveruse(&self /* DelayBasedBwe */,Timestamp at_time,
+                                       Option<DataRate> link_capacity) {
   RateControlInput input(BandwidthUsage::kBwOverusing, link_capacity);
-  return rate_control_.Update(input, at_time);
+  return self.rate_control.Update(input, at_time);
 }
 
-DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(
-    std::optional<DataRate> acked_bitrate,
-    std::optional<DataRate> probe_bitrate,
-    std::optional<NetworkStateEstimate> /* state_estimate */,
+DelayBasedBwe::Result MaybeUpdateEstimate(&self /* DelayBasedBwe */,
+    Option<DataRate> acked_bitrate,
+    Option<DataRate> probe_bitrate,
+    Option<NetworkStateEstimate> /* state_estimate */,
     bool recovered_from_overuse,
     bool /* in_alr */,
     Timestamp at_time) {
   Result result;
 
   // Currently overusing the bandwidth.
-  if (active_delay_detector_->State() == BandwidthUsage::kBwOverusing) {
+  if (self.active_delay_detector.State() == BandwidthUsage::kBwOverusing) {
     if (acked_bitrate &&
-        rate_control_.TimeToReduceFurther(at_time, *acked_bitrate)) {
+        self.rate_control.TimeToReduceFurther(at_time, *acked_bitrate)) {
       result.updated =
           UpdateEstimate(at_time, acked_bitrate, &result.target_bitrate);
-    } else if (!acked_bitrate && rate_control_.ValidEstimate() &&
-               rate_control_.InitialTimeToReduceFurther(at_time)) {
+    } else if (!acked_bitrate && self.rate_control.ValidEstimate() &&
+               self.rate_control.InitialTimeToReduceFurther(at_time)) {
       // Overusing before we have a measured acknowledged bitrate. Reduce send
       // rate by 50% every 200 ms.
       // TODO(tschumim): Improve this and/or the acknowledged bitrate estimator
       // so that we (almost) always have a bitrate estimate.
-      rate_control_.SetEstimate(rate_control_.LatestEstimate() / 2, at_time);
+      self.rate_control.SetEstimate(self.rate_control.LatestEstimate() / 2, at_time);
       result.updated = true;
       result.probe = false;
-      result.target_bitrate = rate_control_.LatestEstimate();
+      result.target_bitrate = self.rate_control.LatestEstimate();
     }
   } else {
     if (probe_bitrate) {
       result.probe = true;
       result.updated = true;
-      rate_control_.SetEstimate(*probe_bitrate, at_time);
-      result.target_bitrate = rate_control_.LatestEstimate();
+      self.rate_control.SetEstimate(*probe_bitrate, at_time);
+      result.target_bitrate = self.rate_control.LatestEstimate();
     } else {
       result.updated =
           UpdateEstimate(at_time, acked_bitrate, &result.target_bitrate);
       result.recovered_from_overuse = recovered_from_overuse;
     }
   }
-  BandwidthUsage detector_state = active_delay_detector_->State();
+  BandwidthUsage detector_state = self.active_delay_detector.State();
   if ((result.updated && prev_bitrate_ != result.target_bitrate) ||
-      detector_state != prev_state_) {
-    DataRate bitrate = result.updated ? result.target_bitrate : prev_bitrate_;
+      detector_state != self.prev_state) {
+    DataRate bitrate = result.updated ? result.target_bitrate : self.prev_bitrate;
 
-    if (event_log_) {
-      event_log_->Log(std::make_unique<RtcEventBweUpdateDelayBased>(
+    if (self.event_log) {
+      self.event_log.Log(std::make_unique<RtcEventBweUpdateDelayBased>(
           bitrate.bps(), detector_state));
     }
 
-    prev_bitrate_ = bitrate;
-    prev_state_ = detector_state;
+    self.prev_bitrate = bitrate;
+    self.prev_state = detector_state;
   }
 
   result.delay_detector_state = detector_state;
   return result;
 }
 
-bool DelayBasedBwe::UpdateEstimate(Timestamp at_time,
-                                   std::optional<DataRate> acked_bitrate,
+bool UpdateEstimate(&self /* DelayBasedBwe */,Timestamp at_time,
+                                   Option<DataRate> acked_bitrate,
                                    DataRate* target_rate) {
-  const RateControlInput input(active_delay_detector_->State(), acked_bitrate);
-  *target_rate = rate_control_.Update(input, at_time);
-  return rate_control_.ValidEstimate();
+  const RateControlInput input(self.active_delay_detector.State(), acked_bitrate);
+  *target_rate = self.rate_control.Update(input, at_time);
+  return self.rate_control.ValidEstimate();
 }
 
-void DelayBasedBwe::OnRttUpdate(TimeDelta avg_rtt) {
-  rate_control_.SetRtt(avg_rtt);
+fn OnRttUpdate(&self /* DelayBasedBwe */,TimeDelta avg_rtt) {
+  self.rate_control.SetRtt(avg_rtt);
 }
 
-bool DelayBasedBwe::LatestEstimate(std::vector<uint32_t>* ssrcs,
-                                   DataRate* bitrate) const {
+bool LatestEstimate(&self /* DelayBasedBwe */,Vec<uint32_t>* ssrcs,
+                                   DataRate* bitrate) {
   // Currently accessed from both the process thread (see
   // ModuleRtpRtcpImpl::Process()) and the configuration thread (see
   // Call::GetStats()). Should in the future only be accessed from a single
   // thread.
-  RTC_DCHECK(ssrcs);
-  RTC_DCHECK(bitrate);
-  if (!rate_control_.ValidEstimate())
+  assert!(ssrcs);
+  assert!(bitrate);
+  if (!self.rate_control.ValidEstimate())
     return false;
 
   *ssrcs = {kFixedSsrc};
-  *bitrate = rate_control_.LatestEstimate();
+  *bitrate = self.rate_control.LatestEstimate();
   return true;
 }
 
-void DelayBasedBwe::SetStartBitrate(DataRate start_bitrate) {
+fn SetStartBitrate(&self /* DelayBasedBwe */,DataRate start_bitrate) {
   RTC_LOG(LS_INFO) << "BWE Setting start bitrate to: "
                    << ToString(start_bitrate);
-  rate_control_.SetStartBitrate(start_bitrate);
+  self.rate_control.SetStartBitrate(start_bitrate);
 }
 
-void DelayBasedBwe::SetMinBitrate(DataRate min_bitrate) {
+fn SetMinBitrate(&self /* DelayBasedBwe */,DataRate min_bitrate) {
   // Called from both the configuration thread and the network thread. Shouldn't
   // be called from the network thread in the future.
-  rate_control_.SetMinBitrate(min_bitrate);
+  self.rate_control.SetMinBitrate(min_bitrate);
 }
 
-TimeDelta DelayBasedBwe::GetExpectedBwePeriod() const {
-  return rate_control_.GetExpectedBandwidthPeriod();
+TimeDelta GetExpectedBwePeriod(&self /* DelayBasedBwe */) {
+  return self.rate_control.GetExpectedBandwidthPeriod();
 }
 
 }  // namespace webrtc

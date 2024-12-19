@@ -33,7 +33,7 @@
 #include "rtc_base/experiments/struct_parameters_parser.h"
 #include "rtc_base/race_checker.h"
 
-namespace webrtc {
+
 class RtcEventLog;
 
 struct BweSeparateAudioPacketsSettings {
@@ -45,12 +45,12 @@ struct BweSeparateAudioPacketsSettings {
 
   bool enabled = false;
   int packet_threshold = 10;
-  TimeDelta time_threshold = TimeDelta::Seconds(1);
+  TimeDelta time_threshold = Duration::from_secs(1);
 
   std::unique_ptr<StructParametersParser> Parser();
 };
 
-class DelayBasedBwe {
+pub struct DelayBasedBwe {
  public:
   struct Result {
     Result();
@@ -74,61 +74,67 @@ class DelayBasedBwe {
 
   Result IncomingPacketFeedbackVector(
       const TransportPacketsFeedback& msg,
-      std::optional<DataRate> acked_bitrate,
-      std::optional<DataRate> probe_bitrate,
-      std::optional<NetworkStateEstimate> network_estimate,
+      Option<DataRate> acked_bitrate,
+      Option<DataRate> probe_bitrate,
+      Option<NetworkStateEstimate> network_estimate,
       bool in_alr);
-  void OnRttUpdate(TimeDelta avg_rtt);
-  bool LatestEstimate(std::vector<uint32_t>* ssrcs, DataRate* bitrate) const;
-  void SetStartBitrate(DataRate start_bitrate);
-  void SetMinBitrate(DataRate min_bitrate);
+  fn OnRttUpdate(TimeDelta avg_rtt) {
+  todo!();
+}
+  bool LatestEstimate(Vec<uint32_t>* ssrcs, DataRate* bitrate) const;
+  fn SetStartBitrate(DataRate start_bitrate) {
+  todo!();
+}
+  fn SetMinBitrate(DataRate min_bitrate) {
+  todo!();
+}
   TimeDelta GetExpectedBwePeriod() const;
   DataRate TriggerOveruse(Timestamp at_time,
-                          std::optional<DataRate> link_capacity);
-  DataRate last_estimate() const { return prev_bitrate_; }
-  BandwidthUsage last_state() const { return prev_state_; }
+                          Option<DataRate> link_capacity);
+  DataRate last_estimate() { return self.prev_bitrate; }
+  BandwidthUsage last_state() { return self.prev_state; }
 
  private:
   friend class GoogCcStatePrinter;
   void IncomingPacketFeedback(const PacketResult& packet_feedback,
                               Timestamp at_time);
-  Result MaybeUpdateEstimate(std::optional<DataRate> acked_bitrate,
-                             std::optional<DataRate> probe_bitrate,
-                             std::optional<NetworkStateEstimate> state_estimate,
+  Result MaybeUpdateEstimate(Option<DataRate> acked_bitrate,
+                             Option<DataRate> probe_bitrate,
+                             Option<NetworkStateEstimate> state_estimate,
                              bool recovered_from_overuse,
                              bool in_alr,
                              Timestamp at_time);
   // Updates the current remote rate estimate and returns true if a valid
   // estimate exists.
   bool UpdateEstimate(Timestamp at_time,
-                      std::optional<DataRate> acked_bitrate,
+                      Option<DataRate> acked_bitrate,
                       DataRate* target_rate);
 
-  rtc::RaceChecker network_race_;
-  RtcEventLog* const event_log_;
-  const FieldTrialsView* const key_value_config_;
+  network_race: rtc::RaceChecker,
+  event_log: RtcEventLog*,
+  const FieldTrialsView* const self.key_value_config;
 
   // Alternatively, run two separate overuse detectors for audio and video,
   // and fall back to the audio one if we haven't seen a video packet in a
   // while.
-  BweSeparateAudioPacketsSettings separate_audio_;
-  int64_t audio_packets_since_last_video_;
-  Timestamp last_video_packet_recv_time_;
+  separate_audio: BweSeparateAudioPacketsSettings,
+  audio_packets_since_last_video: i64,
+  last_video_packet_recv_time: Timestamp,
 
-  NetworkStatePredictor* network_state_predictor_;
-  std::unique_ptr<InterArrival> video_inter_arrival_;
-  std::unique_ptr<InterArrivalDelta> video_inter_arrival_delta_;
-  std::unique_ptr<DelayIncreaseDetectorInterface> video_delay_detector_;
-  std::unique_ptr<InterArrival> audio_inter_arrival_;
-  std::unique_ptr<InterArrivalDelta> audio_inter_arrival_delta_;
-  std::unique_ptr<DelayIncreaseDetectorInterface> audio_delay_detector_;
-  DelayIncreaseDetectorInterface* active_delay_detector_;
+  network_state_predictor: NetworkStatePredictor*,
+  video_inter_arrival: std::unique_ptr<InterArrival>,
+  video_inter_arrival_delta: std::unique_ptr<InterArrivalDelta>,
+  video_delay_detector: std::unique_ptr<DelayIncreaseDetectorInterface>,
+  audio_inter_arrival: std::unique_ptr<InterArrival>,
+  audio_inter_arrival_delta: std::unique_ptr<InterArrivalDelta>,
+  audio_delay_detector: std::unique_ptr<DelayIncreaseDetectorInterface>,
+  active_delay_detector: DelayIncreaseDetectorInterface*,
 
-  Timestamp last_seen_packet_;
-  bool uma_recorded_;
-  AimdRateControl rate_control_;
-  DataRate prev_bitrate_;
-  BandwidthUsage prev_state_;
+  last_seen_packet: Timestamp,
+  uma_recorded: bool,
+  rate_control: AimdRateControl,
+  prev_bitrate: DataRate,
+  prev_state: BandwidthUsage,
 };
 
 }  // namespace webrtc

@@ -25,15 +25,15 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
-namespace webrtc {
+
 namespace {
 // The minumum number of probes we need to receive feedback about in percent
 // in order to have a valid estimate.
-constexpr double kMinReceivedProbesRatio = .80;
+const kMinReceivedProbesRatio: f64 = .80;
 
 // The minumum number of bytes we need to receive feedback about in percent
 // in order to have a valid estimate.
-constexpr double kMinReceivedBytesRatio = .80;
+const kMinReceivedBytesRatio: f64 = .80;
 
 // The maximum |receive rate| / |send rate| ratio for a valid estimate.
 constexpr float kMaxValidRatio = 2.0f;
@@ -51,27 +51,27 @@ constexpr float kTargetUtilizationFraction = 0.95f;
 // The maximum time period over which the cluster history is retained.
 // This is also the maximum time period beyond which a probing burst is not
 // expected to last.
-constexpr TimeDelta kMaxClusterHistory = TimeDelta::Seconds(1);
+constexpr TimeDelta kMaxClusterHistory = Duration::from_secs(1);
 
 // The maximum time interval between first and the last probe on a cluster
 // on the sender side as well as the receive side.
-constexpr TimeDelta kMaxProbeInterval = TimeDelta::Seconds(1);
+constexpr TimeDelta kMaxProbeInterval = Duration::from_secs(1);
 
 }  // namespace
 
 ProbeBitrateEstimator::ProbeBitrateEstimator(RtcEventLog* event_log)
-    : event_log_(event_log) {}
+fn event_log_(event_log) -> : {}
 
 ProbeBitrateEstimator::~ProbeBitrateEstimator() = default;
 
-std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(
+Option<DataRate> HandleProbeAndEstimateBitrate(&self /* ProbeBitrateEstimator */,
     const PacketResult& packet_feedback) {
   int cluster_id = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
-  RTC_DCHECK_NE(cluster_id, PacedPacketInfo::kNotAProbe);
+  assert!_NE(cluster_id, PacedPacketInfo::kNotAProbe);
 
   EraseOldClusters(packet_feedback.receive_time);
 
-  AggregatedCluster* cluster = &clusters_[cluster_id];
+  AggregatedCluster* cluster = &self.clusters[cluster_id];
 
   if (packet_feedback.sent_packet.send_time < cluster->first_send) {
     cluster->first_send = packet_feedback.sent_packet.send_time;
@@ -87,12 +87,12 @@ std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(
   if (packet_feedback.receive_time > cluster->last_receive) {
     cluster->last_receive = packet_feedback.receive_time;
   }
-  cluster->size_total += packet_feedback.sent_packet.size;
+  cluster->usizeotal += packet_feedback.sent_packet.size;
   cluster->num_probes += 1;
 
-  RTC_DCHECK_GT(
+  assert!_GT(
       packet_feedback.sent_packet.pacing_info.probe_cluster_min_probes, 0);
-  RTC_DCHECK_GT(packet_feedback.sent_packet.pacing_info.probe_cluster_min_bytes,
+  assert!_GT(packet_feedback.sent_packet.pacing_info.probe_cluster_min_bytes,
                 0);
 
   int min_probes =
@@ -102,8 +102,8 @@ std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(
       DataSize::Bytes(
           packet_feedback.sent_packet.pacing_info.probe_cluster_min_bytes) *
       kMinReceivedBytesRatio;
-  if (cluster->num_probes < min_probes || cluster->size_total < min_size)
-    return std::nullopt;
+  if (cluster->num_probes < min_probes || cluster->usizeotal < min_size)
+    return None;
 
   TimeDelta send_interval = cluster->last_send - cluster->first_send;
   TimeDelta receive_interval = cluster->last_receive - cluster->first_receive;
@@ -118,27 +118,27 @@ std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(
                      << "]"
                         " [receive interval: "
                      << ToString(receive_interval) << "]";
-    if (event_log_) {
-      event_log_->Log(std::make_unique<RtcEventProbeResultFailure>(
+    if (self.event_log) {
+      self.event_log.Log(std::make_unique<RtcEventProbeResultFailure>(
           cluster_id, ProbeFailureReason::kInvalidSendReceiveInterval));
     }
-    return std::nullopt;
+    return None;
   }
   // Since the `send_interval` does not include the time it takes to actually
   // send the last packet the size of the last sent packet should not be
   // included when calculating the send bitrate.
-  RTC_DCHECK_GT(cluster->size_total, cluster->size_last_send);
-  DataSize send_size = cluster->size_total - cluster->size_last_send;
+  assert!_GT(cluster->usizeotal, cluster->size_last_send);
+  DataSize send_size = cluster->usizeotal - cluster->size_last_send;
   DataRate send_rate = send_size / send_interval;
 
   // Since the `receive_interval` does not include the time it takes to
   // actually receive the first packet the size of the first received packet
   // should not be included when calculating the receive bitrate.
-  RTC_DCHECK_GT(cluster->size_total, cluster->size_first_receive);
-  DataSize receive_size = cluster->size_total - cluster->size_first_receive;
+  assert!_GT(cluster->usizeotal, cluster->size_first_receive);
+  DataSize receive_size = cluster->usizeotal - cluster->size_first_receive;
   DataRate receive_rate = receive_size / receive_interval;
 
-  double ratio = receive_rate / send_rate;
+  let ratio: f64 = receive_rate / send_rate;
   if (ratio > kMaxValidRatio) {
     RTC_LOG(LS_INFO) << "Probing unsuccessful, receive/send ratio too high"
                         " [cluster id: "
@@ -155,11 +155,11 @@ std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(
                      << ToString(receive_rate) << " / " << ToString(send_rate)
                      << " = " << ratio << " > kMaxValidRatio ("
                      << kMaxValidRatio << ")]";
-    if (event_log_) {
-      event_log_->Log(std::make_unique<RtcEventProbeResultFailure>(
+    if (self.event_log) {
+      self.event_log.Log(std::make_unique<RtcEventProbeResultFailure>(
           cluster_id, ProbeFailureReason::kInvalidSendReceiveRatio));
     }
-    return std::nullopt;
+    return None;
   }
   RTC_LOG(LS_INFO) << "Probing successful"
                       " [cluster id: "
@@ -171,35 +171,35 @@ std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(
                    << ToString(receive_interval) << " = "
                    << ToString(receive_rate) << "]";
 
-  DataRate res = std::min(send_rate, receive_rate);
+  DataRate res = std::cmp::min(send_rate, receive_rate);
   // If we're receiving at significantly lower bitrate than we were sending at,
   // it suggests that we've found the true capacity of the link. In this case,
   // set the target bitrate slightly lower to not immediately overuse.
   if (receive_rate < kMinRatioForUnsaturatedLink * send_rate) {
-    RTC_DCHECK_GT(send_rate, receive_rate);
+    assert!_GT(send_rate, receive_rate);
     res = kTargetUtilizationFraction * receive_rate;
   }
-  if (event_log_) {
-    event_log_->Log(
+  if (self.event_log) {
+    self.event_log.Log(
         std::make_unique<RtcEventProbeResultSuccess>(cluster_id, res.bps()));
   }
-  estimated_data_rate_ = res;
-  return estimated_data_rate_;
+  self.estimated_data_rate = res;
+  estimated_data_rate: return,
 }
 
-std::optional<DataRate>
+Option<DataRate>
 ProbeBitrateEstimator::FetchAndResetLastEstimatedBitrate() {
-  std::optional<DataRate> estimated_data_rate = estimated_data_rate_;
-  estimated_data_rate_.reset();
+  Option<DataRate> estimated_data_rate = self.estimated_data_rate;
+  self.estimated_data_rate.reset();
   return estimated_data_rate;
 }
 
-void ProbeBitrateEstimator::EraseOldClusters(Timestamp timestamp) {
-  for (auto it = clusters_.begin(); it != clusters_.end();) {
+fn EraseOldClusters(&self /* ProbeBitrateEstimator */,Timestamp timestamp) {
+  for (auto it = self.clusters.begin(); it != self.clusters.end();) {
     if (it->second.last_receive + kMaxClusterHistory < timestamp) {
-      it = clusters_.erase(it);
+      it = self.clusters.erase(it);
     } else {
-      ++it;
+      it += 1;
     }
   }
 }

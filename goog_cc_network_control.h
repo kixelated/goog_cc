@@ -37,14 +37,18 @@
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/experiments/rate_control_settings.h"
 
-namespace webrtc {
+
 struct GoogCcConfig {
   std::unique_ptr<NetworkStateEstimator> network_state_estimator = nullptr;
   std::unique_ptr<NetworkStatePredictor> network_state_predictor = nullptr;
   bool feedback_only = false;
 };
 
-class GoogCcNetworkController : public NetworkControllerInterface {
+impl NetworkControllerInterface for GoogCcNetworkController {
+
+}
+
+pub struct GoogCcNetworkController {
  public:
   GoogCcNetworkController(NetworkControllerConfig config,
                           GoogCcConfig goog_cc_config);
@@ -76,71 +80,73 @@ class GoogCcNetworkController : public NetworkControllerInterface {
 
  private:
   friend class GoogCcStatePrinter;
-  std::vector<ProbeClusterConfig> ResetConstraints(
+  Vec<ProbeClusterConfig> ResetConstraints(
       TargetRateConstraints new_constraints);
   void ClampConstraints();
   void MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update,
                                     Timestamp at_time);
-  void UpdateCongestionWindowSize();
+  void UpdateCongestionWindowlen();
   PacerConfig GetPacingRates(Timestamp at_time) const;
-  void SetNetworkStateEstimate(std::optional<NetworkStateEstimate> estimate);
+  fn SetNetworkStateEstimate(Option<NetworkStateEstimate> estimate) {
+  todo!();
+}
 
-  const Environment env_;
-  const bool packet_feedback_only_;
-  FieldTrialFlag safe_reset_on_route_change_;
-  FieldTrialFlag safe_reset_acknowledged_rate_;
-  const bool use_min_allocatable_as_lower_bound_;
-  const bool ignore_probes_lower_than_network_estimate_;
-  const bool limit_probes_lower_than_throughput_estimate_;
-  const RateControlSettings rate_control_settings_;
-  const bool pace_at_max_of_bwe_and_lower_link_capacity_;
-  const bool limit_pacingfactor_by_upper_link_capacity_estimate_;
+  const Environment self.env;
+  const bool self.packet_feedback_only;
+  safe_reset_on_route_change: FieldTrialFlag,
+  safe_reset_acknowledged_rate: FieldTrialFlag,
+  const bool self.use_min_allocatable_as_lower_bound;
+  const bool self.ignore_probes_lower_than_network_estimate;
+  const bool self.limit_probes_lower_than_throughput_estimate;
+  const RateControlSettings self.rate_control_settings;
+  const bool self.pace_at_max_of_bwe_and_lower_link_capacity;
+  const bool self.limit_pacingfactor_by_upper_link_capacity_estimate;
 
-  const std::unique_ptr<ProbeController> probe_controller_;
+  const std::unique_ptr<ProbeController> self.probe_controller;
   const std::unique_ptr<CongestionWindowPushbackController>
-      congestion_window_pushback_controller_;
+      self.congestion_window_pushback_controller;
 
-  std::unique_ptr<SendSideBandwidthEstimation> bandwidth_estimation_;
-  std::unique_ptr<AlrDetector> alr_detector_;
-  std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
-  std::unique_ptr<NetworkStateEstimator> network_estimator_;
-  std::unique_ptr<NetworkStatePredictor> network_state_predictor_;
-  std::unique_ptr<DelayBasedBwe> delay_based_bwe_;
+  bandwidth_estimation: std::unique_ptr<SendSideBandwidthEstimation>,
+  alr_detector: std::unique_ptr<AlrDetector>,
+  probe_bitrate_estimator: std::unique_ptr<ProbeBitrateEstimator>,
+  network_estimator: std::unique_ptr<NetworkStateEstimator>,
+  network_state_predictor: std::unique_ptr<NetworkStatePredictor>,
+  delay_based_bwe: std::unique_ptr<DelayBasedBwe>,
   std::unique_ptr<AcknowledgedBitrateEstimatorInterface>
-      acknowledged_bitrate_estimator_;
+      self.acknowledged_bitrate_estimator;
 
-  std::optional<NetworkControllerConfig> initial_config_;
+  initial_config: Option<NetworkControllerConfig>,
 
-  DataRate min_target_rate_ = DataRate::Zero();
-  DataRate min_data_rate_ = DataRate::Zero();
-  DataRate max_data_rate_ = DataRate::PlusInfinity();
-  std::optional<DataRate> starting_rate_;
+  DataRate self.min_target_rate = DataRate::Zero();
+  DataRate self.min_data_rate = DataRate::Zero();
+  DataRate self.max_data_rate = DataRate::PlusInfinity();
+  starting_rate: Option<DataRate>,
 
-  bool first_packet_sent_ = false;
+  bool self.first_packet_sent = false;
 
-  std::optional<NetworkStateEstimate> estimate_;
+  estimate: Option<NetworkStateEstimate>,
 
-  Timestamp next_loss_update_ = Timestamp::MinusInfinity();
-  int lost_packets_since_last_loss_update_ = 0;
-  int expected_packets_since_last_loss_update_ = 0;
+  Timestamp self.next_loss_update = Timestamp::MinusInfinity();
+  int self.lost_packets_since_last_loss_update = 0;
+  int self.expected_packets_since_last_loss_update = 0;
 
-  std::deque<int64_t> feedback_max_rtts_;
+  feedback_max_rtts: VecDeque<i64>,
 
-  DataRate last_loss_based_target_rate_;
-  DataRate last_pushback_target_rate_;
-  DataRate last_stable_target_rate_;
-  LossBasedState last_loss_base_state_;
+  last_loss_based_target_rate: DataRate,
+  last_pushback_target_rate: DataRate,
+  last_stable_target_rate: DataRate,
+  last_loss_base_state: LossBasedState,
 
-  std::optional<uint8_t> last_estimated_fraction_loss_ = 0;
-  TimeDelta last_estimated_round_trip_time_ = TimeDelta::PlusInfinity();
+  Option<uint8_t> self.last_estimated_fraction_loss = 0;
+  TimeDelta self.last_estimated_round_trip_time = TimeDelta::PlusInfinity();
 
-  double pacing_factor_;
-  DataRate min_total_allocated_bitrate_;
-  DataRate max_padding_rate_;
+  pacing_factor: f64,
+  min_total_allocated_bitrate: DataRate,
+  max_padding_rate: DataRate,
 
-  bool previously_in_alr_ = false;
+  bool self.previously_in_alr = false;
 
-  std::optional<DataSize> current_data_window_;
+  current_data_window: Option<DataSize>,
 };
 
 }  // namespace webrtc

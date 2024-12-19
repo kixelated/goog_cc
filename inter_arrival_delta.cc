@@ -18,7 +18,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
-namespace webrtc {
+
 
 static constexpr TimeDelta kBurstDeltaThreshold = TimeDelta::Millis(5);
 static constexpr TimeDelta kMaxBurstDuration = TimeDelta::Millis(100);
@@ -30,33 +30,33 @@ InterArrivalDelta::InterArrivalDelta(TimeDelta send_time_group_length)
       prev_timestamp_group_(),
       num_consecutive_reordered_packets_(0) {}
 
-bool InterArrivalDelta::ComputeDeltas(Timestamp send_time,
+bool ComputeDeltas(&self /* InterArrivalDelta */,Timestamp send_time,
                                       Timestamp arrival_time,
                                       Timestamp system_time,
-                                      size_t packet_size,
+                                      usize packet_size,
                                       TimeDelta* send_time_delta,
                                       TimeDelta* arrival_time_delta,
                                       int* packet_size_delta) {
   bool calculated_deltas = false;
-  if (current_timestamp_group_.IsFirstPacket()) {
+  if (self.current_timestamp_group.IsFirstPacket()) {
     // We don't have enough data to update the filter, so we store it until we
     // have two frames of data to process.
-    current_timestamp_group_.send_time = send_time;
-    current_timestamp_group_.first_send_time = send_time;
-    current_timestamp_group_.first_arrival = arrival_time;
-  } else if (current_timestamp_group_.first_send_time > send_time) {
+    self.current_timestamp_group.send_time = send_time;
+    self.current_timestamp_group.first_send_time = send_time;
+    self.current_timestamp_group.first_arrival = arrival_time;
+  } else if (self.current_timestamp_group.first_send_time > send_time) {
     // Reordered packet.
     return false;
   } else if (NewTimestampGroup(arrival_time, send_time)) {
     // First packet of a later send burst, the previous packets sample is ready.
-    if (prev_timestamp_group_.complete_time.IsFinite()) {
+    if (self.prev_timestamp_group.complete_time.IsFinite()) {
       *send_time_delta =
-          current_timestamp_group_.send_time - prev_timestamp_group_.send_time;
-      *arrival_time_delta = current_timestamp_group_.complete_time -
-                            prev_timestamp_group_.complete_time;
+          self.current_timestamp_group.send_time - self.prev_timestamp_group.send_time;
+      *arrival_time_delta = self.current_timestamp_group.complete_time -
+                            self.prev_timestamp_group.complete_time;
 
-      TimeDelta system_time_delta = current_timestamp_group_.last_system_time -
-                                    prev_timestamp_group_.last_system_time;
+      TimeDelta system_time_delta = self.current_timestamp_group.last_system_time -
+                                    self.prev_timestamp_group.last_system_time;
 
       if (*arrival_time_delta - system_time_delta >=
           kArrivalTimeOffsetThreshold) {
@@ -70,8 +70,8 @@ bool InterArrivalDelta::ComputeDeltas(Timestamp send_time,
       if (*arrival_time_delta < TimeDelta::Zero()) {
         // The group of packets has been reordered since receiving its local
         // arrival timestamp.
-        ++num_consecutive_reordered_packets_;
-        if (num_consecutive_reordered_packets_ >= kReorderedResetThreshold) {
+        self.num_consecutive_reordered_packets += 1;
+        if (self.num_consecutive_reordered_packets >= kReorderedResetThreshold) {
           RTC_LOG(LS_WARNING)
               << "Packets between send burst arrived out of order, resetting:"
               << " arrival_time_delta_ms=" << arrival_time_delta->ms()
@@ -80,63 +80,63 @@ bool InterArrivalDelta::ComputeDeltas(Timestamp send_time,
         }
         return false;
       } else {
-        num_consecutive_reordered_packets_ = 0;
+        self.num_consecutive_reordered_packets = 0;
       }
-      *packet_size_delta = static_cast<int>(current_timestamp_group_.size) -
-                           static_cast<int>(prev_timestamp_group_.size);
+      *packet_size_delta = static_cast<int>(self.current_timestamp_group.size) -
+                           static_cast<int>(self.prev_timestamp_group.size);
       calculated_deltas = true;
     }
-    prev_timestamp_group_ = current_timestamp_group_;
+    self.prev_timestamp_group = self.current_timestamp_group;
     // The new timestamp is now the current frame.
-    current_timestamp_group_.first_send_time = send_time;
-    current_timestamp_group_.send_time = send_time;
-    current_timestamp_group_.first_arrival = arrival_time;
-    current_timestamp_group_.size = 0;
+    self.current_timestamp_group.first_send_time = send_time;
+    self.current_timestamp_group.send_time = send_time;
+    self.current_timestamp_group.first_arrival = arrival_time;
+    self.current_timestamp_group.size = 0;
   } else {
-    current_timestamp_group_.send_time =
-        std::max(current_timestamp_group_.send_time, send_time);
+    self.current_timestamp_group.send_time =
+        std::cmp::max(self.current_timestamp_group.send_time, send_time);
   }
   // Accumulate the frame size.
-  current_timestamp_group_.size += packet_size;
-  current_timestamp_group_.complete_time = arrival_time;
-  current_timestamp_group_.last_system_time = system_time;
+  self.current_timestamp_group.size += packet_size;
+  self.current_timestamp_group.complete_time = arrival_time;
+  self.current_timestamp_group.last_system_time = system_time;
 
   return calculated_deltas;
 }
 
 // Assumes that `timestamp` is not reordered compared to
 // `current_timestamp_group_`.
-bool InterArrivalDelta::NewTimestampGroup(Timestamp arrival_time,
-                                          Timestamp send_time) const {
-  if (current_timestamp_group_.IsFirstPacket()) {
+bool NewTimestampGroup(&self /* InterArrivalDelta */,Timestamp arrival_time,
+                                          Timestamp send_time) {
+  if (self.current_timestamp_group.IsFirstPacket()) {
     return false;
   } else if (BelongsToBurst(arrival_time, send_time)) {
     return false;
   } else {
-    return send_time - current_timestamp_group_.first_send_time >
-           send_time_group_length_;
+    return send_time - self.current_timestamp_group.first_send_time >
+           self.send_time_group_length;
   }
 }
 
-bool InterArrivalDelta::BelongsToBurst(Timestamp arrival_time,
-                                       Timestamp send_time) const {
-  RTC_DCHECK(current_timestamp_group_.complete_time.IsFinite());
+bool BelongsToBurst(&self /* InterArrivalDelta */,Timestamp arrival_time,
+                                       Timestamp send_time) {
+  assert!(self.current_timestamp_group.complete_time.IsFinite());
   TimeDelta arrival_time_delta =
-      arrival_time - current_timestamp_group_.complete_time;
-  TimeDelta send_time_delta = send_time - current_timestamp_group_.send_time;
+      arrival_time - self.current_timestamp_group.complete_time;
+  TimeDelta send_time_delta = send_time - self.current_timestamp_group.send_time;
   if (send_time_delta.IsZero())
     return true;
   TimeDelta propagation_delta = arrival_time_delta - send_time_delta;
   if (propagation_delta < TimeDelta::Zero() &&
       arrival_time_delta <= kBurstDeltaThreshold &&
-      arrival_time - current_timestamp_group_.first_arrival < kMaxBurstDuration)
+      arrival_time - self.current_timestamp_group.first_arrival < kMaxBurstDuration)
     return true;
   return false;
 }
 
-void InterArrivalDelta::Reset() {
-  num_consecutive_reordered_packets_ = 0;
-  current_timestamp_group_ = SendTimeGroup();
-  prev_timestamp_group_ = SendTimeGroup();
+fn Reset(&self /* InterArrivalDelta */) {
+  self.num_consecutive_reordered_packets = 0;
+  self.current_timestamp_group = SendTimeGroup();
+  self.prev_timestamp_group = SendTimeGroup();
 }
 }  // namespace webrtc

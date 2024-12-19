@@ -22,53 +22,63 @@
 #include "api/units/timestamp.h"
 #include "modules/congestion_controller/goog_cc/goog_cc_network_control.h"
 
-namespace webrtc {
 
-class FieldLogger {
+
+pub struct FieldLogger {
  public:
   virtual ~FieldLogger() = default;
   virtual const std::string& name() const = 0;
   virtual void WriteValue(RtcEventLogOutput* out) = 0;
 };
 
-class GoogCcStatePrinter {
+pub struct GoogCcStatePrinter {
  public:
   GoogCcStatePrinter();
   GoogCcStatePrinter(const GoogCcStatePrinter&) = delete;
   GoogCcStatePrinter& operator=(const GoogCcStatePrinter&) = delete;
   ~GoogCcStatePrinter();
 
-  void PrintHeaders(RtcEventLogOutput* log);
+  fn PrintHeaders(RtcEventLogOutput* log) {
+  todo!();
+}
   void PrintState(RtcEventLogOutput* log,
                   GoogCcNetworkController* controller,
                   Timestamp at_time);
 
  private:
-  std::deque<FieldLogger*> CreateLoggers();
-  std::deque<std::unique_ptr<FieldLogger>> loggers_;
+  VecDeque<FieldLogger*> CreateLoggers();
+  loggers: VecDeque<std::unique_ptr<FieldLogger>>,
 
-  GoogCcNetworkController* controller_ = nullptr;
-  TargetTransferRate target_;
-  PacerConfig pacing_;
-  DataSize congestion_window_ = DataSize::PlusInfinity();
-  NetworkStateEstimate est_;
+  GoogCcNetworkController* self.controller = nullptr;
+  target: TargetTransferRate,
+  pacing: PacerConfig,
+  DataSize self.congestion_window = DataSize::PlusInfinity();
+  est: NetworkStateEstimate,
 };
 
-class GoogCcDebugFactory : public GoogCcNetworkControllerFactory {
+impl GoogCcNetworkControllerFactory for GoogCcDebugFactory {
+
+}
+
+pub struct GoogCcDebugFactory {
  public:
   GoogCcDebugFactory();
   explicit GoogCcDebugFactory(GoogCcFactoryConfig config);
   std::unique_ptr<NetworkControllerInterface> Create(
       NetworkControllerConfig config) override;
 
-  void PrintState(Timestamp at_time);
+  fn PrintState(Timestamp at_time) {
+  todo!();
+}
 
-  void AttachWriter(std::unique_ptr<RtcEventLogOutput> log_writer);
+  fn AttachWriter(std::unique_ptr<RtcEventLogOutput> log_writer) {
+  todo!();
+}
 
  private:
-  GoogCcStatePrinter printer_;
-  GoogCcNetworkController* controller_ = nullptr;
-  std::unique_ptr<RtcEventLogOutput> log_writer_;
+  printer: GoogCcStatePrinter,
+  GoogCcNetworkController* self.controller = nullptr;
+  log_writer: std::unique_ptr<RtcEventLogOutput>,
 };
 }  // namespace webrtc
 

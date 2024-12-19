@@ -23,12 +23,12 @@
 #include "rtc_base/experiments/struct_parameters_parser.h"
 #include "rtc_base/time_utils.h"
 
-namespace webrtc {
+
 
 namespace {
-AlrDetectorConfig GetConfigFromTrials(const FieldTrialsView* key_value_config) {
+fn GetConfigFromTrials(const FieldTrialsView* key_value_config) -> AlrDetectorConfig {
   RTC_CHECK(AlrExperimentSettings::MaxOneFieldTrialEnabled(*key_value_config));
-  std::optional<AlrExperimentSettings> experiment_settings =
+  Option<AlrExperimentSettings> experiment_settings =
       AlrExperimentSettings::CreateFromFieldTrial(
           *key_value_config,
           AlrExperimentSettings::kScreenshareProbingBweExperimentName);
@@ -52,7 +52,7 @@ AlrDetectorConfig GetConfigFromTrials(const FieldTrialsView* key_value_config) {
 }
 }  //  namespace
 
-std::unique_ptr<StructParametersParser> AlrDetectorConfig::Parser() {
+std::unique_ptr<StructParametersParser> Parser(&self /* AlrDetectorConfig */) {
   return StructParametersParser::Create(   //
       "bw_usage", &bandwidth_usage_ratio,  //
       "start", &start_budget_level_ratio,  //
@@ -70,44 +70,44 @@ AlrDetector::AlrDetector(const FieldTrialsView* key_value_config,
     : AlrDetector(GetConfigFromTrials(key_value_config), event_log) {}
 AlrDetector::~AlrDetector() {}
 
-void AlrDetector::OnBytesSent(size_t bytes_sent, int64_t send_time_ms) {
-  if (!last_send_time_ms_.has_value()) {
-    last_send_time_ms_ = send_time_ms;
+fn OnBytesSent(&self /* AlrDetector */,usize bytes_sent, i64 send_time_ms) {
+  if (!self.last_send_time_ms.is_some()) {
+    self.last_send_time_ms = send_time_ms;
     // Since the duration for sending the bytes is unknwon, return without
     // updating alr state.
     return;
   }
-  int64_t delta_time_ms = send_time_ms - *last_send_time_ms_;
-  last_send_time_ms_ = send_time_ms;
+  i64 delta_time_ms = send_time_ms - *self.last_send_time_ms;
+  self.last_send_time_ms = send_time_ms;
 
-  alr_budget_.UseBudget(bytes_sent);
-  alr_budget_.IncreaseBudget(delta_time_ms);
+  self.alr_budget.UseBudget(bytes_sent);
+  self.alr_budget.IncreaseBudget(delta_time_ms);
   bool state_changed = false;
-  if (alr_budget_.budget_ratio() > conf_.start_budget_level_ratio &&
-      !alr_started_time_ms_) {
-    alr_started_time_ms_.emplace(rtc::TimeMillis());
+  if (self.alr_budget.budget_ratio() > self.conf.start_budget_level_ratio &&
+      !self.alr_started_time_ms) {
+    self.alr_started_time_ms.emplace(rtc::TimeMillis());
     state_changed = true;
-  } else if (alr_budget_.budget_ratio() < conf_.stop_budget_level_ratio &&
-             alr_started_time_ms_) {
+  } else if (self.alr_budget.budget_ratio() < self.conf.stop_budget_level_ratio &&
+             self.alr_started_time_ms) {
     state_changed = true;
-    alr_started_time_ms_.reset();
+    self.alr_started_time_ms.reset();
   }
-  if (event_log_ && state_changed) {
-    event_log_->Log(
-        std::make_unique<RtcEventAlrState>(alr_started_time_ms_.has_value()));
+  if (self.event_log && state_changed) {
+    self.event_log.Log(
+        std::make_unique<RtcEventAlrState>(self.alr_started_time_ms.is_some()));
   }
 }
 
-void AlrDetector::SetEstimatedBitrate(int bitrate_bps) {
-  RTC_DCHECK(bitrate_bps);
+fn SetEstimatedBitrate(&self /* AlrDetector */,int bitrate_bps) {
+  assert!(bitrate_bps);
   int target_rate_kbps =
-      static_cast<double>(bitrate_bps) * conf_.bandwidth_usage_ratio / 1000;
-  alr_budget_.set_target_rate_kbps(target_rate_kbps);
+      static_cast<f64>(bitrate_bps) * self.conf.bandwidth_usage_ratio / 1000;
+  self.alr_budget.set_target_rate_kbps(target_rate_kbps);
 }
 
-std::optional<int64_t> AlrDetector::GetApplicationLimitedRegionStartTime()
-    const {
-  return alr_started_time_ms_;
+Option<i64> GetApplicationLimitedRegionStartTime(&self /* AlrDetector */)
+    {
+  return self.alr_started_time_ms;
 }
 
 }  // namespace webrtc

@@ -23,7 +23,7 @@
 #include "test/explicit_key_value_config.h"
 #include "test/gtest.h"
 
-namespace webrtc {
+
 
 namespace {
 
@@ -31,12 +31,12 @@ using ::webrtc::test::ExplicitKeyValueConfig;
 
 constexpr TimeDelta kObservationDurationLowerBound = TimeDelta::Millis(250);
 constexpr TimeDelta kDelayedIncreaseWindow = TimeDelta::Millis(300);
-constexpr double kMaxIncreaseFactor = 1.5;
+const kMaxIncreaseFactor: f64 = 1.5;
 constexpr int kPacketSize = 15'000;
 
 class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
  protected:
-  std::string Config(bool enabled, bool valid) {
+fn Config(bool enabled, bool valid) -> std::string {
     char buffer[1024];
     rtc::SimpleStringBuilder config_string(buffer);
 
@@ -77,7 +77,7 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
     return config_string.str();
   }
 
-  std::string ShortObservationConfig(std::string custom_config) {
+fn ShortObservationConfig(std::string custom_config) -> std::string {
     char buffer[1024];
     rtc::SimpleStringBuilder config_string(buffer);
 
@@ -89,13 +89,13 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
     return config_string.str();
   }
 
-  std::vector<PacketResult> CreatePacketResultsWithReceivedPackets(
+  Vec<PacketResult> CreatePacketResultsWithReceivedPackets(
       Timestamp first_packet_timestamp) {
-    std::vector<PacketResult> enough_feedback(2);
+    let enough_feedback = vec![PacketResult::default(); 2];
     enough_feedback[0].sent_packet.sequence_number =
-        transport_sequence_number_++;
+        self.transport_sequence_number += 1;
     enough_feedback[1].sent_packet.sequence_number =
-        transport_sequence_number_++;
+        self.transport_sequence_number += 1;
     enough_feedback[0].sent_packet.size = DataSize::Bytes(kPacketSize);
     enough_feedback[1].sent_packet.size = DataSize::Bytes(kPacketSize);
     enough_feedback[0].sent_packet.send_time = first_packet_timestamp;
@@ -108,13 +108,13 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
     return enough_feedback;
   }
 
-  std::vector<PacketResult> CreatePacketResultsWith10pPacketLossRate(
+  Vec<PacketResult> CreatePacketResultsWith10pPacketLossRate(
       Timestamp first_packet_timestamp,
       DataSize lost_packet_size = DataSize::Bytes(kPacketSize)) {
-    std::vector<PacketResult> enough_feedback(10);
-    for (unsigned i = 0; i < enough_feedback.size(); ++i) {
+    let enough_feedback = vec![PacketResult::default(); 10];
+    for (unsigned i = 0; i < enough_feedback.len()i += 1) {
       enough_feedback[i].sent_packet.sequence_number =
-          transport_sequence_number_++;
+          self.transport_sequence_number += 1;
       enough_feedback[i].sent_packet.size = DataSize::Bytes(kPacketSize);
       enough_feedback[i].sent_packet.send_time =
           first_packet_timestamp +
@@ -128,13 +128,13 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
     return enough_feedback;
   }
 
-  std::vector<PacketResult> CreatePacketResultsWith50pPacketLossRate(
+  Vec<PacketResult> CreatePacketResultsWith50pPacketLossRate(
       Timestamp first_packet_timestamp) {
-    std::vector<PacketResult> enough_feedback(2);
+    let enough_feedback = vec![PacketResult::default(); 2];
     enough_feedback[0].sent_packet.sequence_number =
-        transport_sequence_number_++;
+        self.transport_sequence_number += 1;
     enough_feedback[1].sent_packet.sequence_number =
-        transport_sequence_number_++;
+        self.transport_sequence_number += 1;
     enough_feedback[0].sent_packet.size = DataSize::Bytes(kPacketSize);
     enough_feedback[1].sent_packet.size = DataSize::Bytes(kPacketSize);
     enough_feedback[0].sent_packet.send_time = first_packet_timestamp;
@@ -146,19 +146,19 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
     return enough_feedback;
   }
 
-  std::vector<PacketResult> CreatePacketResultsWith100pLossRate(
+  Vec<PacketResult> CreatePacketResultsWith100pLossRate(
       Timestamp first_packet_timestamp, unsigned num_packets = 2) {
-    std::vector<PacketResult> enough_feedback(num_packets);
-    for (unsigned i = 0; i < num_packets - 1; ++i) {
+    Vec<PacketResult> enough_feedback(num_packets);
+    for (unsigned i = 0; i < num_packets - 1i += 1) {
       enough_feedback[i].sent_packet.sequence_number =
-          transport_sequence_number_++;
+          self.transport_sequence_number += 1;
       enough_feedback[i].sent_packet.size = DataSize::Bytes(kPacketSize);
       enough_feedback[i].sent_packet.send_time =
           first_packet_timestamp + TimeDelta::Millis(i * 10);
       enough_feedback[i].receive_time = Timestamp::PlusInfinity();
     }
     enough_feedback[num_packets - 1].sent_packet.sequence_number =
-        transport_sequence_number_++;
+        self.transport_sequence_number += 1;
     enough_feedback[num_packets - 1].sent_packet.size =
         DataSize::Bytes(kPacketSize);
     enough_feedback[num_packets - 1].sent_packet.send_time =
@@ -168,7 +168,7 @@ class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
   }
 
  private:
-  int64_t transport_sequence_number_ = 0;
+  i64 self.transport_sequence_number = 0;
 };
 
 TEST_F(LossBasedBweV2Test, EnabledWhenGivenValidConfigurationValues) {
@@ -250,7 +250,7 @@ TEST_F(LossBasedBweV2Test,
 
 TEST_F(LossBasedBweV2Test,
        BandwidthEstimateGivenInitializationAndThenFeedback) {
-  std::vector<PacketResult> enough_feedback =
+  Vec<PacketResult> enough_feedback =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
 
@@ -271,7 +271,7 @@ TEST_F(LossBasedBweV2Test,
 }
 
 TEST_F(LossBasedBweV2Test, NoBandwidthEstimateGivenNoInitialization) {
-  std::vector<PacketResult> enough_feedback =
+  Vec<PacketResult> enough_feedback =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
   ExplicitKeyValueConfig key_value_config(
@@ -325,10 +325,10 @@ TEST_F(LossBasedBweV2Test, NoBandwidthEstimateGivenNotEnoughFeedback) {
 
 TEST_F(LossBasedBweV2Test,
        SetValueIsTheEstimateUntilAdditionalFeedbackHasBeenReceived) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           2 * kObservationDurationLowerBound);
@@ -367,10 +367,10 @@ TEST_F(LossBasedBweV2Test,
 
 TEST_F(LossBasedBweV2Test,
        SetAcknowledgedBitrateOnlyAffectsTheBweWhenAdditionalFeedbackIsGiven) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           2 * kObservationDurationLowerBound);
@@ -420,7 +420,7 @@ TEST_F(LossBasedBweV2Test,
 
 TEST_F(LossBasedBweV2Test,
        BandwidthEstimateIsCappedToBeTcpFairGivenTooHighLossRate) {
-  std::vector<PacketResult> enough_feedback_no_received_packets =
+  Vec<PacketResult> enough_feedback_no_received_packets =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
 
@@ -446,10 +446,10 @@ TEST_F(LossBasedBweV2Test,
        BandwidthEstimateCappedByDelayBasedEstimateWhenNetworkNormal) {
   // Create two packet results, network is in normal state, 100% packets are
   // received, and no delay increase.
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           2 * kObservationDurationLowerBound);
@@ -484,10 +484,10 @@ TEST_F(LossBasedBweV2Test,
 TEST_F(LossBasedBweV2Test, UseAckedBitrateForEmegencyBackOff) {
   // Create two packet results, first packet has 50% loss rate, second packet
   // has 100% loss rate.
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           2 * kObservationDurationLowerBound);
@@ -518,7 +518,7 @@ TEST_F(LossBasedBweV2Test, UseAckedBitrateForEmegencyBackOff) {
 // When receiving the same packet feedback, loss based bwe ignores the feedback
 // and returns the current estimate.
 TEST_F(LossBasedBweV2Test, NoBweChangeIfObservationDurationUnchanged) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
   ExplicitKeyValueConfig key_value_config(
@@ -551,10 +551,10 @@ TEST_F(LossBasedBweV2Test, NoBweChangeIfObservationDurationUnchanged) {
 // current estimate.
 TEST_F(LossBasedBweV2Test,
        NoBweChangeIfObservationDurationIsSmallAndNetworkNormal) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound - TimeDelta::Millis(1));
@@ -584,10 +584,10 @@ TEST_F(LossBasedBweV2Test,
 // current estimate.
 TEST_F(LossBasedBweV2Test,
        NoBweIncreaseIfObservationDurationIsSmallAndNetworkUnderusing) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound - TimeDelta::Millis(1));
@@ -613,10 +613,10 @@ TEST_F(LossBasedBweV2Test,
 
 TEST_F(LossBasedBweV2Test,
        IncreaseToDelayBasedEstimateIfNoLossOrDelayIncrease) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           2 * kObservationDurationLowerBound);
@@ -657,7 +657,7 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(acked_rate);
 
   // Create some loss to create the loss limited scenario.
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_1,
@@ -667,7 +667,7 @@ TEST_F(LossBasedBweV2Test,
       loss_based_bandwidth_estimator.GetLossBasedResult();
 
   // Network recovers after loss.
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound);
@@ -698,7 +698,7 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(acked_rate);
 
   // Create some loss to create the loss limited scenario.
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_1,
@@ -708,7 +708,7 @@ TEST_F(LossBasedBweV2Test,
             LossBasedState::kDecreasing);
 
   // Network recovers after loss.
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound);
@@ -721,7 +721,7 @@ TEST_F(LossBasedBweV2Test,
             LossBasedState::kDelayBasedEstimate);
 
   // Network recovers continuing.
-  std::vector<PacketResult> enough_feedback_3 =
+  Vec<PacketResult> enough_feedback_3 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound * 2);
@@ -745,7 +745,7 @@ TEST_F(LossBasedBweV2Test,
       DataRate::KilobitsPerSec(600));
 
   // Create some loss to create the loss limited scenario.
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -756,7 +756,7 @@ TEST_F(LossBasedBweV2Test,
             LossBasedState::kDecreasing);
 
   // Network recovers after loss.
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound);
@@ -779,7 +779,7 @@ TEST_F(LossBasedBweV2Test,
       "BwRampupUpperBoundFactor:1.2,"
       // Set InstantUpperBoundBwBalance high to disable InstantUpperBound cap.
       "InstantUpperBoundBwBalance:10000kbps,"));
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -838,7 +838,7 @@ TEST_F(LossBasedBweV2Test, EnsureIncreaseEvenIfAckedBitrateBound) {
       "BwRampupUpperBoundFactor:1.2,"
       // Set InstantUpperBoundBwBalance high to disable InstantUpperBound cap.
       "InstantUpperBoundBwBalance:10000kbps,"));
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -881,14 +881,14 @@ TEST_F(LossBasedBweV2Test, EnsureIncreaseEvenIfAckedBitrateBound) {
 // window.
 TEST_F(LossBasedBweV2Test,
        EstimateBitrateIsBoundedDuringDelayedWindowAfterLossBasedBweBacksOff) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kDelayedIncreaseWindow - TimeDelta::Millis(2));
-  std::vector<PacketResult> enough_feedback_3 =
+  Vec<PacketResult> enough_feedback_3 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kDelayedIncreaseWindow - TimeDelta::Millis(1));
@@ -929,14 +929,14 @@ TEST_F(LossBasedBweV2Test,
 
 // The estimate is not bounded after the delayed increase window.
 TEST_F(LossBasedBweV2Test, KeepIncreasingEstimateAfterDelayedIncreaseWindow) {
-  std::vector<PacketResult> enough_feedback_1 =
+  Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
-  std::vector<PacketResult> enough_feedback_2 =
+  Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kDelayedIncreaseWindow - TimeDelta::Millis(1));
-  std::vector<PacketResult> enough_feedback_3 =
+  Vec<PacketResult> enough_feedback_3 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kDelayedIncreaseWindow + TimeDelta::Millis(1));
@@ -983,7 +983,7 @@ TEST_F(LossBasedBweV2Test, NotIncreaseIfInherentLossLessThanAverageLoss) {
   loss_based_bandwidth_estimator.SetBandwidthEstimate(
       DataRate::KilobitsPerSec(600));
 
-  std::vector<PacketResult> enough_feedback_10p_loss_1 =
+  Vec<PacketResult> enough_feedback_10p_loss_1 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -991,7 +991,7 @@ TEST_F(LossBasedBweV2Test, NotIncreaseIfInherentLossLessThanAverageLoss) {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
 
-  std::vector<PacketResult> enough_feedback_10p_loss_2 =
+  Vec<PacketResult> enough_feedback_10p_loss_2 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound);
@@ -1017,7 +1017,7 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.SetBandwidthEstimate(
       DataRate::KilobitsPerSec(600));
 
-  std::vector<PacketResult> enough_feedback_10p_loss_1 =
+  Vec<PacketResult> enough_feedback_10p_loss_1 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1025,7 +1025,7 @@ TEST_F(LossBasedBweV2Test,
 
       /*in_alr=*/false);
 
-  std::vector<PacketResult> enough_feedback_10p_loss_2 =
+  Vec<PacketResult> enough_feedback_10p_loss_2 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound);
@@ -1051,7 +1051,7 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.SetBandwidthEstimate(
       DataRate::KilobitsPerSec(600));
 
-  std::vector<PacketResult> enough_feedback_10p_loss_1 =
+  Vec<PacketResult> enough_feedback_10p_loss_1 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1059,7 +1059,7 @@ TEST_F(LossBasedBweV2Test,
 
       /*in_alr=*/false);
 
-  std::vector<PacketResult> enough_feedback_10p_loss_2 =
+  Vec<PacketResult> enough_feedback_10p_loss_2 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound);
@@ -1084,7 +1084,7 @@ TEST_F(LossBasedBweV2Test, EstimateIsNotHigherThanMaxBitrate) {
       /*max_bitrate=*/DataRate::KilobitsPerSec(1000));
   loss_based_bandwidth_estimator.SetBandwidthEstimate(
       DataRate::KilobitsPerSec(1000));
-  std::vector<PacketResult> enough_feedback =
+  Vec<PacketResult> enough_feedback =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1110,7 +1110,7 @@ TEST_F(LossBasedBweV2Test, NotBackOffToAckedRateInAlr) {
 
   DataRate acked_rate = DataRate::KilobitsPerSec(100);
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(acked_rate);
-  std::vector<PacketResult> enough_feedback_100p_loss_1 =
+  Vec<PacketResult> enough_feedback_100p_loss_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1140,7 +1140,7 @@ TEST_F(LossBasedBweV2Test, BackOffToAckedRateIfNotInAlr) {
 
   DataRate acked_rate = DataRate::KilobitsPerSec(100);
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(acked_rate);
-  std::vector<PacketResult> enough_feedback_100p_loss_1 =
+  Vec<PacketResult> enough_feedback_100p_loss_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1167,7 +1167,7 @@ TEST_F(LossBasedBweV2Test, ReadyToUseInStartPhase) {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("UseInStartPhase:true"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
-  std::vector<PacketResult> enough_feedback =
+  Vec<PacketResult> enough_feedback =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
 
@@ -1189,7 +1189,7 @@ TEST_F(LossBasedBweV2Test, BoundEstimateByAckedRate) {
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(500));
 
-  std::vector<PacketResult> enough_feedback_100p_loss_1 =
+  Vec<PacketResult> enough_feedback_100p_loss_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1214,7 +1214,7 @@ TEST_F(LossBasedBweV2Test, NotBoundEstimateByAckedRate) {
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(500));
 
-  std::vector<PacketResult> enough_feedback_100p_loss_1 =
+  Vec<PacketResult> enough_feedback_100p_loss_1 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1239,7 +1239,7 @@ TEST_F(LossBasedBweV2Test, HasDecreaseStateBecauseOfUpperBound) {
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(500));
 
-  std::vector<PacketResult> enough_feedback_10p_loss_1 =
+  Vec<PacketResult> enough_feedback_10p_loss_1 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1269,7 +1269,7 @@ TEST_F(LossBasedBweV2Test, HasIncreaseStateBecauseOfLowerBound) {
       DataRate::KilobitsPerSec(1));
 
   // Network has a high loss to create a loss scenario.
-  std::vector<PacketResult> enough_feedback_50p_loss_1 =
+  Vec<PacketResult> enough_feedback_50p_loss_1 =
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero());
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1283,7 +1283,7 @@ TEST_F(LossBasedBweV2Test, HasIncreaseStateBecauseOfLowerBound) {
   // Network still has a high loss, but better acked rate.
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(200));
-  std::vector<PacketResult> enough_feedback_50p_loss_2 =
+  Vec<PacketResult> enough_feedback_50p_loss_2 =
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
           kObservationDurationLowerBound);
@@ -1319,7 +1319,7 @@ TEST_F(LossBasedBweV2Test,
       loss_based_bandwidth_estimator.GetLossBasedResult();
   ASSERT_EQ(result_after_loss.state, LossBasedState::kDecreasing);
 
-  for (int feedback_count = 1; feedback_count <= 3; ++feedback_count) {
+  for (int feedback_count = 1; feedback_count <= 3feedback_count += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1542,7 +1542,7 @@ TEST_F(LossBasedBweV2Test, DecreaseAfterPadding) {
             LossBasedState::kDecreasing);
   const Timestamp start_decreasing =
       Timestamp::Zero() + kObservationDurationLowerBound * (feedback_id - 1);
-  EXPECT_EQ(start_decreasing - estimate_increased, TimeDelta::Seconds(1));
+  EXPECT_EQ(start_decreasing - estimate_increased, Duration::from_secs(1));
 }
 
 TEST_F(LossBasedBweV2Test, IncreaseEstimateIfNotHold) {
@@ -1630,7 +1630,7 @@ TEST_F(LossBasedBweV2Test, IncreaseEstimateAfterHoldDuration) {
 
   // In the hold duration, e.g. next 3s, the estimate cannot increase above the
   // hold rate. Get some lost packets to get lower estimate than the HOLD rate.
-  for (int i = 4; i <= 6; ++i) {
+  for (int i = 4; i <= 6i += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWith100pLossRate(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1806,7 +1806,7 @@ TEST_F(LossBasedBweV2Test, UseByteLossRateIgnoreLossSpike) {
   loss_based_bandwidth_estimator.SetBandwidthEstimate(kDelayBasedEstimate);
 
   // Fill the observation window.
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 5i += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1855,7 +1855,7 @@ TEST_F(LossBasedBweV2Test, UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst) {
   loss_based_bandwidth_estimator.SetBandwidthEstimate(kDelayBasedEstimate);
 
   // Fill the observation window.
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 5i += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1923,7 +1923,7 @@ TEST_F(LossBasedBweV2Test,
   const DataRate kStartBitrate = DataRate::KilobitsPerSec(2500);
   loss_based_bandwidth_estimator.SetBandwidthEstimate(kStartBitrate);
 
-  std::vector<PacketResult> feedback_1(3);
+  let feedback_1 = vec![PacketResult::default(); 3];
   feedback_1[0].sent_packet.sequence_number = 1;
   feedback_1[0].sent_packet.size = DataSize::Bytes(kPacketSize);
   feedback_1[0].sent_packet.send_time = Timestamp::Zero();
@@ -1941,7 +1941,7 @@ TEST_F(LossBasedBweV2Test,
   feedback_1[2].receive_time =
       feedback_1[2].sent_packet.send_time + TimeDelta::Millis(10);
 
-  std::vector<PacketResult> feedback_2(3);
+  let feedback_2 = vec![PacketResult::default(); 3];
   feedback_2[0].sent_packet.sequence_number = 2;
   feedback_2[0].sent_packet.size = DataSize::Bytes(kPacketSize);
   feedback_2[0].sent_packet.send_time = Timestamp::Zero();

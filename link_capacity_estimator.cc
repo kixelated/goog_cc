@@ -15,65 +15,65 @@
 #include "api/units/data_rate.h"
 #include "rtc_base/numerics/safe_minmax.h"
 
-namespace webrtc {
+
 LinkCapacityEstimator::LinkCapacityEstimator() {}
 
-DataRate LinkCapacityEstimator::UpperBound() const {
-  if (estimate_kbps_.has_value())
-    return DataRate::KilobitsPerSec(estimate_kbps_.value() +
+DataRate UpperBound(&self /* LinkCapacityEstimator */) {
+  if (self.estimate_kbps.is_some())
+    return DataRate::KilobitsPerSec(self.estimate_kbps.value() +
                                     3 * deviation_estimate_kbps());
   return DataRate::Infinity();
 }
 
-DataRate LinkCapacityEstimator::LowerBound() const {
-  if (estimate_kbps_.has_value())
+DataRate LowerBound(&self /* LinkCapacityEstimator */) {
+  if (self.estimate_kbps.is_some())
     return DataRate::KilobitsPerSec(
-        std::max(0.0, estimate_kbps_.value() - 3 * deviation_estimate_kbps()));
+        std::cmp::max(0.0, self.estimate_kbps.value() - 3 * deviation_estimate_kbps()));
   return DataRate::Zero();
 }
 
-void LinkCapacityEstimator::Reset() {
-  estimate_kbps_.reset();
+fn Reset(&self /* LinkCapacityEstimator */) {
+  self.estimate_kbps.reset();
 }
 
-void LinkCapacityEstimator::OnOveruseDetected(DataRate acknowledged_rate) {
+fn OnOveruseDetected(&self /* LinkCapacityEstimator */,DataRate acknowledged_rate) {
   Update(acknowledged_rate, 0.05);
 }
 
-void LinkCapacityEstimator::OnProbeRate(DataRate probe_rate) {
+fn OnProbeRate(&self /* LinkCapacityEstimator */,DataRate probe_rate) {
   Update(probe_rate, 0.5);
 }
 
-void LinkCapacityEstimator::Update(DataRate capacity_sample, double alpha) {
-  double sample_kbps = capacity_sample.kbps();
-  if (!estimate_kbps_.has_value()) {
-    estimate_kbps_ = sample_kbps;
+fn Update(&self /* LinkCapacityEstimator */,DataRate capacity_sample, f64 alpha) {
+  let sample_kbps: f64 = capacity_sample.kbps();
+  if (!self.estimate_kbps.is_some()) {
+    self.estimate_kbps = sample_kbps;
   } else {
-    estimate_kbps_ = (1 - alpha) * estimate_kbps_.value() + alpha * sample_kbps;
+    self.estimate_kbps = (1 - alpha) * self.estimate_kbps.value() + alpha * sample_kbps;
   }
   // Estimate the variance of the link capacity estimate and normalize the
   // variance with the link capacity estimate.
-  const double norm = std::max(estimate_kbps_.value(), 1.0);
-  double error_kbps = estimate_kbps_.value() - sample_kbps;
-  deviation_kbps_ =
-      (1 - alpha) * deviation_kbps_ + alpha * error_kbps * error_kbps / norm;
+  let norm: f64 = std::cmp::max(self.estimate_kbps.value(), 1.0);
+  let error_kbps: f64 = self.estimate_kbps.value() - sample_kbps;
+  self.deviation_kbps =
+      (1 - alpha) * self.deviation_kbps + alpha * error_kbps * error_kbps / norm;
   // 0.4 ~= 14 kbit/s at 500 kbit/s
   // 2.5f ~= 35 kbit/s at 500 kbit/s
-  deviation_kbps_ = rtc::SafeClamp(deviation_kbps_, 0.4f, 2.5f);
+  self.deviation_kbps = rtc::SafeClamp(self.deviation_kbps, 0.4f, 2.5f);
 }
 
-bool LinkCapacityEstimator::has_estimate() const {
-  return estimate_kbps_.has_value();
+bool has_estimate(&self /* LinkCapacityEstimator */) {
+  return self.estimate_kbps.is_some();
 }
 
-DataRate LinkCapacityEstimator::estimate() const {
-  return DataRate::KilobitsPerSec(*estimate_kbps_);
+DataRate estimate(&self /* LinkCapacityEstimator */) {
+  return DataRate::KilobitsPerSec(*self.estimate_kbps);
 }
 
-double LinkCapacityEstimator::deviation_estimate_kbps() const {
+f64 deviation_estimate_kbps(&self /* LinkCapacityEstimator */) {
   // Calculate the max bit rate std dev given the normalized
   // variance and the current throughput bitrate. The standard deviation will
   // only be used if estimate_kbps_ has a value.
-  return sqrt(deviation_kbps_ * estimate_kbps_.value());
+  return sqrt(self.deviation_kbps * self.estimate_kbps.value());
 }
 }  // namespace webrtc

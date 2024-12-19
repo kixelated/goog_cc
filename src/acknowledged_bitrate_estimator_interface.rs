@@ -8,32 +8,13 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef MODULES_CONGESTION_CONTROLLER_GOOG_CC_ACKNOWLEDGED_BITRATE_ESTIMATOR_INTERFACE_H_
-#define MODULES_CONGESTION_CONTROLLER_GOOG_CC_ACKNOWLEDGED_BITRATE_ESTIMATOR_INTERFACE_H_
+use std::time::{Duration, Instant};
 
-#include <memory>
-#include <optional>
-#include <vector>
-
-#include "api/field_trials_view.h"
-#include "api/transport/network_types.h"
-#include "api/units/data_rate.h"
-#include "api/units/time_delta.h"
-#include "api/units/timestamp.h"
-#include "rtc_base/experiments/struct_parameters_parser.h"
-
-namespace webrtc {
 
 pub struct RobustThroughputEstimatorSettings {
-  static constexpr char kKey[] = "WebRTC-Bwe-RobustThroughputEstimatorSettings";
-
-  RobustThroughputEstimatorSettings() = delete;
-  explicit RobustThroughputEstimatorSettings(
-      const FieldTrialsView* key_value_config);
-
   // Set `enabled` to true to use the RobustThroughputEstimator, false to use
   // the AcknowledgedBitrateEstimator.
-  bool enabled = true;
+  pub enabled: bool,
 
   // The estimator keeps the smallest window containing at least
   // `window_packets` and at least the packets received during the last
@@ -43,14 +24,14 @@ pub struct RobustThroughputEstimatorSettings {
   // However, if will never store more than kMaxPackets (for performance
   // reasons), and never longer than max_window_duration (to avoid very old
   // packets influencing the estimate for example when sending is paused).
-  unsigned window_packets = 20;
-  unsigned max_window_packets = 500;
-  TimeDelta min_window_duration = TimeDelta::Seconds(1);
-  TimeDelta max_window_duration = TimeDelta::Seconds(5);
+  pub window_packets: u64,
+  pub max_window_packets: u64,
+  pub min_window_duration: Duration,
+  pub max_window_duration: Duration,
 
   // The estimator window requires at least `required_packets` packets
   // to produce an estimate.
-  unsigned required_packets = 10;
+  pub required_packets: u64,
 
   // If audio packets aren't included in allocation (i.e. the
   // estimated available bandwidth is divided only among the video
@@ -61,25 +42,29 @@ pub struct RobustThroughputEstimatorSettings {
   // both audio and video streams), then `unacked_weight` should be set to 1.
   // If all packets have transport-wide sequence numbers, then the value
   // of `unacked_weight` doesn't matter.
-  double unacked_weight = 1.0;
+  pub unacked_weight: f64,
+}
 
-  std::unique_ptr<StructParametersParser> Parser();
-};
+impl Default for RobustThroughputEstimatorSettings {
+  fn default() -> Self {
+  Self {
+    enabled: true,
+    window_packets: 20,
+    max_window_packets: 500,
+    min_window_duration: Duration::from_secs(1),
+    max_window_duration: Duration::from_secs(5),
+    required_packets: 10,
+    unacked_weight: 1.0,
+  }
+}
+}
 
-class AcknowledgedBitrateEstimatorInterface {
- public:
-  static std::unique_ptr<AcknowledgedBitrateEstimatorInterface> Create(
-      const FieldTrialsView* key_value_config);
-  virtual ~AcknowledgedBitrateEstimatorInterface();
 
-  virtual void IncomingPacketFeedbackVector(
-      const std::vector<PacketResult>& packet_feedback_vector) = 0;
-  virtual std::optional<DataRate> bitrate() const = 0;
-  virtual std::optional<DataRate> PeekRate() const = 0;
-  virtual void SetAlr(bool in_alr) = 0;
-  virtual void SetAlrEndedTime(Timestamp alr_ended_time) = 0;
-};
-
-}  // namespace webrtc
-
-#endif  // MODULES_CONGESTION_CONTROLLER_GOOG_CC_ACKNOWLEDGED_BITRATE_ESTIMATOR_INTERFACE_H_
+pub trait AcknowledgedBitrateEstimatorInterface {
+  fn create(key_value_config: &FieldTrialsView) -> Self;
+  fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]);
+  fn bitrate() -> Option<DataRate>;
+  fn peek_rate() -> Option<DataRate>;
+  fn set_alr(in_alr: bool);
+  fn set_alr_ended_time(alr_ended_time: Instant);
+}

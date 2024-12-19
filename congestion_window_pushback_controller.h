@@ -18,29 +18,35 @@
 #include "api/field_trials_view.h"
 #include "api/units/data_size.h"
 
-namespace webrtc {
+
 
 // This class enables pushback from congestion window directly to video encoder.
 // When the congestion window is filling up, the video encoder target bitrate
 // will be reduced accordingly to accommodate the network changes. To avoid
 // pausing video too frequently, a minimum encoder target bitrate threshold is
 // used to prevent video pause due to a full congestion window.
-class CongestionWindowPushbackController {
+pub struct CongestionWindowPushbackController {
  public:
   explicit CongestionWindowPushbackController(
       const FieldTrialsView& key_value_config);
-  void UpdateOutstandingData(int64_t outstanding_bytes);
-  void UpdatePacingQueue(int64_t pacing_bytes);
+  fn UpdateOutstandingData(i64 outstanding_bytes) {
+  todo!();
+}
+  fn UpdatePacingQueue(i64 pacing_bytes) {
+  todo!();
+}
   uint32_t UpdateTargetBitrate(uint32_t bitrate_bps);
-  void SetDataWindow(DataSize data_window);
+  fn SetDataWindow(DataSize data_window) {
+  todo!();
+}
 
  private:
-  const bool add_pacing_;
-  const uint32_t min_pushback_target_bitrate_bps_;
-  std::optional<DataSize> current_data_window_;
-  int64_t outstanding_bytes_ = 0;
-  int64_t pacing_bytes_ = 0;
-  double encoding_rate_ratio_ = 1.0;
+  const bool self.add_pacing;
+  const uint32_t self.min_pushback_target_bitrate_bps;
+  current_data_window: Option<DataSize>,
+  i64 self.outstanding_bytes = 0;
+  i64 self.pacing_bytes = 0;
+  let encoding_rate_ratio_: f64 = 1.0;
 };
 
 }  // namespace webrtc

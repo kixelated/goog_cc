@@ -24,11 +24,11 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 
-namespace webrtc {
+
 
 // State of the loss based estimate, which can be either increasing/decreasing
 // when network is loss limited, or equal to the delay based estimate.
-enum class LossBasedState {
+pub enum LossBasedState {
   kIncreasing = 0,
   // TODO(bugs.webrtc.org/12707): Remove one of the increasing states once we
   // have decided if padding is usefull for ramping up when BWE is loss
@@ -38,7 +38,7 @@ enum class LossBasedState {
   kDelayBasedEstimate = 3
 };
 
-class LossBasedBweV2 {
+pub struct LossBasedBweV2 {
  public:
   struct Result {
     ~Result() = default;
@@ -70,8 +70,12 @@ class LossBasedBweV2 {
   // Returns `DataRate::PlusInfinity` if no BWE can be calculated.
   Result GetLossBasedResult() const;
 
-  void SetAcknowledgedBitrate(DataRate acknowledged_bitrate);
-  void SetMinMaxBitrate(DataRate min_bitrate, DataRate max_bitrate);
+  fn SetAcknowledgedBitrate(DataRate acknowledged_bitrate) {
+  todo!();
+}
+  fn SetMinMaxBitrate(DataRate min_bitrate, DataRate max_bitrate) {
+  todo!();
+}
   void UpdateBandwidthEstimate(
       rtc::ArrayView<const PacketResult> packet_results,
       DataRate delay_based_estimate,
@@ -79,65 +83,67 @@ class LossBasedBweV2 {
   bool PaceAtLossBasedEstimate() const;
 
   // For unit testing only.
-  void SetBandwidthEstimate(DataRate bandwidth_estimate);
+  fn SetBandwidthEstimate(DataRate bandwidth_estimate) {
+  todo!();
+}
 
  private:
   struct ChannelParameters {
-    double inherent_loss = 0.0;
+    let inherent_loss: f64 = 0.0;
     DataRate loss_limited_bandwidth = DataRate::MinusInfinity();
   };
 
   struct Config {
-    double bandwidth_rampup_upper_bound_factor = 0.0;
-    double bandwidth_rampup_upper_bound_factor_in_hold = 0;
-    double bandwidth_rampup_hold_threshold = 0;
-    double rampup_acceleration_max_factor = 0.0;
+    let bandwidth_rampup_upper_bound_factor: f64 = 0.0;
+    let bandwidth_rampup_upper_bound_factor_in_hold: f64 = 0.0;
+    let bandwidth_rampup_hold_threshold: f64 = 0.0;
+    let rampup_acceleration_max_factor: f64 = 0.0;
     TimeDelta rampup_acceleration_maxout_time = TimeDelta::Zero();
-    std::vector<double> candidate_factors;
-    double higher_bandwidth_bias_factor = 0.0;
-    double higher_log_bandwidth_bias_factor = 0.0;
-    double inherent_loss_lower_bound = 0.0;
-    double loss_threshold_of_high_bandwidth_preference = 0.0;
-    double bandwidth_preference_smoothing_factor = 0.0;
+    Vec<f64> candidate_factors;
+    let higher_bandwidth_bias_factor: f64 = 0.0;
+    let higher_log_bandwidth_bias_factor: f64 = 0.0;
+    let inherent_loss_lower_bound: f64 = 0.0;
+    let loss_threshold_of_high_bandwidth_preference: f64 = 0.0;
+    let bandwidth_preference_smoothing_factor: f64 = 0.0;
     DataRate inherent_loss_upper_bound_bandwidth_balance =
         DataRate::MinusInfinity();
-    double inherent_loss_upper_bound_offset = 0.0;
-    double initial_inherent_loss_estimate = 0.0;
+    let inherent_loss_upper_bound_offset: f64 = 0.0;
+    let initial_inherent_loss_estimate: f64 = 0.0;
     int newton_iterations = 0;
-    double newton_step_size = 0.0;
+    let newton_step_size: f64 = 0.0;
     bool append_acknowledged_rate_candidate = true;
     bool append_delay_based_estimate_candidate = false;
     bool append_upper_bound_candidate_in_alr = false;
     TimeDelta observation_duration_lower_bound = TimeDelta::Zero();
     int observation_window_size = 0;
-    double sending_rate_smoothing_factor = 0.0;
-    double instant_upper_bound_temporal_weight_factor = 0.0;
+    let sending_rate_smoothing_factor: f64 = 0.0;
+    let instant_upper_bound_temporal_weight_factor: f64 = 0.0;
     DataRate instant_upper_bound_bandwidth_balance = DataRate::MinusInfinity();
-    double instant_upper_bound_loss_offset = 0.0;
-    double temporal_weight_factor = 0.0;
-    double bandwidth_backoff_lower_bound_factor = 0.0;
-    double max_increase_factor = 0.0;
+    let instant_upper_bound_loss_offset: f64 = 0.0;
+    let temporal_weight_factor: f64 = 0.0;
+    let bandwidth_backoff_lower_bound_factor: f64 = 0.0;
+    let max_increase_factor: f64 = 0.0;
     TimeDelta delayed_increase_window = TimeDelta::Zero();
     bool not_increase_if_inherent_loss_less_than_average_loss = false;
     bool not_use_acked_rate_in_alr = false;
     bool use_in_start_phase = false;
     int min_num_observations = 0;
-    double lower_bound_by_acked_rate_factor = 0.0;
-    double hold_duration_factor = 0.0;
+    let lower_bound_by_acked_rate_factor: f64 = 0.0;
+    let hold_duration_factor: f64 = 0.0;
     bool use_byte_loss_rate = false;
     TimeDelta padding_duration = TimeDelta::Zero();
     bool bound_best_candidate = false;
     bool pace_at_loss_based_estimate = false;
-    double median_sending_rate_factor = 0.0;
+    let median_sending_rate_factor: f64 = 0.0;
   };
 
   struct Derivatives {
-    double first = 0.0;
-    double second = 0.0;
+    let first: f64 = 0.0;
+    let second: f64 = 0.0;
   };
 
   struct Observation {
-    bool IsInitialized() const { return id != -1; }
+    bool IsInitialized() { return id != -1; }
 
     int num_packets = 0;
     int num_lost_packets = 0;
@@ -150,7 +156,7 @@ class LossBasedBweV2 {
 
   struct PartialObservation {
     int num_packets = 0;
-    std::unordered_map<int64_t, DataSize> lost_packets;
+    std::unordered_map<i64, DataSize> lost_packets;
     DataSize size = DataSize::Zero();
   };
 
@@ -165,26 +171,26 @@ class LossBasedBweV2 {
     DataRate rate = DataRate::PlusInfinity();
   };
 
-  static std::optional<Config> CreateConfig(
+  static Option<Config> CreateConfig(
       const FieldTrialsView* key_value_config);
   bool IsConfigValid() const;
 
   // Returns `0.0` if not enough loss statistics have been received.
   void UpdateAverageReportedLossRatio();
-  double CalculateAverageReportedPacketLossRatio() const;
+  f64 CalculateAverageReportedPacketLossRatio() const;
   // Calculates the average loss ratio over the last `observation_window_size`
   // observations but skips the observation with min and max loss ratio in order
   // to filter out loss spikes.
-  double CalculateAverageReportedByteLossRatio() const;
-  std::vector<ChannelParameters> GetCandidates(bool in_alr) const;
+  f64 CalculateAverageReportedByteLossRatio() const;
+  Vec<ChannelParameters> GetCandidates(bool in_alr) const;
   DataRate GetCandidateBandwidthUpperBound() const;
   Derivatives GetDerivatives(const ChannelParameters& channel_parameters) const;
-  double GetFeasibleInherentLoss(
+  f64 GetFeasibleInherentLoss(
       const ChannelParameters& channel_parameters) const;
-  double GetInherentLossUpperBound(DataRate bandwidth) const;
-  double AdjustBiasFactor(double loss_rate, double bias_factor) const;
-  double GetHighBandwidthBias(DataRate bandwidth) const;
-  double GetObjective(const ChannelParameters& channel_parameters) const;
+  f64 GetInherentLossUpperBound(DataRate bandwidth) const;
+  f64 AdjustBiasFactor(f64 loss_rate, f64 bias_factor) const;
+  f64 GetHighBandwidthBias(DataRate bandwidth) const;
+  f64 GetObjective(const ChannelParameters& channel_parameters) const;
   DataRate GetSendingRate(DataRate instantaneous_sending_rate) const;
   DataRate GetInstantUpperBound() const;
   void CalculateInstantUpperBound();
@@ -202,27 +208,27 @@ class LossBasedBweV2 {
   bool CanKeepIncreasingState(DataRate estimate) const;
   DataRate GetMedianSendingRate() const;
 
-  std::optional<DataRate> acknowledged_bitrate_;
-  std::optional<Config> config_;
-  ChannelParameters current_best_estimate_;
-  int num_observations_ = 0;
-  std::vector<Observation> observations_;
-  PartialObservation partial_observation_;
-  Timestamp last_send_time_most_recent_observation_ = Timestamp::PlusInfinity();
-  Timestamp last_time_estimate_reduced_ = Timestamp::MinusInfinity();
-  std::optional<DataRate> cached_instant_upper_bound_;
-  std::optional<DataRate> cached_instant_lower_bound_;
-  std::vector<double> instant_upper_bound_temporal_weights_;
-  std::vector<double> temporal_weights_;
-  Timestamp recovering_after_loss_timestamp_ = Timestamp::MinusInfinity();
-  DataRate bandwidth_limit_in_current_window_ = DataRate::PlusInfinity();
-  DataRate min_bitrate_ = DataRate::KilobitsPerSec(1);
-  DataRate max_bitrate_ = DataRate::PlusInfinity();
-  DataRate delay_based_estimate_ = DataRate::PlusInfinity();
-  LossBasedBweV2::Result loss_based_result_ = LossBasedBweV2::Result();
-  HoldInfo last_hold_info_ = HoldInfo();
-  PaddingInfo last_padding_info_ = PaddingInfo();
-  double average_reported_loss_ratio_ = 0.0;
+  acknowledged_bitrate: Option<DataRate>,
+  config: Option<Config>,
+  current_best_estimate: ChannelParameters,
+  int self.num_observations = 0;
+  observations: Vec<Observation>,
+  partial_observation: PartialObservation,
+  Timestamp self.last_send_time_most_recent_observation = Timestamp::PlusInfinity();
+  Timestamp self.last_time_estimate_reduced = Timestamp::MinusInfinity();
+  cached_instant_upper_bound: Option<DataRate>,
+  cached_instant_lower_bound: Option<DataRate>,
+  instant_upper_bound_temporal_weights: Vec<f64>,
+  temporal_weights: Vec<f64>,
+  Timestamp self.recovering_after_loss_timestamp = Timestamp::MinusInfinity();
+  DataRate self.bandwidth_limit_in_current_window = DataRate::PlusInfinity();
+  DataRate self.min_bitrate = DataRate::KilobitsPerSec(1);
+  DataRate self.max_bitrate = DataRate::PlusInfinity();
+  DataRate self.delay_based_estimate = DataRate::PlusInfinity();
+  LossBasedBweV2::Result self.loss_based_result = LossBasedBweV2::Result();
+  HoldInfo self.last_hold_info = HoldInfo();
+  PaddingInfo self.last_padding_info = PaddingInfo();
+  let average_reported_loss_ratio_: f64 = 0.0;
 };
 
 }  // namespace webrtc

@@ -16,18 +16,18 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 
-namespace webrtc {
+
 
 // Helper class to compute the inter-arrival time delta and the size delta
 // between two send bursts. This code is branched from
 // modules/remote_bitrate_estimator/inter_arrival.
-class InterArrivalDelta {
+pub struct InterArrivalDelta {
  public:
   // After this many packet groups received out of order InterArrival will
   // reset, assuming that clocks have made a jump.
   static constexpr int kReorderedResetThreshold = 3;
   static constexpr TimeDelta kArrivalTimeOffsetThreshold =
-      TimeDelta::Seconds(3);
+      Duration::from_secs(3);
 
   // A send time group is defined as all packets with a send time which are at
   // most send_time_group_length older than the first timestamp in that
@@ -49,7 +49,7 @@ class InterArrivalDelta {
   bool ComputeDeltas(Timestamp send_time,
                      Timestamp arrival_time,
                      Timestamp system_time,
-                     size_t packet_size,
+                     usize packet_size,
                      TimeDelta* send_time_delta,
                      TimeDelta* arrival_time_delta,
                      int* packet_size_delta);
@@ -64,9 +64,9 @@ class InterArrivalDelta {
           complete_time(Timestamp::MinusInfinity()),
           last_system_time(Timestamp::MinusInfinity()) {}
 
-    bool IsFirstPacket() const { return complete_time.IsInfinite(); }
+    bool IsFirstPacket() { return complete_time.IsInfinite(); }
 
-    size_t size;
+    usize size;
     Timestamp first_send_time;
     Timestamp send_time;
     Timestamp first_arrival;
@@ -82,10 +82,10 @@ class InterArrivalDelta {
 
   void Reset();
 
-  const TimeDelta send_time_group_length_;
-  SendTimeGroup current_timestamp_group_;
-  SendTimeGroup prev_timestamp_group_;
-  int num_consecutive_reordered_packets_;
+  const TimeDelta self.send_time_group_length;
+  current_timestamp_group: SendTimeGroup,
+  prev_timestamp_group: SendTimeGroup,
+  num_consecutive_reordered_packets: int,
 };
 }  // namespace webrtc
 

@@ -34,121 +34,125 @@
 #include "rtc_base/checks.h"
 #include "test/logging/log_writer.h"
 
-namespace webrtc {
+
 namespace {
-void WriteTypedValue(RtcEventLogOutput* out, int value) {
+fn WriteTypedValue(RtcEventLogOutput* out, int value) -> void {
   LogWriteFormat(out, "%i", value);
 }
-void WriteTypedValue(RtcEventLogOutput* out, double value) {
+fn WriteTypedValue(RtcEventLogOutput* out, f64 value) -> void {
   LogWriteFormat(out, "%.6f", value);
 }
-void WriteTypedValue(RtcEventLogOutput* out, std::optional<DataRate> value) {
-  LogWriteFormat(out, "%.0f", value ? value->bytes_per_sec<double>() : NAN);
+fn WriteTypedValue(RtcEventLogOutput* out, Option<DataRate> value) -> void {
+  LogWriteFormat(out, "%.0f", value ? value->bytes_per_sec<f64>() : NAN);
 }
-void WriteTypedValue(RtcEventLogOutput* out, std::optional<DataSize> value) {
-  LogWriteFormat(out, "%.0f", value ? value->bytes<double>() : NAN);
+fn WriteTypedValue(RtcEventLogOutput* out, Option<DataSize> value) -> void {
+  LogWriteFormat(out, "%.0f", value ? value->bytes<f64>() : NAN);
 }
-void WriteTypedValue(RtcEventLogOutput* out, std::optional<TimeDelta> value) {
-  LogWriteFormat(out, "%.3f", value ? value->seconds<double>() : NAN);
+fn WriteTypedValue(RtcEventLogOutput* out, Option<TimeDelta> value) -> void {
+  LogWriteFormat(out, "%.3f", value ? value->seconds<f64>() : NAN);
 }
-void WriteTypedValue(RtcEventLogOutput* out, std::optional<Timestamp> value) {
-  LogWriteFormat(out, "%.3f", value ? value->seconds<double>() : NAN);
+fn WriteTypedValue(RtcEventLogOutput* out, Option<Timestamp> value) -> void {
+  LogWriteFormat(out, "%.3f", value ? value->seconds<f64>() : NAN);
 }
 
 template <typename F>
-class TypedFieldLogger : public FieldLogger {
+impl FieldLogger for TypedFieldLogger {
+
+}
+
+pub struct TypedFieldLogger {
  public:
   TypedFieldLogger(absl::string_view name, F&& getter)
       : name_(name), getter_(std::forward<F>(getter)) {}
-  const std::string& name() const override { return name_; }
+  const std::string& name() const override { return self.name; }
   void WriteValue(RtcEventLogOutput* out) override {
     WriteTypedValue(out, getter_());
   }
 
  private:
-  std::string name_;
-  F getter_;
+  name: std::string,
+  getter: F,
 };
 
 template <typename F>
-FieldLogger* Log(absl::string_view name, F&& getter) {
+fn Log(absl::string_view name, F&& getter) -> FieldLogger* {
   return new TypedFieldLogger<F>(name, std::forward<F>(getter));
 }
 
 }  // namespace
 GoogCcStatePrinter::GoogCcStatePrinter() {
   for (auto* logger : CreateLoggers()) {
-    loggers_.emplace_back(logger);
+    self.loggers.push_back(logger);
   }
 }
 
-std::deque<FieldLogger*> GoogCcStatePrinter::CreateLoggers() {
-  auto stable_estimate = [this] {
+VecDeque<FieldLogger*> CreateLoggers(&self /* GoogCcStatePrinter */) {
+let stable_estimate = [this] {
     return DataRate::KilobitsPerSec(
-        controller_->delay_based_bwe_->rate_control_.link_capacity_
-            .estimate_kbps_.value_or(-INFINITY));
+        self.controller.self.delay_based_bwe.self.rate_control.link_capacity_
+            .self.estimate_kbps.unwrap_or(-INFINITY));
   };
-  auto rate_control_state = [this] {
+let rate_control_state = [this] {
     return static_cast<int>(
-        controller_->delay_based_bwe_->rate_control_.rate_control_state_);
+        self.controller.self.delay_based_bwe.self.rate_control.self.rate_control_state);
   };
-  auto trend = [this] {
+let trend = [this] {
     return reinterpret_cast<TrendlineEstimator*>(
-        controller_->delay_based_bwe_->active_delay_detector_);
+        self.controller.self.delay_based_bwe.self.active_delay_detector);
   };
-  auto acknowledged_rate = [this] {
-    return controller_->acknowledged_bitrate_estimator_->bitrate();
+let acknowledged_rate = [this] {
+    return self.controller.self.acknowledged_bitrate_estimator.bitrate();
   };
-  auto loss_cont = [&] {
-    return &controller_->bandwidth_estimation_
-                ->loss_based_bandwidth_estimator_v1_;
+let loss_cont = [&] {
+    return &self.controller.bandwidth_estimation_
+                ->self.loss_based_bandwidth_estimator_v1;
   };
-  std::deque<FieldLogger*> loggers({
-      Log("time", [this] { return target_.at_time; }),
-      Log("rtt", [this] { return target_.network_estimate.round_trip_time; }),
-      Log("target", [this] { return target_.target_rate; }),
-      Log("stable_target", [this] { return target_.stable_target_rate; }),
-      Log("pacing", [this] { return pacing_.data_rate(); }),
-      Log("padding", [this] { return pacing_.pad_rate(); }),
-      Log("window", [this] { return congestion_window_; }),
+  VecDeque<FieldLogger*> loggers({
+      Log("time", [this] { return self.target.at_time; }),
+      Log("rtt", [this] { return self.target.network_estimate.round_trip_time; }),
+      Log("target", [this] { return self.target.target_rate; }),
+      Log("stable_target", [this] { return self.target.stable_target_rate; }),
+      Log("pacing", [this] { return self.pacing.data_rate(); }),
+      Log("padding", [this] { return self.pacing.pad_rate(); }),
+      Log("window", [this] { return self.congestion_window; }),
       Log("rate_control_state", [=] { return rate_control_state(); }),
       Log("stable_estimate", [=] { return stable_estimate(); }),
-      Log("trendline", [=] { return trend()->prev_trend_; }),
+      Log("trendline", [=] { return trend()->self.prev_trend; }),
       Log("trendline_modified_offset",
-          [=] { return trend()->prev_modified_trend_; }),
-      Log("trendline_offset_threshold", [=] { return trend()->threshold_; }),
+          [=] { return trend()->self.prev_modified_trend; }),
+      Log("trendline_offset_threshold", [=] { return trend()->self.threshold; }),
       Log("acknowledged_rate", [=] { return acknowledged_rate(); }),
-      Log("est_capacity", [this] { return est_.link_capacity; }),
-      Log("est_capacity_dev", [this] { return est_.link_capacity_std_dev; }),
-      Log("est_capacity_min", [this] { return est_.link_capacity_min; }),
-      Log("est_cross_traffic", [this] { return est_.cross_traffic_ratio; }),
-      Log("est_cross_delay", [this] { return est_.cross_delay_rate; }),
-      Log("est_spike_delay", [this] { return est_.spike_delay_rate; }),
-      Log("est_pre_buffer", [this] { return est_.pre_link_buffer_delay; }),
-      Log("est_post_buffer", [this] { return est_.post_link_buffer_delay; }),
-      Log("est_propagation", [this] { return est_.propagation_delay; }),
-      Log("loss_ratio", [=] { return loss_cont()->last_loss_ratio_; }),
-      Log("loss_average", [=] { return loss_cont()->average_loss_; }),
-      Log("loss_average_max", [=] { return loss_cont()->average_loss_max_; }),
+      Log("est_capacity", [this] { return self.est.link_capacity; }),
+      Log("est_capacity_dev", [this] { return self.est.link_capacity_std_dev; }),
+      Log("est_capacity_min", [this] { return self.est.link_capacity_min; }),
+      Log("est_cross_traffic", [this] { return self.est.cross_traffic_ratio; }),
+      Log("est_cross_delay", [this] { return self.est.cross_delay_rate; }),
+      Log("est_spike_delay", [this] { return self.est.spike_delay_rate; }),
+      Log("est_pre_buffer", [this] { return self.est.pre_link_buffer_delay; }),
+      Log("est_post_buffer", [this] { return self.est.post_link_buffer_delay; }),
+      Log("est_propagation", [this] { return self.est.propagation_delay; }),
+      Log("loss_ratio", [=] { return loss_cont()->self.last_loss_ratio; }),
+      Log("loss_average", [=] { return loss_cont()->self.average_loss; }),
+      Log("loss_average_max", [=] { return loss_cont()->self.average_loss_max; }),
       Log("loss_thres_inc",
           [=] { return loss_cont()->loss_increase_threshold(); }),
       Log("loss_thres_dec",
           [=] { return loss_cont()->loss_decrease_threshold(); }),
       Log("loss_dec_rate", [=] { return loss_cont()->decreased_bitrate(); }),
-      Log("loss_based_rate", [=] { return loss_cont()->loss_based_bitrate_; }),
+      Log("loss_based_rate", [=] { return loss_cont()->self.loss_based_bitrate; }),
       Log("loss_ack_rate",
-          [=] { return loss_cont()->acknowledged_bitrate_max_; }),
-      Log("data_window", [this] { return controller_->current_data_window_; }),
+          [=] { return loss_cont()->self.acknowledged_bitrate_max; }),
+      Log("data_window", [this] { return self.controller.self.current_data_window; }),
       Log("pushback_target",
-          [this] { return controller_->last_pushback_target_rate_; }),
+          [this] { return self.controller.self.last_pushback_target_rate; }),
   });
   return loggers;
 }
 GoogCcStatePrinter::~GoogCcStatePrinter() = default;
 
-void GoogCcStatePrinter::PrintHeaders(RtcEventLogOutput* log) {
+fn PrintHeaders(&self /* GoogCcStatePrinter */,RtcEventLogOutput* log) {
   int ix = 0;
-  for (const auto& logger : loggers_) {
+  for logger in &loggers_ {
     if (ix++)
       log->Write(" ");
     log->Write(logger->name());
@@ -157,22 +161,22 @@ void GoogCcStatePrinter::PrintHeaders(RtcEventLogOutput* log) {
   log->Flush();
 }
 
-void GoogCcStatePrinter::PrintState(RtcEventLogOutput* log,
+fn PrintState(&self /* GoogCcStatePrinter */,RtcEventLogOutput* log,
                                     GoogCcNetworkController* controller,
                                     Timestamp at_time) {
-  controller_ = controller;
-  auto state_update = controller_->GetNetworkState(at_time);
-  target_ = state_update.target_rate.value();
-  pacing_ = state_update.pacer_config.value();
+  self.controller = controller;
+let state_update = self.controller.GetNetworkState(at_time);
+  self.target = state_update.target_rate.value();
+  self.pacing = state_update.pacer_config.value();
   if (state_update.congestion_window)
-    congestion_window_ = *state_update.congestion_window;
-  if (controller_->network_estimator_) {
-    est_ = controller_->network_estimator_->GetCurrentEstimate().value_or(
+    self.congestion_window = *state_update.congestion_window;
+  if (self.controller.self.network_estimator) {
+    self.est = self.controller.self.network_estimator.GetCurrentEstimate().unwrap_or(
         NetworkStateEstimate());
   }
 
   int ix = 0;
-  for (const auto& logger : loggers_) {
+  for logger in &loggers_ {
     if (ix++)
       log->Write(" ");
     logger->WriteValue(log);
@@ -188,25 +192,25 @@ GoogCcDebugFactory::GoogCcDebugFactory()
 GoogCcDebugFactory::GoogCcDebugFactory(GoogCcFactoryConfig config)
     : GoogCcNetworkControllerFactory(std::move(config)) {}
 
-std::unique_ptr<NetworkControllerInterface> GoogCcDebugFactory::Create(
+std::unique_ptr<NetworkControllerInterface> Create(&self /* GoogCcDebugFactory */,
     NetworkControllerConfig config) {
-  RTC_CHECK(controller_ == nullptr);
-  auto controller = GoogCcNetworkControllerFactory::Create(config);
-  controller_ = static_cast<GoogCcNetworkController*>(controller.get());
+  RTC_CHECK(self.controller == nullptr);
+let controller = GoogCcNetworkControllerFactory::Create(config);
+  self.controller = static_cast<GoogCcNetworkController*>(controller.get());
   return controller;
 }
 
-void GoogCcDebugFactory::PrintState(const Timestamp at_time) {
-  if (controller_ && log_writer_) {
-    printer_.PrintState(log_writer_.get(), controller_, at_time);
+fn PrintState(&self /* GoogCcDebugFactory */,const Timestamp at_time) {
+  if (self.controller && self.log_writer) {
+    self.printer.PrintState(self.log_writer.get(), self.controller, at_time);
   }
 }
 
-void GoogCcDebugFactory::AttachWriter(
+fn AttachWriter(&self /* GoogCcDebugFactory */,
     std::unique_ptr<RtcEventLogOutput> log_writer) {
   if (log_writer) {
-    log_writer_ = std::move(log_writer);
-    printer_.PrintHeaders(log_writer_.get());
+    self.log_writer = std::move(log_writer);
+    self.printer.PrintHeaders(self.log_writer.get());
   }
 }
 

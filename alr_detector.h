@@ -21,7 +21,7 @@
 #include "modules/pacing/interval_budget.h"
 #include "rtc_base/experiments/struct_parameters_parser.h"
 
-namespace webrtc {
+
 
 class RtcEventLog;
 
@@ -31,9 +31,9 @@ struct AlrDetectorConfig {
   // below kAlrStartUsageRatio and ends when it raises above
   // kAlrEndUsageRatio. NOTE: This is intentionally conservative at the moment
   // until BW adjustments of application limited region is fine tuned.
-  double bandwidth_usage_ratio = 0.65;
-  double start_budget_level_ratio = 0.80;
-  double stop_budget_level_ratio = 0.50;
+  let bandwidth_usage_ratio: f64 = 0.65;
+  let start_budget_level_ratio: f64 = 0.80;
+  let stop_budget_level_ratio: f64 = 0.50;
   std::unique_ptr<StructParametersParser> Parser();
 };
 // Application limited region detector is a class that utilizes signals of
@@ -43,32 +43,36 @@ struct AlrDetectorConfig {
 // AlrDetector provides a signal that can be utilized to adjust
 // estimate bandwidth.
 // Note: This class is not thread-safe.
-class AlrDetector {
+pub struct AlrDetector {
  public:
   AlrDetector(AlrDetectorConfig config, RtcEventLog* event_log);
   explicit AlrDetector(const FieldTrialsView* key_value_config);
   AlrDetector(const FieldTrialsView* key_value_config, RtcEventLog* event_log);
   ~AlrDetector();
 
-  void OnBytesSent(size_t bytes_sent, int64_t send_time_ms);
+  fn OnBytesSent(usize bytes_sent, i64 send_time_ms) {
+  todo!();
+}
 
   // Set current estimated bandwidth.
-  void SetEstimatedBitrate(int bitrate_bps);
+  fn SetEstimatedBitrate(int bitrate_bps) {
+  todo!();
+}
 
   // Returns time in milliseconds when the current application-limited region
   // started or empty result if the sender is currently not application-limited.
-  std::optional<int64_t> GetApplicationLimitedRegionStartTime() const;
+  Option<i64> GetApplicationLimitedRegionStartTime() const;
 
  private:
   friend class GoogCcStatePrinter;
-  const AlrDetectorConfig conf_;
+  const AlrDetectorConfig self.conf;
 
-  std::optional<int64_t> last_send_time_ms_;
+  last_send_time_ms: Option<i64>,
 
-  IntervalBudget alr_budget_;
-  std::optional<int64_t> alr_started_time_ms_;
+  alr_budget: IntervalBudget,
+  alr_started_time_ms: Option<i64>,
 
-  RtcEventLog* event_log_;
+  event_log: RtcEventLog*,
 };
 }  // namespace webrtc
 

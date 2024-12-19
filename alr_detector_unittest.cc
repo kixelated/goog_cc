@@ -25,57 +25,58 @@ constexpr int kEstimatedBitrateBps = 300000;
 
 }  // namespace
 
-namespace webrtc {
+
 namespace {
-class SimulateOutgoingTrafficIn {
+pub struct SimulateOutgoingTrafficIn {
  public:
   explicit SimulateOutgoingTrafficIn(AlrDetector* alr_detector,
-                                     int64_t* timestamp_ms)
+                                     i64* timestamp_ms)
       : alr_detector_(alr_detector), timestamp_ms_(timestamp_ms) {
-    RTC_CHECK(alr_detector_);
+    RTC_CHECK(self.alr_detector);
   }
 
-  SimulateOutgoingTrafficIn& ForTimeMs(int time_ms) {
-    interval_ms_ = time_ms;
+fn ForTimeMs(int time_ms) -> SimulateOutgoingTrafficIn& {
+    self.interval_ms = time_ms;
     ProduceTraffic();
     return *this;
   }
 
-  SimulateOutgoingTrafficIn& AtPercentOfEstimatedBitrate(int usage_percentage) {
-    usage_percentage_.emplace(usage_percentage);
+fn AtPercentOfEstimatedBitrate(int usage_percentage) -> SimulateOutgoingTrafficIn& {
+    self.usage_percentage.emplace(usage_percentage);
     ProduceTraffic();
     return *this;
   }
 
  private:
-  void ProduceTraffic() {
-    if (!interval_ms_ || !usage_percentage_)
+fn ProduceTraffic() -> void {
+    if (!interval_ms_ || !self.usage_percentage)
       return;
     const int kTimeStepMs = 10;
-    for (int t = 0; t < *interval_ms_; t += kTimeStepMs) {
-      *timestamp_ms_ += kTimeStepMs;
-      alr_detector_->OnBytesSent(kEstimatedBitrateBps * *usage_percentage_ *
+    for (int t = 0; t < *self.interval_ms; t += kTimeStepMs) {
+      *self.timestamp_ms += kTimeStepMs;
+      self.alr_detector.OnBytesSent(kEstimatedBitrateBps * *self.usage_percentage *
                                      kTimeStepMs / (8 * 100 * 1000),
-                                 *timestamp_ms_);
+                                 *self.timestamp_ms);
     }
     int remainder_ms = *interval_ms_ % kTimeStepMs;
     if (remainder_ms > 0) {
-      *timestamp_ms_ += kTimeStepMs;
-      alr_detector_->OnBytesSent(kEstimatedBitrateBps * *usage_percentage_ *
+      *self.timestamp_ms += kTimeStepMs;
+      self.alr_detector.OnBytesSent(kEstimatedBitrateBps * *self.usage_percentage *
                                      remainder_ms / (8 * 100 * 1000),
-                                 *timestamp_ms_);
+                                 *self.timestamp_ms);
     }
   }
-  AlrDetector* const alr_detector_;
-  int64_t* timestamp_ms_;
-  std::optional<int> interval_ms_;
-  std::optional<int> usage_percentage_;
+  alr_detector: AlrDetector*,
+  timestamp_ms: i64*,
+  interval_ms: Option<int>,
+  usage_percentage: Option<int>,
 };
 }  // namespace
 
-TEST(AlrDetectorTest, AlrDetection) {
+#[test]
+fn AlrDetection() {
   FieldTrialBasedConfig field_trials;
-  int64_t timestamp_ms = 1000;
+  i64 timestamp_ms = 1000;
   AlrDetector alr_detector(&field_trials);
   alr_detector.SetEstimatedBitrate(kEstimatedBitrateBps);
 
@@ -101,9 +102,10 @@ TEST(AlrDetectorTest, AlrDetection) {
   EXPECT_FALSE(alr_detector.GetApplicationLimitedRegionStartTime());
 }
 
-TEST(AlrDetectorTest, ShortSpike) {
+#[test]
+fn ShortSpike() {
   FieldTrialBasedConfig field_trials;
-  int64_t timestamp_ms = 1000;
+  i64 timestamp_ms = 1000;
   AlrDetector alr_detector(&field_trials);
   alr_detector.SetEstimatedBitrate(kEstimatedBitrateBps);
   // Start in non-ALR state.
@@ -128,9 +130,10 @@ TEST(AlrDetectorTest, ShortSpike) {
   EXPECT_FALSE(alr_detector.GetApplicationLimitedRegionStartTime());
 }
 
-TEST(AlrDetectorTest, BandwidthEstimateChanges) {
+#[test]
+fn BandwidthEstimateChanges() {
   FieldTrialBasedConfig field_trials;
-  int64_t timestamp_ms = 1000;
+  i64 timestamp_ms = 1000;
   AlrDetector alr_detector(&field_trials);
   alr_detector.SetEstimatedBitrate(kEstimatedBitrateBps);
 
@@ -155,19 +158,21 @@ TEST(AlrDetectorTest, BandwidthEstimateChanges) {
   EXPECT_FALSE(alr_detector.GetApplicationLimitedRegionStartTime());
 }
 
-TEST(AlrDetectorTest, ParseControlFieldTrial) {
+#[test]
+fn ParseControlFieldTrial() {
   webrtc::test::ScopedFieldTrials scoped_field_trial(
       "WebRTC-ProbingScreenshareBwe/Control/");
-  std::optional<AlrExperimentSettings> parsed_params =
+  Option<AlrExperimentSettings> parsed_params =
       AlrExperimentSettings::CreateFromFieldTrial(
           FieldTrialBasedConfig(), "WebRTC-ProbingScreenshareBwe");
   EXPECT_FALSE(static_cast<bool>(parsed_params));
 }
 
-TEST(AlrDetectorTest, ParseActiveFieldTrial) {
+#[test]
+fn ParseActiveFieldTrial() {
   webrtc::test::ScopedFieldTrials scoped_field_trial(
       "WebRTC-ProbingScreenshareBwe/1.1,2875,85,20,-20,1/");
-  std::optional<AlrExperimentSettings> parsed_params =
+  Option<AlrExperimentSettings> parsed_params =
       AlrExperimentSettings::CreateFromFieldTrial(
           FieldTrialBasedConfig(), "WebRTC-ProbingScreenshareBwe");
   ASSERT_TRUE(static_cast<bool>(parsed_params));
@@ -179,13 +184,14 @@ TEST(AlrDetectorTest, ParseActiveFieldTrial) {
   EXPECT_EQ(1, parsed_params->group_id);
 }
 
-TEST(AlrDetectorTest, ParseAlrSpecificFieldTrial) {
+#[test]
+fn ParseAlrSpecificFieldTrial() {
   webrtc::test::ScopedFieldTrials scoped_field_trial(
       "WebRTC-AlrDetectorParameters/"
       "bw_usage:90%,start:0%,stop:-10%/");
   FieldTrialBasedConfig field_trials;
   AlrDetector alr_detector(&field_trials);
-  int64_t timestamp_ms = 1000;
+  i64 timestamp_ms = 1000;
   alr_detector.SetEstimatedBitrate(kEstimatedBitrateBps);
 
   // Start in non-ALR state.

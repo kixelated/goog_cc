@@ -22,7 +22,7 @@
 #include "api/units/timestamp.h"
 #include "test/gtest.h"
 
-namespace webrtc {
+
 
 namespace {
 constexpr int kDefaultMinProbes = 5;
@@ -37,9 +37,9 @@ class TestProbeBitrateEstimator : public ::testing::Test {
   // TODO(philipel): Use PacedPacketInfo when ProbeBitrateEstimator is rewritten
   //                 to use that information.
   void AddPacketFeedback(int probe_cluster_id,
-                         size_t size_bytes,
-                         int64_t send_time_ms,
-                         int64_t arrival_time_ms,
+                         usize size_bytes,
+                         i64 send_time_ms,
+                         i64 arrival_time_ms,
                          int min_probes = kDefaultMinProbes,
                          int min_bytes = kDefaultMinBytes) {
     const Timestamp kReferenceTime = Timestamp::Seconds(1000);
@@ -50,13 +50,13 @@ class TestProbeBitrateEstimator : public ::testing::Test {
     feedback.sent_packet.pacing_info =
         PacedPacketInfo(probe_cluster_id, min_probes, min_bytes);
     feedback.receive_time = kReferenceTime + TimeDelta::Millis(arrival_time_ms);
-    measured_data_rate_ =
-        probe_bitrate_estimator_.HandleProbeAndEstimateBitrate(feedback);
+    self.measured_data_rate =
+        self.probe_bitrate_estimator.HandleProbeAndEstimateBitrate(feedback);
   }
 
  protected:
-  std::optional<DataRate> measured_data_rate_;
-  ProbeBitrateEstimator probe_bitrate_estimator_;
+  measured_data_rate: Option<DataRate>,
+  probe_bitrate_estimator: ProbeBitrateEstimator,
 };
 
 TEST_F(TestProbeBitrateEstimator, OneCluster) {
@@ -65,7 +65,7 @@ TEST_F(TestProbeBitrateEstimator, OneCluster) {
   AddPacketFeedback(0, 1000, 20, 30);
   AddPacketFeedback(0, 1000, 30, 40);
 
-  EXPECT_NEAR(measured_data_rate_->bps(), 800000, 10);
+  EXPECT_NEAR(self.measured_data_rate.bps(), 800000, 10);
 }
 
 TEST_F(TestProbeBitrateEstimator, OneClusterTooFewProbes) {
@@ -73,7 +73,7 @@ TEST_F(TestProbeBitrateEstimator, OneClusterTooFewProbes) {
   AddPacketFeedback(0, 2000, 10, 20);
   AddPacketFeedback(0, 2000, 20, 30);
 
-  EXPECT_FALSE(measured_data_rate_);
+  EXPECT_FALSE(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, OneClusterTooFewBytes) {
@@ -84,7 +84,7 @@ TEST_F(TestProbeBitrateEstimator, OneClusterTooFewBytes) {
   AddPacketFeedback(0, 800, 30, 40, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 800, 40, 50, kDefaultMinProbes, kMinBytes);
 
-  EXPECT_FALSE(measured_data_rate_);
+  EXPECT_FALSE(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, SmallCluster) {
@@ -95,21 +95,21 @@ TEST_F(TestProbeBitrateEstimator, SmallCluster) {
   AddPacketFeedback(0, 150, 30, 40, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 150, 40, 50, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 150, 50, 60, kDefaultMinProbes, kMinBytes);
-  EXPECT_NEAR(measured_data_rate_->bps(), 120000, 10);
+  EXPECT_NEAR(self.measured_data_rate.bps(), 120000, 10);
 }
 
 TEST_F(TestProbeBitrateEstimator, LargeCluster) {
   const int kMinProbes = 30;
   const int kMinBytes = 312500;
 
-  int64_t send_time = 0;
-  int64_t receive_time = 5;
-  for (int i = 0; i < 25; ++i) {
+  i64 send_time = 0;
+  i64 receive_time = 5;
+  for (int i = 0; i < 25i += 1) {
     AddPacketFeedback(0, 12500, send_time, receive_time, kMinProbes, kMinBytes);
-    ++send_time;
-    ++receive_time;
+    send_time += 1;
+    receive_time += 1;
   }
-  EXPECT_NEAR(measured_data_rate_->bps(), 100000000, 10);
+  EXPECT_NEAR(self.measured_data_rate.bps(), 100000000, 10);
 }
 
 TEST_F(TestProbeBitrateEstimator, FastReceive) {
@@ -118,7 +118,7 @@ TEST_F(TestProbeBitrateEstimator, FastReceive) {
   AddPacketFeedback(0, 1000, 20, 35);
   AddPacketFeedback(0, 1000, 30, 40);
 
-  EXPECT_NEAR(measured_data_rate_->bps(), 800000, 10);
+  EXPECT_NEAR(self.measured_data_rate.bps(), 800000, 10);
 }
 
 TEST_F(TestProbeBitrateEstimator, TooFastReceive) {
@@ -127,7 +127,7 @@ TEST_F(TestProbeBitrateEstimator, TooFastReceive) {
   AddPacketFeedback(0, 1000, 20, 25);
   AddPacketFeedback(0, 1000, 40, 27);
 
-  EXPECT_FALSE(measured_data_rate_);
+  EXPECT_FALSE(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, SlowReceive) {
@@ -137,7 +137,7 @@ TEST_F(TestProbeBitrateEstimator, SlowReceive) {
   AddPacketFeedback(0, 1000, 30, 85);
   // Expected send rate = 800 kbps, expected receive rate = 320 kbps.
 
-  EXPECT_NEAR(measured_data_rate_->bps(), kTargetUtilizationFraction * 320000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 320000,
               10);
 }
 
@@ -147,7 +147,7 @@ TEST_F(TestProbeBitrateEstimator, BurstReceive) {
   AddPacketFeedback(0, 1000, 20, 50);
   AddPacketFeedback(0, 1000, 40, 50);
 
-  EXPECT_FALSE(measured_data_rate_);
+  EXPECT_FALSE(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, MultipleClusters) {
@@ -156,12 +156,12 @@ TEST_F(TestProbeBitrateEstimator, MultipleClusters) {
   AddPacketFeedback(0, 1000, 20, 30);
   AddPacketFeedback(0, 1000, 40, 60);
   // Expected send rate = 600 kbps, expected receive rate = 480 kbps.
-  EXPECT_NEAR(measured_data_rate_->bps(), kTargetUtilizationFraction * 480000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 480000,
               10);
 
   AddPacketFeedback(0, 1000, 50, 60);
   // Expected send rate = 640 kbps, expected receive rate = 640 kbps.
-  EXPECT_NEAR(measured_data_rate_->bps(), 640000, 10);
+  EXPECT_NEAR(self.measured_data_rate.bps(), 640000, 10);
 
   AddPacketFeedback(1, 1000, 60, 70);
   AddPacketFeedback(1, 1000, 65, 77);
@@ -169,7 +169,7 @@ TEST_F(TestProbeBitrateEstimator, MultipleClusters) {
   AddPacketFeedback(1, 1000, 75, 90);
   // Expected send rate = 1600 kbps, expected receive rate = 1200 kbps.
 
-  EXPECT_NEAR(measured_data_rate_->bps(), kTargetUtilizationFraction * 1200000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 1200000,
               10);
 }
 
@@ -184,13 +184,13 @@ TEST_F(TestProbeBitrateEstimator, IgnoreOldClusters) {
   AddPacketFeedback(1, 1000, 75, 90);
   // Expected send rate = 1600 kbps, expected receive rate = 1200 kbps.
 
-  EXPECT_NEAR(measured_data_rate_->bps(), kTargetUtilizationFraction * 1200000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 1200000,
               10);
 
   // Coming in 6s later
   AddPacketFeedback(0, 1000, 40 + 6000, 60 + 6000);
 
-  EXPECT_FALSE(measured_data_rate_);
+  EXPECT_FALSE(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, IgnoreSizeLastSendPacket) {
@@ -201,7 +201,7 @@ TEST_F(TestProbeBitrateEstimator, IgnoreSizeLastSendPacket) {
   AddPacketFeedback(0, 1500, 40, 50);
   // Expected send rate = 800 kbps, expected receive rate = 900 kbps.
 
-  EXPECT_NEAR(measured_data_rate_->bps(), 800000, 10);
+  EXPECT_NEAR(self.measured_data_rate.bps(), 800000, 10);
 }
 
 TEST_F(TestProbeBitrateEstimator, IgnoreSizeFirstReceivePacket) {
@@ -211,12 +211,12 @@ TEST_F(TestProbeBitrateEstimator, IgnoreSizeFirstReceivePacket) {
   AddPacketFeedback(0, 1000, 30, 40);
   // Expected send rate = 933 kbps, expected receive rate = 800 kbps.
 
-  EXPECT_NEAR(measured_data_rate_->bps(), kTargetUtilizationFraction * 800000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 800000,
               10);
 }
 
 TEST_F(TestProbeBitrateEstimator, NoLastEstimatedBitrateBps) {
-  EXPECT_FALSE(probe_bitrate_estimator_.FetchAndResetLastEstimatedBitrate());
+  EXPECT_FALSE(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
 }
 
 TEST_F(TestProbeBitrateEstimator, FetchLastEstimatedBitrateBps) {
@@ -225,11 +225,11 @@ TEST_F(TestProbeBitrateEstimator, FetchLastEstimatedBitrateBps) {
   AddPacketFeedback(0, 1000, 20, 30);
   AddPacketFeedback(0, 1000, 30, 40);
 
-  auto estimated_bitrate =
-      probe_bitrate_estimator_.FetchAndResetLastEstimatedBitrate();
+let estimated_bitrate =
+      self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate();
   EXPECT_TRUE(estimated_bitrate);
   EXPECT_NEAR(estimated_bitrate->bps(), 800000, 10);
-  EXPECT_FALSE(probe_bitrate_estimator_.FetchAndResetLastEstimatedBitrate());
+  EXPECT_FALSE(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
 }
 
 }  // namespace webrtc

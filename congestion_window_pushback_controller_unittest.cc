@@ -17,10 +17,11 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 
-namespace webrtc {
+
 namespace test {
 
-TEST(CongestionWindowPushbackControllerTest, FullCongestionWindow) {
+#[test]
+fn FullCongestionWindow() {
   CongestionWindowPushbackController cwnd_controller(
       ExplicitKeyValueConfig(""));
 
@@ -36,7 +37,8 @@ TEST(CongestionWindowPushbackControllerTest, FullCongestionWindow) {
   EXPECT_EQ(static_cast<uint32_t>(72000 * 0.9 * 0.9), bitrate_bps);
 }
 
-TEST(CongestionWindowPushbackControllerTest, NormalCongestionWindow) {
+#[test]
+fn NormalCongestionWindow() {
   CongestionWindowPushbackController cwnd_controller(
       ExplicitKeyValueConfig(""));
 
@@ -48,7 +50,8 @@ TEST(CongestionWindowPushbackControllerTest, NormalCongestionWindow) {
   EXPECT_EQ(80000u, bitrate_bps);
 }
 
-TEST(CongestionWindowPushbackControllerTest, LowBitrate) {
+#[test]
+fn LowBitrate() {
   CongestionWindowPushbackController cwnd_controller(
       ExplicitKeyValueConfig(""));
 
@@ -64,7 +67,8 @@ TEST(CongestionWindowPushbackControllerTest, LowBitrate) {
   EXPECT_EQ(30000u, bitrate_bps);
 }
 
-TEST(CongestionWindowPushbackControllerTest, NoPushbackOnDataWindowUnset) {
+#[test]
+fn NoPushbackOnDataWindowUnset() {
   CongestionWindowPushbackController cwnd_controller(
       ExplicitKeyValueConfig(""));
 
@@ -75,7 +79,8 @@ TEST(CongestionWindowPushbackControllerTest, NoPushbackOnDataWindowUnset) {
   EXPECT_EQ(80000u, bitrate_bps);
 }
 
-TEST(CongestionWindowPushbackControllerTest, PushbackOnInititialDataWindow) {
+#[test]
+fn PushbackOnInititialDataWindow() {
   CongestionWindowPushbackController cwnd_controller(
       ExplicitKeyValueConfig("WebRTC-CongestionWindow/InitWin:100000/"));
 
@@ -86,7 +91,8 @@ TEST(CongestionWindowPushbackControllerTest, PushbackOnInititialDataWindow) {
   EXPECT_GT(80000u, bitrate_bps);
 }
 
-TEST(CongestionWindowPushbackControllerTest, PushbackDropFrame) {
+#[test]
+fn PushbackDropFrame() {
   CongestionWindowPushbackController cwnd_controller(
       ExplicitKeyValueConfig("WebRTC-CongestionWindow/DropFrame:true/"));
 

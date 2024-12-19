@@ -27,28 +27,30 @@
 #include "test/field_trial.h"
 #include "test/gtest.h"
 
-namespace webrtc {
+
 namespace test {
 
-class TestBitrateObserver {
+pub struct TestBitrateObserver {
  public:
   TestBitrateObserver() : updated_(false), latest_bitrate_(0) {}
   ~TestBitrateObserver() {}
 
-  void OnReceiveBitrateChanged(uint32_t bitrate);
+  fn OnReceiveBitrateChanged(uint32_t bitrate) {
+  todo!();
+}
 
-  void Reset() { updated_ = false; }
+fn Reset() -> void { self.updated = false; }
 
-  bool updated() const { return updated_; }
+  bool updated() { return self.updated; }
 
-  uint32_t latest_bitrate() const { return latest_bitrate_; }
+  uint32_t latest_bitrate() { return self.latest_bitrate; }
 
  private:
-  bool updated_;
-  uint32_t latest_bitrate_;
+  updated: bool,
+  latest_bitrate: uint32_t,
 };
 
-class RtpStream {
+pub struct RtpStream {
  public:
   enum { kSendSideOffsetUs = 1000000 };
 
@@ -60,14 +62,16 @@ class RtpStream {
   // Generates a new frame for this stream. If called too soon after the
   // previous frame, no frame will be generated. The frame is split into
   // packets.
-  int64_t GenerateFrame(int64_t time_now_us,
-                        int64_t* next_sequence_number,
-                        std::vector<PacketResult>* packets);
+  i64 GenerateFrame(i64 time_now_us,
+                        i64* next_sequence_number,
+                        Vec<PacketResult>* packets);
 
   // The send-side time when the next frame can be generated.
-  int64_t next_rtp_time() const;
+  i64 next_rtp_time() const;
 
-  void set_bitrate_bps(int bitrate_bps);
+  fn set_bitrate_bps(int bitrate_bps) {
+  todo!();
+}
 
   int bitrate_bps() const;
 
@@ -75,45 +79,53 @@ class RtpStream {
                       const std::unique_ptr<RtpStream>& rhs);
 
  private:
-  int fps_;
-  int bitrate_bps_;
-  int64_t next_rtp_time_;
+  fps: int,
+  bitrate_bps: int,
+  next_rtp_time: i64,
 };
 
-class StreamGenerator {
+pub struct StreamGenerator {
  public:
-  StreamGenerator(int capacity, int64_t time_now);
+  StreamGenerator(int capacity, i64 time_now);
   ~StreamGenerator();
 
   StreamGenerator(const StreamGenerator&) = delete;
   StreamGenerator& operator=(const StreamGenerator&) = delete;
 
   // Add a new stream.
-  void AddStream(RtpStream* stream);
+  fn AddStream(RtpStream* stream) {
+  todo!();
+}
 
   // Set the link capacity.
-  void set_capacity_bps(int capacity_bps);
+  fn set_capacity_bps(int capacity_bps) {
+  todo!();
+}
 
   // Divides `bitrate_bps` among all streams. The allocated bitrate per stream
   // is decided by the initial allocation ratios.
-  void SetBitrateBps(int bitrate_bps);
+  fn SetBitrateBps(int bitrate_bps) {
+  todo!();
+}
 
   // Set the RTP timestamp offset for the stream identified by `ssrc`.
-  void set_rtp_timestamp_offset(uint32_t ssrc, uint32_t offset);
+  fn set_rtp_timestamp_offset(uint32_t ssrc, uint32_t offset) {
+  todo!();
+}
 
   // TODO(holmer): Break out the channel simulation part from this class to make
   // it possible to simulate different types of channels.
-  int64_t GenerateFrame(int64_t time_now_us,
-                        int64_t* next_sequence_number,
-                        std::vector<PacketResult>* packets);
+  i64 GenerateFrame(i64 time_now_us,
+                        i64* next_sequence_number,
+                        Vec<PacketResult>* packets);
 
  private:
   // Capacity of the simulated channel in bits per second.
-  int capacity_;
+  capacity: int,
   // The time when the last packet arrived.
-  int64_t prev_arrival_time_us_;
+  prev_arrival_time_us: i64,
   // All streams being transmitted on this simulated channel.
-  std::vector<std::unique_ptr<RtpStream>> streams_;
+  streams: Vec<std::unique_ptr<RtpStream>>,
 };
 }  // namespace test
 
@@ -126,16 +138,16 @@ class DelayBasedBweTest : public ::testing::Test {
   void AddDefaultStream();
 
   // Helpers to insert a single packet into the delay-based BWE.
-  void IncomingFeedback(int64_t arrival_time_ms,
-                        int64_t send_time_ms,
-                        size_t payload_size);
-  void IncomingFeedback(int64_t arrival_time_ms,
-                        int64_t send_time_ms,
-                        size_t payload_size,
+  void IncomingFeedback(i64 arrival_time_ms,
+                        i64 send_time_ms,
+                        usize payload_size);
+  void IncomingFeedback(i64 arrival_time_ms,
+                        i64 send_time_ms,
+                        usize payload_size,
                         const PacedPacketInfo& pacing_info);
   void IncomingFeedback(Timestamp receive_time,
                         Timestamp send_time,
-                        size_t payload_size,
+                        usize payload_size,
                         const PacedPacketInfo& pacing_info);
 
   // Generates a frame of packets belonging to a stream at a given bitrate and
@@ -159,31 +171,39 @@ class DelayBasedBweTest : public ::testing::Test {
 
   void TestTimestampGroupingTestHelper();
 
-  void TestWrappingHelper(int silence_time_s);
+  fn TestWrappingHelper(int silence_time_s) {
+  todo!();
+}
 
-  void InitialBehaviorTestHelper(uint32_t expected_converge_bitrate);
-  void RateIncreaseReorderingTestHelper(uint32_t expected_bitrate);
-  void RateIncreaseRtpTimestampsTestHelper(int expected_iterations);
+  fn InitialBehaviorTestHelper(uint32_t expected_converge_bitrate) {
+  todo!();
+}
+  fn RateIncreaseReorderingTestHelper(uint32_t expected_bitrate) {
+  todo!();
+}
+  fn RateIncreaseRtpTimestampsTestHelper(int expected_iterations) {
+  todo!();
+}
   void CapacityDropTestHelper(int number_of_streams,
                               bool wrap_time_stamp,
                               uint32_t expected_bitrate_drop_delta,
-                              int64_t receiver_clock_offset_change_ms);
+                              i64 receiver_clock_offset_change_ms);
 
   static const uint32_t kDefaultSsrc;
-  FieldTrialBasedConfig field_trial_config_;
+  field_trial_config: FieldTrialBasedConfig,
 
   std::unique_ptr<test::ScopedFieldTrials>
       field_trial;        // Must be initialized first.
-  SimulatedClock clock_;  // Time at the receiver.
-  test::TestBitrateObserver bitrate_observer_;
+  clock: SimulatedClock,  // Time at the receiver.
+  bitrate_observer: test::TestBitrateObserver,
   std::unique_ptr<AcknowledgedBitrateEstimatorInterface>
-      acknowledged_bitrate_estimator_;
-  const std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
-  std::unique_ptr<DelayBasedBwe> bitrate_estimator_;
-  std::unique_ptr<test::StreamGenerator> stream_generator_;
-  int64_t arrival_time_offset_ms_;
-  int64_t next_sequence_number_;
-  bool first_update_;
+      self.acknowledged_bitrate_estimator;
+  const std::unique_ptr<ProbeBitrateEstimator> self.probe_bitrate_estimator;
+  bitrate_estimator: std::unique_ptr<DelayBasedBwe>,
+  stream_generator: std::unique_ptr<test::StreamGenerator>,
+  arrival_time_offset_ms: i64,
+  next_sequence_number: i64,
+  first_update: bool,
 };
 
 }  // namespace webrtc

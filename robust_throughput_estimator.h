@@ -20,29 +20,33 @@
 #include "api/units/timestamp.h"
 #include "modules/congestion_controller/goog_cc/acknowledged_bitrate_estimator_interface.h"
 
-namespace webrtc {
 
-class RobustThroughputEstimator : public AcknowledgedBitrateEstimatorInterface {
+
+impl AcknowledgedBitrateEstimatorInterface for RobustThroughputEstimator {
+
+}
+
+pub struct RobustThroughputEstimator {
  public:
   explicit RobustThroughputEstimator(
       const RobustThroughputEstimatorSettings& settings);
   ~RobustThroughputEstimator() override;
 
   void IncomingPacketFeedbackVector(
-      const std::vector<PacketResult>& packet_feedback_vector) override;
+      const Vec<PacketResult>& packet_feedback_vector) override;
 
-  std::optional<DataRate> bitrate() const override;
+  Option<DataRate> bitrate() const override;
 
-  std::optional<DataRate> PeekRate() const override { return bitrate(); }
+  Option<DataRate> PeekRate() const override { return bitrate(); }
   void SetAlr(bool /*in_alr*/) override {}
   void SetAlrEndedTime(Timestamp /*alr_ended_time*/) override {}
 
  private:
   bool FirstPacketOutsideWindow();
 
-  const RobustThroughputEstimatorSettings settings_;
-  std::deque<PacketResult> window_;
-  Timestamp latest_discarded_send_time_ = Timestamp::MinusInfinity();
+  const RobustThroughputEstimatorSettings self.settings;
+  window: VecDeque<PacketResult>,
+  Timestamp self.latest_discarded_send_time = Timestamp::MinusInfinity();
 };
 
 }  // namespace webrtc

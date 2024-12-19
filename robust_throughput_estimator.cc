@@ -26,39 +26,39 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
-namespace webrtc {
+
 
 RobustThroughputEstimator::RobustThroughputEstimator(
     const RobustThroughputEstimatorSettings& settings)
     : settings_(settings),
       latest_discarded_send_time_(Timestamp::MinusInfinity()) {
-  RTC_DCHECK(settings.enabled);
+  assert!(settings.enabled);
 }
 
 RobustThroughputEstimator::~RobustThroughputEstimator() {}
 
-bool RobustThroughputEstimator::FirstPacketOutsideWindow() {
-  if (window_.empty())
+bool FirstPacketOutsideWindow(&self /* RobustThroughputEstimator */) {
+  if (self.window.empty())
     return false;
-  if (window_.size() > settings_.max_window_packets)
+  if (self.window.len() > self.settings.max_window_packets)
     return true;
   TimeDelta current_window_duration =
-      window_.back().receive_time - window_.front().receive_time;
-  if (current_window_duration > settings_.max_window_duration)
+      self.window.back().receive_time - self.window.front().receive_time;
+  if (current_window_duration > self.settings.max_window_duration)
     return true;
-  if (window_.size() > settings_.window_packets &&
-      current_window_duration > settings_.min_window_duration) {
+  if (self.window.len() > self.settings.window_packets &&
+      current_window_duration > self.settings.min_window_duration) {
     return true;
   }
   return false;
 }
 
-void RobustThroughputEstimator::IncomingPacketFeedbackVector(
-    const std::vector<PacketResult>& packet_feedback_vector) {
-  RTC_DCHECK(std::is_sorted(packet_feedback_vector.begin(),
+fn IncomingPacketFeedbackVector(&self /* RobustThroughputEstimator */,
+    const Vec<PacketResult>& packet_feedback_vector) {
+  assert!(std::is_sorted(packet_feedback_vector.begin(),
                             packet_feedback_vector.end(),
                             PacketResult::ReceiveTimeOrder()));
-  for (const auto& packet : packet_feedback_vector) {
+  for packet in &packet_feedback_vector {
     // Ignore packets without valid send or receive times.
     // (This should not happen in production since lost packets are filtered
     // out before passing the feedback vector to the throughput estimator.
@@ -70,46 +70,46 @@ void RobustThroughputEstimator::IncomingPacketFeedbackVector(
     }
 
     // Insert the new packet.
-    window_.push_back(packet);
-    window_.back().sent_packet.prior_unacked_data =
-        window_.back().sent_packet.prior_unacked_data *
-        settings_.unacked_weight;
+    self.window.push_back(packet);
+    self.window.back().sent_packet.prior_unacked_data =
+        self.window.back().sent_packet.prior_unacked_data *
+        self.settings.unacked_weight;
     // In most cases, receive timestamps should already be in order, but in the
     // rare case where feedback packets have been reordered, we do some swaps to
     // ensure that the window is sorted.
-    for (size_t i = window_.size() - 1;
-         i > 0 && window_[i].receive_time < window_[i - 1].receive_time; i--) {
-      std::swap(window_[i], window_[i - 1]);
+    for i = self.window.len() - 1;
+         i > 0 && self.window[i].receive_time < self.window[i - 1].receive_time; i--) {
+      std::swap(self.window[i], self.window[i - 1]);
     }
-    constexpr TimeDelta kMaxReorderingTime = TimeDelta::Seconds(1);
+    constexpr TimeDelta kMaxReorderingTime = Duration::from_secs(1);
     const TimeDelta receive_delta =
-        (window_.back().receive_time - packet.receive_time);
+        (self.window.back().receive_time - packet.receive_time);
     if (receive_delta > kMaxReorderingTime) {
       RTC_LOG(LS_WARNING)
           << "Severe packet re-ordering or timestamps offset changed: "
           << receive_delta;
-      window_.clear();
-      latest_discarded_send_time_ = Timestamp::MinusInfinity();
+      self.window.clear();
+      self.latest_discarded_send_time = Timestamp::MinusInfinity();
     }
   }
 
   // Remove old packets.
   while (FirstPacketOutsideWindow()) {
-    latest_discarded_send_time_ = std::max(
-        latest_discarded_send_time_, window_.front().sent_packet.send_time);
-    window_.pop_front();
+    self.latest_discarded_send_time = std::cmp::max(
+        self.latest_discarded_send_time, self.window.front().sent_packet.send_time);
+    self.window.pop_front();
   }
 }
 
-std::optional<DataRate> RobustThroughputEstimator::bitrate() const {
-  if (window_.empty() || window_.size() < settings_.required_packets)
-    return std::nullopt;
+Option<DataRate> bitrate(&self /* RobustThroughputEstimator */) {
+  if (self.window.empty() || self.window.len() < self.settings.required_packets)
+    return None;
 
   TimeDelta largest_recv_gap(TimeDelta::Zero());
   TimeDelta second_largest_recv_gap(TimeDelta::Zero());
-  for (size_t i = 1; i < window_.size(); i++) {
+  for i = 1; i < self.window.len(); i++) {
     // Find receive time gaps.
-    TimeDelta gap = window_[i].receive_time - window_[i - 1].receive_time;
+    TimeDelta gap = self.window[i].receive_time - self.window[i - 1].receive_time;
     if (gap > largest_recv_gap) {
       second_largest_recv_gap = largest_recv_gap;
       largest_recv_gap = gap;
@@ -126,18 +126,18 @@ std::optional<DataRate> RobustThroughputEstimator::bitrate() const {
   DataSize send_size = DataSize::Bytes(0);
   DataSize first_recv_size = DataSize::Bytes(0);
   DataSize last_send_size = DataSize::Bytes(0);
-  size_t num_sent_packets_in_window = 0;
-  for (const auto& packet : window_) {
+  let num_sent_packets_in_window: usize = 0;
+  for packet in &window_ {
     if (packet.receive_time < first_recv_time) {
       first_recv_time = packet.receive_time;
       first_recv_size =
           packet.sent_packet.size + packet.sent_packet.prior_unacked_data;
     }
-    last_recv_time = std::max(last_recv_time, packet.receive_time);
+    last_recv_time = std::cmp::max(last_recv_time, packet.receive_time);
     recv_size += packet.sent_packet.size;
     recv_size += packet.sent_packet.prior_unacked_data;
 
-    if (packet.sent_packet.send_time < latest_discarded_send_time_) {
+    if (packet.sent_packet.send_time < self.latest_discarded_send_time) {
       // If we have dropped packets from the window that were sent after
       // this packet, then this packet was reordered. Ignore it from
       // the send rate computation (since the send time may be very far
@@ -151,11 +151,11 @@ std::optional<DataRate> RobustThroughputEstimator::bitrate() const {
       last_send_size =
           packet.sent_packet.size + packet.sent_packet.prior_unacked_data;
     }
-    first_send_time = std::min(first_send_time, packet.sent_packet.send_time);
+    first_send_time = std::cmp::min(first_send_time, packet.sent_packet.send_time);
 
     send_size += packet.sent_packet.size;
     send_size += packet.sent_packet.prior_unacked_data;
-    ++num_sent_packets_in_window;
+    num_sent_packets_in_window += 1;
   }
 
   // Suppose a packet of size S is sent every T milliseconds.
@@ -182,23 +182,23 @@ std::optional<DataRate> RobustThroughputEstimator::bitrate() const {
   // by a burst of delayed packets), don't cause the estimate to drop.
   // This could cause an overestimation, which we guard against by
   // never returning an estimate above the send rate.
-  RTC_DCHECK(first_recv_time.IsFinite());
-  RTC_DCHECK(last_recv_time.IsFinite());
+  assert!(first_recv_time.IsFinite());
+  assert!(last_recv_time.IsFinite());
   TimeDelta recv_duration = (last_recv_time - first_recv_time) -
                             largest_recv_gap + second_largest_recv_gap;
-  recv_duration = std::max(recv_duration, TimeDelta::Millis(1));
+  recv_duration = std::cmp::max(recv_duration, TimeDelta::Millis(1));
 
-  if (num_sent_packets_in_window < settings_.required_packets) {
+  if (num_sent_packets_in_window < self.settings.required_packets) {
     // Too few send times to calculate a reliable send rate.
     return recv_size / recv_duration;
   }
 
-  RTC_DCHECK(first_send_time.IsFinite());
-  RTC_DCHECK(last_send_time.IsFinite());
+  assert!(first_send_time.IsFinite());
+  assert!(last_send_time.IsFinite());
   TimeDelta send_duration = last_send_time - first_send_time;
-  send_duration = std::max(send_duration, TimeDelta::Millis(1));
+  send_duration = std::cmp::max(send_duration, TimeDelta::Millis(1));
 
-  return std::min(send_size / send_duration, recv_size / recv_duration);
+  return std::cmp::min(send_size / send_duration, recv_size / recv_duration);
 }
 
 }  // namespace webrtc

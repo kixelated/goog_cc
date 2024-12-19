@@ -14,25 +14,31 @@
 
 #include "api/units/data_rate.h"
 
-namespace webrtc {
-class LinkCapacityEstimator {
+
+pub struct LinkCapacityEstimator {
  public:
   LinkCapacityEstimator();
   DataRate UpperBound() const;
   DataRate LowerBound() const;
   void Reset();
-  void OnOveruseDetected(DataRate acknowledged_rate);
-  void OnProbeRate(DataRate probe_rate);
+  fn OnOveruseDetected(DataRate acknowledged_rate) {
+  todo!();
+}
+  fn OnProbeRate(DataRate probe_rate) {
+  todo!();
+}
   bool has_estimate() const;
   DataRate estimate() const;
 
  private:
   friend class GoogCcStatePrinter;
-  void Update(DataRate capacity_sample, double alpha);
+  fn Update(DataRate capacity_sample, f64 alpha) {
+  todo!();
+}
 
-  double deviation_estimate_kbps() const;
-  std::optional<double> estimate_kbps_;
-  double deviation_kbps_ = 0.4;
+  f64 deviation_estimate_kbps() const;
+  estimate_kbps: Option<f64>,
+  let deviation_kbps_: f64 = 0.4;
 };
 }  // namespace webrtc
 

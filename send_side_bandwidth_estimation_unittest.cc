@@ -22,13 +22,13 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 
-namespace webrtc {
+
 
 MATCHER(LossBasedBweUpdateWithBitrateOnly, "") {
   if (arg->GetType() != RtcEvent::Type::BweUpdateLossBased) {
     return false;
   }
-  auto bwe_event = static_cast<RtcEventBweUpdateLossBased*>(arg);
+let bwe_event = static_cast<RtcEventBweUpdateLossBased*>(arg);
   return bwe_event->bitrate_bps() > 0 && bwe_event->fraction_loss() == 0;
 }
 
@@ -36,15 +36,15 @@ MATCHER(LossBasedBweUpdateWithBitrateAndLossFraction, "") {
   if (arg->GetType() != RtcEvent::Type::BweUpdateLossBased) {
     return false;
   }
-  auto bwe_event = static_cast<RtcEventBweUpdateLossBased*>(arg);
+let bwe_event = static_cast<RtcEventBweUpdateLossBased*>(arg);
   return bwe_event->bitrate_bps() > 0 && bwe_event->fraction_loss() > 0;
 }
 
-void TestProbing(bool use_delay_based) {
+fn TestProbing(bool use_delay_based) -> void {
   ::testing::NiceMock<MockRtcEventLog> event_log;
   test::ExplicitKeyValueConfig key_value_config("");
   SendSideBandwidthEstimation bwe(&key_value_config, &event_log);
-  int64_t now_ms = 0;
+  i64 now_ms = 0;
   bwe.SetMinMaxBitrate(DataRate::BitsPerSec(100000),
                        DataRate::BitsPerSec(1500000));
   bwe.SetSendBitrate(DataRate::BitsPerSec(200000), Timestamp::Millis(now_ms));
@@ -80,15 +80,18 @@ void TestProbing(bool use_delay_based) {
   EXPECT_EQ(kRembBps, bwe.target_rate().bps());
 }
 
-TEST(SendSideBweTest, InitialRembWithProbing) {
+#[test]
+fn InitialRembWithProbing() {
   TestProbing(false);
 }
 
-TEST(SendSideBweTest, InitialDelayBasedBweWithProbing) {
+#[test]
+fn InitialDelayBasedBweWithProbing() {
   TestProbing(true);
 }
 
-TEST(SendSideBweTest, DoesntReapplyBitrateDecreaseWithoutFollowingRemb) {
+#[test]
+fn DoesntReapplyBitrateDecreaseWithoutFollowingRemb() {
   MockRtcEventLog event_log;
   EXPECT_CALL(event_log, LogProxy(LossBasedBweUpdateWithBitrateOnly()))
       .Times(1);
@@ -99,14 +102,14 @@ TEST(SendSideBweTest, DoesntReapplyBitrateDecreaseWithoutFollowingRemb) {
   SendSideBandwidthEstimation bwe(&key_value_config, &event_log);
   static const int kMinBitrateBps = 100000;
   static const int kInitialBitrateBps = 1000000;
-  int64_t now_ms = 1000;
+  i64 now_ms = 1000;
   bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
                        DataRate::BitsPerSec(1500000));
   bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
                      Timestamp::Millis(now_ms));
 
   static const uint8_t kFractionLoss = 128;
-  static const int64_t kRttMs = 50;
+  static const i64 kRttMs = 50;
   now_ms += 10000;
 
   EXPECT_EQ(kInitialBitrateBps, bwe.target_rate().bps());
@@ -144,7 +147,8 @@ TEST(SendSideBweTest, DoesntReapplyBitrateDecreaseWithoutFollowingRemb) {
   EXPECT_EQ(kRttMs, bwe.round_trip_time().ms());
 }
 
-TEST(SendSideBweTest, SettingSendBitrateOverridesDelayBasedEstimate) {
+#[test]
+fn SettingSendBitrateOverridesDelayBasedEstimate() {
   ::testing::NiceMock<MockRtcEventLog> event_log;
   test::ExplicitKeyValueConfig key_value_config("");
   SendSideBandwidthEstimation bwe(&key_value_config, &event_log);
@@ -154,7 +158,7 @@ TEST(SendSideBweTest, SettingSendBitrateOverridesDelayBasedEstimate) {
   static const int kDelayBasedBitrateBps = 350000;
   static const int kForcedHighBitrate = 2500000;
 
-  int64_t now_ms = 0;
+  i64 now_ms = 0;
 
   bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
                        DataRate::BitsPerSec(kMaxBitrateBps));
@@ -172,26 +176,29 @@ TEST(SendSideBweTest, SettingSendBitrateOverridesDelayBasedEstimate) {
   EXPECT_EQ(bwe.target_rate().bps(), kForcedHighBitrate);
 }
 
-TEST(RttBasedBackoff, DefaultEnabled) {
+#[test]
+fn DefaultEnabled() {
   test::ExplicitKeyValueConfig key_value_config("");
   RttBasedBackoff rtt_backoff(&key_value_config);
-  EXPECT_TRUE(rtt_backoff.rtt_limit_.IsFinite());
+  EXPECT_TRUE(rtt_backoff.self.rtt_limit.IsFinite());
 }
 
-TEST(RttBasedBackoff, CanBeDisabled) {
+#[test]
+fn CanBeDisabled() {
   test::ExplicitKeyValueConfig key_value_config(
       "WebRTC-Bwe-MaxRttLimit/Disabled/");
   RttBasedBackoff rtt_backoff(&key_value_config);
-  EXPECT_TRUE(rtt_backoff.rtt_limit_.IsPlusInfinity());
+  EXPECT_TRUE(rtt_backoff.self.rtt_limit.IsPlusInfinity());
 }
 
-TEST(SendSideBweTest, FractionLossIsNotOverflowed) {
+#[test]
+fn FractionLossIsNotOverflowed() {
   MockRtcEventLog event_log;
   test::ExplicitKeyValueConfig key_value_config("");
   SendSideBandwidthEstimation bwe(&key_value_config, &event_log);
   static const int kMinBitrateBps = 100000;
   static const int kInitialBitrateBps = 1000000;
-  int64_t now_ms = 1000;
+  i64 now_ms = 1000;
   bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
                        DataRate::BitsPerSec(1500000));
   bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
@@ -208,14 +215,15 @@ TEST(SendSideBweTest, FractionLossIsNotOverflowed) {
   EXPECT_EQ(0, bwe.fraction_loss());
 }
 
-TEST(SendSideBweTest, RttIsAboveLimitIfRttGreaterThanLimit) {
+#[test]
+fn RttIsAboveLimitIfRttGreaterThanLimit() {
   ::testing::NiceMock<MockRtcEventLog> event_log;
   test::ExplicitKeyValueConfig key_value_config("");
   SendSideBandwidthEstimation bwe(&key_value_config, &event_log);
   static const int kMinBitrateBps = 10000;
   static const int kMaxBitrateBps = 10000000;
   static const int kInitialBitrateBps = 300000;
-  int64_t now_ms = 0;
+  i64 now_ms = 0;
   bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
                        DataRate::BitsPerSec(kMaxBitrateBps));
   bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
@@ -225,14 +233,15 @@ TEST(SendSideBweTest, RttIsAboveLimitIfRttGreaterThanLimit) {
   EXPECT_TRUE(bwe.IsRttAboveLimit());
 }
 
-TEST(SendSideBweTest, RttIsBelowLimitIfRttLessThanLimit) {
+#[test]
+fn RttIsBelowLimitIfRttLessThanLimit() {
   ::testing::NiceMock<MockRtcEventLog> event_log;
   test::ExplicitKeyValueConfig key_value_config("");
   SendSideBandwidthEstimation bwe(&key_value_config, &event_log);
   static const int kMinBitrateBps = 10000;
   static const int kMaxBitrateBps = 10000000;
   static const int kInitialBitrateBps = 300000;
-  int64_t now_ms = 0;
+  i64 now_ms = 0;
   bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
                        DataRate::BitsPerSec(kMaxBitrateBps));
   bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),

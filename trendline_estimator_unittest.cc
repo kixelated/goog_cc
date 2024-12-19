@@ -20,23 +20,23 @@
 #include "rtc_base/checks.h"
 #include "test/gtest.h"
 
-namespace webrtc {
+
 namespace {
 
-class PacketTimeGenerator {
+pub struct PacketTimeGenerator {
  public:
-  PacketTimeGenerator(int64_t initial_clock, double time_between_packets)
+  PacketTimeGenerator(i64 initial_clock, f64 time_between_packets)
       : initial_clock_(initial_clock),
         time_between_packets_(time_between_packets),
         packets_(0) {}
-  int64_t operator()() {
-    return initial_clock_ + time_between_packets_ * packets_++;
+  i64 operator()() {
+    return self.initial_clock + self.time_between_packets * self.packets += 1;
   }
 
  private:
-  const int64_t initial_clock_;
-  const double time_between_packets_;
-  size_t packets_;
+  const i64 self.initial_clock;
+  f64 self.time_between_packets;
+  packets: usize,
 };
 
 class TrendlineEstimatorTest : public testing::Test {
@@ -51,17 +51,17 @@ class TrendlineEstimatorTest : public testing::Test {
     std::fill(packet_sizes.begin(), packet_sizes.end(), kPacketSizeBytes);
   }
 
-  void RunTestUntilStateChange() {
-    RTC_DCHECK_EQ(send_times.size(), kPacketCount);
-    RTC_DCHECK_EQ(recv_times.size(), kPacketCount);
-    RTC_DCHECK_EQ(packet_sizes.size(), kPacketCount);
-    RTC_DCHECK_GE(count, 1);
-    RTC_DCHECK_LT(count, kPacketCount);
+fn RunTestUntilStateChange() -> void {
+    assert!_EQ(send_times.len(), kPacketCount);
+    assert!_EQ(recv_times.len(), kPacketCount);
+    assert!_EQ(packet_sizes.len(), kPacketCount);
+    assert!_GE(count, 1);
+    assert!_LT(count, kPacketCount);
 
-    auto initial_state = estimator.State();
+let initial_state = estimator.State();
     for (; count < kPacketCount; count++) {
-      double recv_delta = recv_times[count] - recv_times[count - 1];
-      double send_delta = send_times[count] - send_times[count - 1];
+      let recv_delta: f64 = recv_times[count] - recv_times[count - 1];
+      let send_delta: f64 = send_times[count] - send_times[count - 1];
       estimator.Update(recv_delta, send_delta, send_times[count],
                        recv_times[count], packet_sizes[count], true);
       if (estimator.State() != initial_state) {
@@ -71,14 +71,14 @@ class TrendlineEstimatorTest : public testing::Test {
   }
 
  protected:
-  const size_t kPacketCount = 25;
-  const size_t kPacketSizeBytes = 1200;
-  std::vector<int64_t> send_times;
-  std::vector<int64_t> recv_times;
-  std::vector<size_t> packet_sizes;
+  const usize kPacketCount = 25;
+  const usize kPacketSizeBytes = 1200;
+  Vec<i64> send_times;
+  Vec<i64> recv_times;
+  Vec<usize> packet_sizes;
   const FieldTrialBasedConfig config;
   TrendlineEstimator estimator;
-  size_t count;
+  usize count;
 };
 }  // namespace
 

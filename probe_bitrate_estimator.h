@@ -19,20 +19,20 @@
 #include "api/units/data_size.h"
 #include "api/units/timestamp.h"
 
-namespace webrtc {
+
 class RtcEventLog;
 
-class ProbeBitrateEstimator {
+pub struct ProbeBitrateEstimator {
  public:
   explicit ProbeBitrateEstimator(RtcEventLog* event_log);
   ~ProbeBitrateEstimator();
 
   // Should be called for every probe packet we receive feedback about.
   // Returns the estimated bitrate if the probe completes a valid cluster.
-  std::optional<DataRate> HandleProbeAndEstimateBitrate(
+  Option<DataRate> HandleProbeAndEstimateBitrate(
       const PacketResult& packet_feedback);
 
-  std::optional<DataRate> FetchAndResetLastEstimatedBitrate();
+  Option<DataRate> FetchAndResetLastEstimatedBitrate();
 
  private:
   struct AggregatedCluster {
@@ -43,15 +43,17 @@ class ProbeBitrateEstimator {
     Timestamp last_receive = Timestamp::MinusInfinity();
     DataSize size_last_send = DataSize::Zero();
     DataSize size_first_receive = DataSize::Zero();
-    DataSize size_total = DataSize::Zero();
+    DataSize usizeotal = DataSize::Zero();
   };
 
   // Erases old cluster data that was seen before `timestamp`.
-  void EraseOldClusters(Timestamp timestamp);
+  fn EraseOldClusters(Timestamp timestamp) {
+  todo!();
+}
 
-  std::map<int, AggregatedCluster> clusters_;
-  RtcEventLog* const event_log_;
-  std::optional<DataRate> estimated_data_rate_;
+  std::map<int, AggregatedCluster> self.clusters;
+  event_log: RtcEventLog*,
+  estimated_data_rate: Option<DataRate>,
 };
 
 }  // namespace webrtc
