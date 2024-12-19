@@ -15,24 +15,46 @@ use super::TimeDelta;
  super::relative_unit!(Frequency);
 
  impl Frequency {
+  const ONE_SIDED: bool = true;
+
   pub const fn MilliHertz(value: i64) -> Self {
-    Self(value)
+    Self::FromValue(value)
   }
 
-    pub fn Hertz<T: Into<Self>>(value: T) -> Self {
+  pub const fn MilliHertzFloat(value: f64) -> Self {
+    Self::FromValueFloat(value)
+  }
+
+    pub const fn Hertz(value: i64) -> Self {
         Self::FromFraction(1_000, value)
     }
 
-    pub fn KiloHertz<T: Into<Self>>(value: T) -> Self {
+    pub const fn HertzFloat(value: f64) -> Self {
+        Self::FromFractionFloat(1_000.0, value)
+    }
+
+    pub const fn KiloHertz(value: i64) -> Self {
         Self::FromFraction(1_000_000, value)
     }
 
-    pub const fn hertz<T: From<Self>>(&self) -> T {
+    pub const fn KiloHertzFloat(value: f64) -> Self {
+        Self::FromFractionFloat(1_000_000.0, value)
+    }
+
+    pub const fn hertz(&self) -> i64 {
         self.ToFraction(1000)
     }
 
-    pub const fn millihertz<T: From<Self>>(&self) -> T {
-        T::from(self)
+    pub const fn hertz_float(&self) -> f64 {
+        self.ToFractionFloat(1000.0)
+    }
+
+    pub const fn millihertz(&self) -> i64 {
+        self.ToValue()
+    }
+
+    pub const fn millihertz_float(&self) -> f64 {
+        self.ToValueFloat()
     }
 }
 
@@ -44,7 +66,7 @@ impl Div<TimeDelta> for i64 {
         assert!(self <= i64::MAX / kKiloPerMicro);
         assert!(interval.IsFinite());
         assert!(!interval.IsZero());
-        return Frequency::MilliHertz(self * kKiloPerMicro / interval.us());
+        Frequency::MilliHertz(self * kKiloPerMicro / interval.us())
     }
 }
 
@@ -56,7 +78,7 @@ impl Div<Frequency> for i64 {
         assert!(self <= i64::MAX / kMegaPerMilli);
         assert!(frequency.IsFinite());
         assert!(!frequency.IsZero());
-        return TimeDelta::Micros(self * kMegaPerMilli / frequency.millihertz());
+        TimeDelta::Micros(self * kMegaPerMilli / frequency.millihertz())
     }
 }
 
@@ -64,7 +86,7 @@ impl Mul<TimeDelta> for Frequency {
     type Output = f64;
 
     fn mul(self, time_delta: TimeDelta) -> f64 {
-        return self.hertz::<f64>() * time_delta.seconds()
+        self.hertz_float() * time_delta.seconds_float()
     }
 }
 
@@ -72,7 +94,7 @@ impl Mul<Frequency> for TimeDelta {
     type Output = f64;
 
     fn mul(self, frequency: Frequency) -> f64 {
-        return frequency * self;
+        frequency * self
     }
 }
 
@@ -82,10 +104,10 @@ impl fmt::Debug for Frequency {
             write!(f, "+inf Hz")
         } else if self.IsMinusInfinity() {
             write!(f, "-inf Hz")
-        } else if self.millihertz::<i64>() % 1000 != 0 {
-            write!(f, "{:.3} Hz", self.hertz::<f64>())
+        } else if self.millihertz() % 1000 != 0 {
+            write!(f, "{:.3} Hz", self.hertz_float())
         } else {
-            write!(f, "{} Hz", self.hertz::<i64>())
+            write!(f, "{} Hz", self.hertz())
         }
     }
 }
@@ -100,24 +122,24 @@ fn ConstExpr() {
   const FrequencyPlusInf: Frequency = Frequency::PlusInfinity();
   const FrequencyMinusInf: Frequency = Frequency::MinusInfinity();
   assert!(Frequency::default() == FrequencyZero);
-  assert!(FrequencyZero.IsZero(), "");
-  assert!(FrequencyPlusInf.IsPlusInfinity(), "");
-  assert!(FrequencyMinusInf.IsMinusInfinity(), "");
+  assert!(FrequencyZero.IsZero());
+  assert!(FrequencyPlusInf.IsPlusInfinity());
+  assert!(FrequencyMinusInf.IsMinusInfinity());
 
-  assert!(FrequencyPlusInf > FrequencyZero, "");
+  assert!(FrequencyPlusInf > FrequencyZero);
 }
 
 #[test]
 fn GetBackSameValues() {
   const Value: i64 = 31;
-  assert_eq!(Frequency::Hertz(Value).hertz::<i64>(), Value);
-  assert_eq!(Frequency::Zero().hertz::<i64>(), 0);
+  assert_eq!(Frequency::Hertz(Value).hertz(), Value);
+  assert_eq!(Frequency::Zero().hertz(), 0);
 }
 
 #[test]
 fn GetDifferentPrefix() {
   const Value: i64 = 30000;
-  assert_eq!(Frequency::MilliHertz(Value).hertz::<i64>(), Value / 1000);
+  assert_eq!(Frequency::MilliHertz(Value).hertz(), Value / 1000);
   assert_eq!(Frequency::Hertz(Value).millihertz(), Value * 1000);
   assert_eq!(Frequency::KiloHertz(Value).hertz(), Value * 1000);
 }
@@ -196,14 +218,14 @@ fn MathOperations() {
   const ValueB: i64 = 260;
   const frequency_a: Frequency = Frequency::Hertz(ValueA);
   const frequency_b: Frequency = Frequency::Hertz(ValueB);
-  assert_eq!((frequency_a + frequency_b).hertz::<i64>(), ValueA + ValueB);
-  assert_eq!((frequency_a - frequency_b).hertz::<i64>(), ValueA - ValueB);
+  assert_eq!((frequency_a + frequency_b).hertz(), ValueA + ValueB);
+  assert_eq!((frequency_a - frequency_b).hertz(), ValueA - ValueB);
 
-  assert_eq!((Frequency::Hertz(ValueA) * ValueB).hertz::<i64>(),
+  assert_eq!((Frequency::Hertz(ValueA) * ValueB).hertz(),
             ValueA * ValueB);
 
-  assert_eq!((frequency_b / 10).hertz::<i64>(), ValueB / 10);
-  assert_eq!(frequency_b / frequency_a, (ValueB as f64) / ValueA);
+  assert_eq!((frequency_b / 10).hertz(), ValueB / 10);
+  assert_eq!((frequency_b / frequency_a).ToValueFloat(), ValueB as f64 / ValueA as f64);
 
   let mut mutable_frequency: Frequency = Frequency::Hertz(ValueA);
   mutable_frequency += Frequency::Hertz(ValueB);
@@ -213,13 +235,13 @@ fn MathOperations() {
 }
 #[test]
 fn Rounding() {
-  const freq_high: Frequency = Frequency::Hertz(23.976);
+  const freq_high: Frequency = Frequency::HertzFloat(23.976);
   assert_eq!(freq_high.hertz(), 24);
   assert_eq!(freq_high.RoundDownTo(Frequency::Hertz(1)), Frequency::Hertz(23));
   assert_eq!(freq_high.RoundTo(Frequency::Hertz(1)), Frequency::Hertz(24));
   assert_eq!(freq_high.RoundUpTo(Frequency::Hertz(1)), Frequency::Hertz(24));
 
-  const freq_low: Frequency = Frequency::Hertz(23.4);
+  const freq_low: Frequency = Frequency::HertzFloat(23.4);
   assert_eq!(freq_low.hertz(), 23);
   assert_eq!(freq_low.RoundDownTo(Frequency::Hertz(1)), Frequency::Hertz(23));
   assert_eq!(freq_low.RoundTo(Frequency::Hertz(1)), Frequency::Hertz(23));
@@ -229,7 +251,7 @@ fn Rounding() {
 #[test]
 fn InfinityOperations() {
   const Value: f64 = 267.0;
-  const finite: Frequency = Frequency::Hertz(Value);
+  const finite: Frequency = Frequency::HertzFloat(Value);
   assert!((Frequency::PlusInfinity() + finite).IsPlusInfinity());
   assert!((Frequency::PlusInfinity() - finite).IsPlusInfinity());
   assert!((finite + Frequency::PlusInfinity()).IsPlusInfinity());

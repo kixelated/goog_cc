@@ -171,7 +171,8 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
   i64 self.transport_sequence_number = 0;
 };
 
-TEST_F(LossBasedBweV2Test, EnabledWhenGivenValidConfigurationValues) {
+#[test]
+fn EnabledWhenGivenValidConfigurationValues() {
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -179,7 +180,8 @@ TEST_F(LossBasedBweV2Test, EnabledWhenGivenValidConfigurationValues) {
   assert!((loss_based_bandwidth_estimator.IsEnabled());
 }
 
-TEST_F(LossBasedBweV2Test, DisabledWhenGivenDisabledConfiguration) {
+#[test]
+fn DisabledWhenGivenDisabledConfiguration() {
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/false, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -187,7 +189,8 @@ TEST_F(LossBasedBweV2Test, DisabledWhenGivenDisabledConfiguration) {
   assert!(!(loss_based_bandwidth_estimator.IsEnabled());
 }
 
-TEST_F(LossBasedBweV2Test, DisabledWhenGivenNonValidConfigurationValues) {
+#[test]
+fn DisabledWhenGivenNonValidConfigurationValues() {
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/false));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -195,7 +198,8 @@ TEST_F(LossBasedBweV2Test, DisabledWhenGivenNonValidConfigurationValues) {
   assert!(!(loss_based_bandwidth_estimator.IsEnabled());
 }
 
-TEST_F(LossBasedBweV2Test, DisabledWhenGivenNonPositiveCandidateFactor) {
+#[test]
+fn DisabledWhenGivenNonPositiveCandidateFactor() {
   ExplicitKeyValueConfig key_value_config_negative_candidate_factor(
       "WebRTC-Bwe-LossBasedBweV2/CandidateFactors:-1.3|1.1/");
   LossBasedBweV2 loss_based_bandwidth_estimator_1(
@@ -219,7 +223,8 @@ TEST_F(LossBasedBweV2Test,
   assert!(!(loss_based_bandwidth_estimator.IsEnabled());
 }
 
-TEST_F(LossBasedBweV2Test, ReturnsDelayBasedEstimateWhenDisabled) {
+#[test]
+fn ReturnsDelayBasedEstimateWhenDisabled() {
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/false, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -270,7 +275,8 @@ TEST_F(LossBasedBweV2Test,
                   .bandwidth_estimate.IsFinite());
 }
 
-TEST_F(LossBasedBweV2Test, NoBandwidthEstimateGivenNoInitialization) {
+#[test]
+fn NoBandwidthEstimateGivenNoInitialization() {
   Vec<PacketResult> enough_feedback =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
@@ -288,7 +294,8 @@ TEST_F(LossBasedBweV2Test, NoBandwidthEstimateGivenNoInitialization) {
                   .bandwidth_estimate.IsPlusInfinity());
 }
 
-TEST_F(LossBasedBweV2Test, NoBandwidthEstimateGivenNotEnoughFeedback) {
+#[test]
+fn NoBandwidthEstimateGivenNotEnoughFeedback() {
   // Create packet results where the observation duration is less than the lower
   // bound.
   PacketResult not_enough_feedback[2];
@@ -481,7 +488,8 @@ TEST_F(LossBasedBweV2Test,
 
 // When loss based bwe receives a strong signal of overusing and an increase in
 // loss rate, it should acked bitrate for emegency backoff.
-TEST_F(LossBasedBweV2Test, UseAckedBitrateForEmegencyBackOff) {
+#[test]
+fn UseAckedBitrateForEmegencyBackOff() {
   // Create two packet results, first packet has 50% loss rate, second packet
   // has 100% loss rate.
   Vec<PacketResult> enough_feedback_1 =
@@ -517,7 +525,8 @@ TEST_F(LossBasedBweV2Test, UseAckedBitrateForEmegencyBackOff) {
 
 // When receiving the same packet feedback, loss based bwe ignores the feedback
 // and returns the current estimate.
-TEST_F(LossBasedBweV2Test, NoBweChangeIfObservationDurationUnchanged) {
+#[test]
+fn NoBweChangeIfObservationDurationUnchanged() {
   Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
@@ -832,7 +841,8 @@ TEST_F(LossBasedBweV2Test,
 
 // Ensure that the state can switch to kIncrease even when the bandwidth is
 // bounded by acked bitrate.
-TEST_F(LossBasedBweV2Test, EnsureIncreaseEvenIfAckedBitrateBound) {
+#[test]
+fn EnsureIncreaseEvenIfAckedBitrateBound() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "LossThresholdOfHighBandwidthPreference:0.99,"
       "BwRampupUpperBoundFactor:1.2,"
@@ -928,7 +938,8 @@ TEST_F(LossBasedBweV2Test,
 }
 
 // The estimate is not bounded after the delayed increase window.
-TEST_F(LossBasedBweV2Test, KeepIncreasingEstimateAfterDelayedIncreaseWindow) {
+#[test]
+fn KeepIncreasingEstimateAfterDelayedIncreaseWindow() {
   Vec<PacketResult> enough_feedback_1 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero());
@@ -974,7 +985,8 @@ TEST_F(LossBasedBweV2Test, KeepIncreasingEstimateAfterDelayedIncreaseWindow) {
       estimate_2);
 }
 
-TEST_F(LossBasedBweV2Test, NotIncreaseIfInherentLossLessThanAverageLoss) {
+#[test]
+fn NotIncreaseIfInherentLossLessThanAverageLoss() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "CandidateFactors:1.2,"
       "NotIncreaseIfInherentLossLessThanAverageLoss:true"));
@@ -1075,7 +1087,8 @@ TEST_F(LossBasedBweV2Test,
       DataRate::KilobitsPerSec(600));
 }
 
-TEST_F(LossBasedBweV2Test, EstimateIsNotHigherThanMaxBitrate) {
+#[test]
+fn EstimateIsNotHigherThanMaxBitrate() {
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1097,7 +1110,8 @@ TEST_F(LossBasedBweV2Test, EstimateIsNotHigherThanMaxBitrate) {
       DataRate::KilobitsPerSec(1000));
 }
 
-TEST_F(LossBasedBweV2Test, NotBackOffToAckedRateInAlr) {
+#[test]
+fn NotBackOffToAckedRateInAlr() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("InstantUpperBoundBwBalance:100kbps"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1127,7 +1141,8 @@ TEST_F(LossBasedBweV2Test, NotBackOffToAckedRateInAlr) {
       DataRate::KilobitsPerSec(600));
 }
 
-TEST_F(LossBasedBweV2Test, BackOffToAckedRateIfNotInAlr) {
+#[test]
+fn BackOffToAckedRateIfNotInAlr() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("InstantUpperBoundBwBalance:100kbps"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1154,7 +1169,8 @@ TEST_F(LossBasedBweV2Test, BackOffToAckedRateIfNotInAlr) {
       acked_rate);
 }
 
-TEST_F(LossBasedBweV2Test, NotReadyToUseInStartPhase) {
+#[test]
+fn NotReadyToUseInStartPhase() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("UseInStartPhase:true"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1163,7 +1179,8 @@ TEST_F(LossBasedBweV2Test, NotReadyToUseInStartPhase) {
   assert!(!(loss_based_bandwidth_estimator.ReadyToUseInStartPhase());
 }
 
-TEST_F(LossBasedBweV2Test, ReadyToUseInStartPhase) {
+#[test]
+fn ReadyToUseInStartPhase() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("UseInStartPhase:true"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1177,7 +1194,8 @@ TEST_F(LossBasedBweV2Test, ReadyToUseInStartPhase) {
   assert!((loss_based_bandwidth_estimator.ReadyToUseInStartPhase());
 }
 
-TEST_F(LossBasedBweV2Test, BoundEstimateByAckedRate) {
+#[test]
+fn BoundEstimateByAckedRate() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("LowerBoundByAckedRateFactor:1.0"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1202,7 +1220,8 @@ TEST_F(LossBasedBweV2Test, BoundEstimateByAckedRate) {
       DataRate::KilobitsPerSec(500));
 }
 
-TEST_F(LossBasedBweV2Test, NotBoundEstimateByAckedRate) {
+#[test]
+fn NotBoundEstimateByAckedRate() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("LowerBoundByAckedRateFactor:0.0"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1227,7 +1246,8 @@ TEST_F(LossBasedBweV2Test, NotBoundEstimateByAckedRate) {
       DataRate::KilobitsPerSec(500));
 }
 
-TEST_F(LossBasedBweV2Test, HasDecreaseStateBecauseOfUpperBound) {
+#[test]
+fn HasDecreaseStateBecauseOfUpperBound() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "CandidateFactors:1.0,InstantUpperBoundBwBalance:10kbps"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1256,7 +1276,8 @@ TEST_F(LossBasedBweV2Test, HasDecreaseStateBecauseOfUpperBound) {
             LossBasedState::kDecreasing);
 }
 
-TEST_F(LossBasedBweV2Test, HasIncreaseStateBecauseOfLowerBound) {
+#[test]
+fn HasIncreaseStateBecauseOfLowerBound() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "CandidateFactors:1.0,LowerBoundByAckedRateFactor:10.0"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1333,7 +1354,8 @@ TEST_F(LossBasedBweV2Test,
       2 * result_after_loss.bandwidth_estimate);
 }
 
-TEST_F(LossBasedBweV2Test, HasDelayBasedStateIfLossBasedBweIsMax) {
+#[test]
+fn HasDelayBasedStateIfLossBasedBweIsMax() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(""));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
   loss_based_bandwidth_estimator.SetMinMaxBitrate(
@@ -1380,7 +1402,8 @@ TEST_F(LossBasedBweV2Test, HasDelayBasedStateIfLossBasedBweIsMax) {
       DataRate::KilobitsPerSec(1000));
 }
 
-TEST_F(LossBasedBweV2Test, IncreaseUsingPaddingStateIfFieldTrial) {
+#[test]
+fn IncreaseUsingPaddingStateIfFieldTrial() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("PaddingDuration:1000ms"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1404,7 +1427,8 @@ TEST_F(LossBasedBweV2Test, IncreaseUsingPaddingStateIfFieldTrial) {
             LossBasedState::kIncreaseUsingPadding);
 }
 
-TEST_F(LossBasedBweV2Test, BestCandidateResetsToUpperBoundInFieldTrial) {
+#[test]
+fn BestCandidateResetsToUpperBoundInFieldTrial() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("PaddingDuration:1000ms,BoundBestCandidate:true"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1440,7 +1464,8 @@ TEST_F(LossBasedBweV2Test, BestCandidateResetsToUpperBoundInFieldTrial) {
               result_after_loss.bandwidth_estimate.kbps(), 100);
 }
 
-TEST_F(LossBasedBweV2Test, DecreaseToAckedCandidateIfPaddingInAlr) {
+#[test]
+fn DecreaseToAckedCandidateIfPaddingInAlr() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "PaddingDuration:1000ms,"
       // Set InstantUpperBoundBwBalance high to disable InstantUpperBound cap.
@@ -1490,7 +1515,8 @@ TEST_F(LossBasedBweV2Test, DecreaseToAckedCandidateIfPaddingInAlr) {
       DataRate::KilobitsPerSec(100));
 }
 
-TEST_F(LossBasedBweV2Test, DecreaseAfterPadding) {
+#[test]
+fn DecreaseAfterPadding() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "PaddingDuration:1000ms,BwRampupUpperBoundFactor:2.0"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1523,7 +1549,7 @@ TEST_F(LossBasedBweV2Test, DecreaseAfterPadding) {
     feedback_id++;
   }
 
-  const Timestamp estimate_increased =
+  const estimate_increased: Timestamp
       Timestamp::Zero() + kObservationDurationLowerBound * feedback_id;
   // The state is kIncreaseUsingPadding for a while without changing the
   // estimate, which is limited by 2 * acked rate.
@@ -1540,12 +1566,13 @@ TEST_F(LossBasedBweV2Test, DecreaseAfterPadding) {
 
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
-  const Timestamp start_decreasing =
+  const start_decreasing: Timestamp
       Timestamp::Zero() + kObservationDurationLowerBound * (feedback_id - 1);
   assert_eq!(start_decreasing - estimate_increased, Duration::from_secs(1));
 }
 
-TEST_F(LossBasedBweV2Test, IncreaseEstimateIfNotHold) {
+#[test]
+fn IncreaseEstimateIfNotHold() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("HoldDurationFactor:0"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1574,7 +1601,8 @@ TEST_F(LossBasedBweV2Test, IncreaseEstimateIfNotHold) {
       estimate);
 }
 
-TEST_F(LossBasedBweV2Test, IncreaseEstimateAfterHoldDuration) {
+#[test]
+fn IncreaseEstimateAfterHoldDuration() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("HoldDurationFactor:10"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1671,7 +1699,8 @@ TEST_F(LossBasedBweV2Test, IncreaseEstimateAfterHoldDuration) {
   }
 }
 
-TEST_F(LossBasedBweV2Test, HoldRateNotLowerThanAckedRate) {
+#[test]
+fn HoldRateNotLowerThanAckedRate() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "HoldDurationFactor:10,LowerBoundByAckedRateFactor:1.0"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1701,7 +1730,8 @@ TEST_F(LossBasedBweV2Test, HoldRateNotLowerThanAckedRate) {
       DataRate::KilobitsPerSec(1000));
 }
 
-TEST_F(LossBasedBweV2Test, EstimateNotLowerThanAckedRate) {
+#[test]
+fn EstimateNotLowerThanAckedRate() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("LowerBoundByAckedRateFactor:1.0"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1747,7 +1777,8 @@ TEST_F(LossBasedBweV2Test, EstimateNotLowerThanAckedRate) {
       DataRate::KilobitsPerSec(1000));
 }
 
-TEST_F(LossBasedBweV2Test, EndHoldDurationIfDelayBasedEstimateWorks) {
+#[test]
+fn EndHoldDurationIfDelayBasedEstimateWorks() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("HoldDurationFactor:3"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1776,7 +1807,8 @@ TEST_F(LossBasedBweV2Test, EndHoldDurationIfDelayBasedEstimateWorks) {
       estimate + DataRate::KilobitsPerSec(10));
 }
 
-TEST_F(LossBasedBweV2Test, UseByteLossRate) {
+#[test]
+fn UseByteLossRate() {
   ExplicitKeyValueConfig key_value_config(
       ShortObservationConfig("UseByteLossRate:true"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -1797,7 +1829,8 @@ TEST_F(LossBasedBweV2Test, UseByteLossRate) {
       DataRate::KilobitsPerSec(150));
 }
 
-TEST_F(LossBasedBweV2Test, UseByteLossRateIgnoreLossSpike) {
+#[test]
+fn UseByteLossRateIgnoreLossSpike() {
   ExplicitKeyValueConfig key_value_config(
       "WebRTC-Bwe-LossBasedBweV2/"
       "UseByteLossRate:true,ObservationWindowSize:5/");
@@ -1846,7 +1879,8 @@ TEST_F(LossBasedBweV2Test, UseByteLossRateIgnoreLossSpike) {
       kDelayBasedEstimate);
 }
 
-TEST_F(LossBasedBweV2Test, UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst) {
+#[test]
+fn UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst() {
   ExplicitKeyValueConfig key_value_config(
       "WebRTC-Bwe-LossBasedBweV2/"
       "UseByteLossRate:true,ObservationWindowSize:5/");
@@ -1880,7 +1914,8 @@ TEST_F(LossBasedBweV2Test, UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst) {
       kDelayBasedEstimate);
 }
 
-TEST_F(LossBasedBweV2Test, PaceAtLossBasedEstimate) {
+#[test]
+fn PaceAtLossBasedEstimate() {
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(
       "PaceAtLossBasedEstimate:true,PaddingDuration:1000ms"));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);

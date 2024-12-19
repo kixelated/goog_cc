@@ -13,36 +13,50 @@ use std::fmt;
 super::relative_unit!(DataSize);
 
 impl DataSize {
-    pub const fn Bytes<T: Into<Self>>(value: T) -> Self {
-        value.into()
+  const ONE_SIDED: bool = true;
+
+    pub const fn Bytes(value: i64) -> Self {
+        Self::FromValue(value)
+    }
+
+    pub const fn BytesFloat(value: f64) -> Self {
+        Self::FromValueFloat(value)
     }
 
     pub const fn Infinity() -> Self {
         Self::PlusInfinity()
     }
 
-    pub const fn bytes<T: From<Self>>(&self) -> T {
-        self.into()
+    pub const fn bytes(&self) -> i64 {
+      self.ToValue()
     }
 
-    pub const fn bytes_or<T: From<Self>>(&self, fallback_value: T) -> T {
-        self.ToFractionOr(1, fallback_value)
+    pub const fn bytes_float(&self) -> f64 {
+      self.ToValueFloat()
+    }
+
+    pub const fn bytes_or(&self, fallback_value: i64) -> i64 {
+        self.ToValueOr(fallback_value)
+    }
+
+    pub const fn bytes_or_float(&self, fallback_value: f64) -> f64 {
+        self.ToValueOrFloat(fallback_value)
     }
 
    pub const fn Microbits(&self) -> i64 {
     const MaxBeforeConversion: i64 =
         i64::MAX / 8000000;
     assert!(self.bytes() < MaxBeforeConversion, "size is too large to be expressed in microbits");
-    return self.bytes() * 8000000;
+    self.bytes() * 8000000
    }
 
 }
 
 impl fmt::Debug for DataSize {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if (self.IsPlusInfinity()) {
+        if self.IsPlusInfinity() {
             write!(f, "+inf bytes")
-        } else if (self.IsMinusInfinity()) {
+        } else if self.IsMinusInfinity() {
             write!(f, "-inf bytes")
         } else {
             write!(f, "{} bytes", self.bytes())
@@ -60,13 +74,13 @@ fn ConstExpr() {
   const DataSizeZero: DataSize = DataSize::Zero();
   const DataSizeInf: DataSize = DataSize::Infinity();
   assert!(DataSize::default() == DataSizeZero);
-  assert!(DataSizeZero.IsZero(), "");
-  assert!(DataSizeInf.IsInfinite(), "");
-  assert!(DataSizeInf.bytes_or(-1) == -1, "");
-  assert!(DataSizeInf > DataSizeZero, "");
+  assert!(DataSizeZero.IsZero());
+  assert!(DataSizeInf.IsInfinite());
+  assert!(DataSizeInf.bytes_or(-1) == -1);
+  assert!(DataSizeInf > DataSizeZero);
 
   const DataSize: DataSize = DataSize::Bytes(Value);
-  assert!(DataSize.bytes_or(-1) == Value, "");
+  assert!(DataSize.bytes_or(-1) == Value);
 
   assert_eq!(DataSize.bytes(), Value);
 }
@@ -118,12 +132,12 @@ fn ConvertsToAndFromDouble() {
   const Value: i64 = 128;
   const DoubleValue: f64 = Value as f64;
 
-  assert_eq!(DataSize::Bytes(Value).bytes::<f64>(), DoubleValue);
-  assert_eq!(DataSize::Bytes(DoubleValue).bytes(), Value);
+  assert_eq!(DataSize::Bytes(Value).bytes_float(), DoubleValue);
+  assert_eq!(DataSize::BytesFloat(DoubleValue).bytes(), Value);
 
   const Infinity: f64 = f64::INFINITY;
-  assert_eq!(DataSize::Infinity().bytes::<f64>(), Infinity);
-  assert!(DataSize::Bytes(Infinity).IsInfinite());
+  assert_eq!(DataSize::Infinity().bytes_float(), Infinity);
+  assert!(DataSize::BytesFloat(Infinity).IsInfinite());
 }
 
 #[test]
@@ -138,11 +152,11 @@ fn MathOperations() {
   const Int32Value: i32 = 123;
   const FloatValue: f64 = 123.0;
   assert_eq!((size_a * ValueB).bytes(), ValueA * ValueB);
-  assert_eq!((size_a * Int32Value).bytes(), ValueA * Int32Value);
-  assert_eq!((size_a * FloatValue).bytes(), ValueA * FloatValue);
+  assert_eq!((size_a * Int32Value).bytes(), ValueA * Int32Value as i64);
+  assert_eq!((size_a * FloatValue).bytes_float(), ValueA as f64 * FloatValue);
 
   assert_eq!((size_a / 10).bytes(), ValueA / 10);
-  assert_eq!(size_a / size_b, (ValueA as f64) / ValueB);
+  assert_eq!((size_a / size_b).ToValueFloat(), (ValueA as f64) / ValueB as f64);
 
   let mut mutable_size: DataSize = DataSize::Bytes(ValueA);
   mutable_size += size_b;

@@ -8,9 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use std::time::{Duration, Instant};
-
-use crate::api::units::DataRate;
+use crate::api::{transport::PacketResult, units::{DataRate, TimeDelta, Timestamp}};
 
 
 pub struct RobustThroughputEstimatorSettings {
@@ -28,8 +26,8 @@ pub struct RobustThroughputEstimatorSettings {
   // packets influencing the estimate for example when sending is paused).
   pub window_packets: u64,
   pub max_window_packets: u64,
-  pub min_window_duration: Duration,
-  pub max_window_duration: Duration,
+  pub min_window_duration: TimeDelta,
+  pub max_window_duration: TimeDelta,
 
   // The estimator window requires at least `required_packets` packets
   // to produce an estimate.
@@ -53,8 +51,8 @@ impl Default for RobustThroughputEstimatorSettings {
     enabled: true,
     window_packets: 20,
     max_window_packets: 500,
-    min_window_duration: Duration::from_secs(1),
-    max_window_duration: Duration::from_secs(5),
+    min_window_duration: TimeDelta::Seconds(1),
+    max_window_duration: TimeDelta::Seconds(5),
     required_packets: 10,
     unacked_weight: 1.0,
   }
@@ -63,10 +61,9 @@ impl Default for RobustThroughputEstimatorSettings {
 
 
 pub trait AcknowledgedBitrateEstimatorInterface {
-  fn create() -> Self;
   fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]);
-  fn bitrate() -> Option<DataRate>;
-  fn peek_rate() -> Option<DataRate>;
-  fn set_alr(in_alr: bool);
-  fn set_alr_ended_time(alr_ended_time: Instant);
+  fn bitrate(&self) -> Option<DataRate>;
+  fn peek_rate(&self) -> Option<DataRate>;
+  fn set_alr(&mut self, in_alr: bool);
+  fn set_alr_ended_time(&mut self, alr_ended_time: Timestamp);
 }

@@ -59,7 +59,8 @@ class TestProbeBitrateEstimator : public ::testing::Test {
   probe_bitrate_estimator: ProbeBitrateEstimator,
 };
 
-TEST_F(TestProbeBitrateEstimator, OneCluster) {
+#[test]
+fn OneCluster() {
   AddPacketFeedback(0, 1000, 0, 10);
   AddPacketFeedback(0, 1000, 10, 20);
   AddPacketFeedback(0, 1000, 20, 30);
@@ -68,7 +69,8 @@ TEST_F(TestProbeBitrateEstimator, OneCluster) {
   EXPECT_NEAR(self.measured_data_rate.bps(), 800000, 10);
 }
 
-TEST_F(TestProbeBitrateEstimator, OneClusterTooFewProbes) {
+#[test]
+fn OneClusterTooFewProbes() {
   AddPacketFeedback(0, 2000, 0, 10);
   AddPacketFeedback(0, 2000, 10, 20);
   AddPacketFeedback(0, 2000, 20, 30);
@@ -76,7 +78,8 @@ TEST_F(TestProbeBitrateEstimator, OneClusterTooFewProbes) {
   assert!(!(self.measured_data_rate);
 }
 
-TEST_F(TestProbeBitrateEstimator, OneClusterTooFewBytes) {
+#[test]
+fn OneClusterTooFewBytes() {
   const MinBytes: isize = 6000;
   AddPacketFeedback(0, 800, 0, 10, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 800, 10, 20, kDefaultMinProbes, kMinBytes);
@@ -87,7 +90,8 @@ TEST_F(TestProbeBitrateEstimator, OneClusterTooFewBytes) {
   assert!(!(self.measured_data_rate);
 }
 
-TEST_F(TestProbeBitrateEstimator, SmallCluster) {
+#[test]
+fn SmallCluster() {
   const MinBytes: isize = 1000;
   AddPacketFeedback(0, 150, 0, 10, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 150, 10, 20, kDefaultMinProbes, kMinBytes);
@@ -98,7 +102,8 @@ TEST_F(TestProbeBitrateEstimator, SmallCluster) {
   EXPECT_NEAR(self.measured_data_rate.bps(), 120000, 10);
 }
 
-TEST_F(TestProbeBitrateEstimator, LargeCluster) {
+#[test]
+fn LargeCluster() {
   const MinProbes: isize = 30;
   const MinBytes: isize = 312500;
 
@@ -112,7 +117,8 @@ TEST_F(TestProbeBitrateEstimator, LargeCluster) {
   EXPECT_NEAR(self.measured_data_rate.bps(), 100000000, 10);
 }
 
-TEST_F(TestProbeBitrateEstimator, FastReceive) {
+#[test]
+fn FastReceive() {
   AddPacketFeedback(0, 1000, 0, 15);
   AddPacketFeedback(0, 1000, 10, 30);
   AddPacketFeedback(0, 1000, 20, 35);
@@ -121,7 +127,8 @@ TEST_F(TestProbeBitrateEstimator, FastReceive) {
   EXPECT_NEAR(self.measured_data_rate.bps(), 800000, 10);
 }
 
-TEST_F(TestProbeBitrateEstimator, TooFastReceive) {
+#[test]
+fn TooFastReceive() {
   AddPacketFeedback(0, 1000, 0, 19);
   AddPacketFeedback(0, 1000, 10, 22);
   AddPacketFeedback(0, 1000, 20, 25);
@@ -130,7 +137,8 @@ TEST_F(TestProbeBitrateEstimator, TooFastReceive) {
   assert!(!(self.measured_data_rate);
 }
 
-TEST_F(TestProbeBitrateEstimator, SlowReceive) {
+#[test]
+fn SlowReceive() {
   AddPacketFeedback(0, 1000, 0, 10);
   AddPacketFeedback(0, 1000, 10, 40);
   AddPacketFeedback(0, 1000, 20, 70);
@@ -141,7 +149,8 @@ TEST_F(TestProbeBitrateEstimator, SlowReceive) {
               10);
 }
 
-TEST_F(TestProbeBitrateEstimator, BurstReceive) {
+#[test]
+fn BurstReceive() {
   AddPacketFeedback(0, 1000, 0, 50);
   AddPacketFeedback(0, 1000, 10, 50);
   AddPacketFeedback(0, 1000, 20, 50);
@@ -150,7 +159,8 @@ TEST_F(TestProbeBitrateEstimator, BurstReceive) {
   assert!(!(self.measured_data_rate);
 }
 
-TEST_F(TestProbeBitrateEstimator, MultipleClusters) {
+#[test]
+fn MultipleClusters() {
   AddPacketFeedback(0, 1000, 0, 10);
   AddPacketFeedback(0, 1000, 10, 20);
   AddPacketFeedback(0, 1000, 20, 30);
@@ -173,7 +183,8 @@ TEST_F(TestProbeBitrateEstimator, MultipleClusters) {
               10);
 }
 
-TEST_F(TestProbeBitrateEstimator, IgnoreOldClusters) {
+#[test]
+fn IgnoreOldClusters() {
   AddPacketFeedback(0, 1000, 0, 10);
   AddPacketFeedback(0, 1000, 10, 20);
   AddPacketFeedback(0, 1000, 20, 30);
@@ -193,7 +204,8 @@ TEST_F(TestProbeBitrateEstimator, IgnoreOldClusters) {
   assert!(!(self.measured_data_rate);
 }
 
-TEST_F(TestProbeBitrateEstimator, IgnoreSizeLastSendPacket) {
+#[test]
+fn IgnoreSizeLastSendPacket() {
   AddPacketFeedback(0, 1000, 0, 10);
   AddPacketFeedback(0, 1000, 10, 20);
   AddPacketFeedback(0, 1000, 20, 30);
@@ -204,7 +216,8 @@ TEST_F(TestProbeBitrateEstimator, IgnoreSizeLastSendPacket) {
   EXPECT_NEAR(self.measured_data_rate.bps(), 800000, 10);
 }
 
-TEST_F(TestProbeBitrateEstimator, IgnoreSizeFirstReceivePacket) {
+#[test]
+fn IgnoreSizeFirstReceivePacket() {
   AddPacketFeedback(0, 1500, 0, 10);
   AddPacketFeedback(0, 1000, 10, 20);
   AddPacketFeedback(0, 1000, 20, 30);
@@ -215,11 +228,13 @@ TEST_F(TestProbeBitrateEstimator, IgnoreSizeFirstReceivePacket) {
               10);
 }
 
-TEST_F(TestProbeBitrateEstimator, NoLastEstimatedBitrateBps) {
+#[test]
+fn NoLastEstimatedBitrateBps() {
   assert!(!(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
 }
 
-TEST_F(TestProbeBitrateEstimator, FetchLastEstimatedBitrateBps) {
+#[test]
+fn FetchLastEstimatedBitrateBps() {
   AddPacketFeedback(0, 1000, 0, 10);
   AddPacketFeedback(0, 1000, 10, 20);
   AddPacketFeedback(0, 1000, 20, 30);

@@ -30,7 +30,8 @@ const PacedPacketInfo kPacingInfo1(1, kNumProbesCluster1, 4000);
 const TargetUtilizationFraction: f32 = 0.95f;
 }  // namespace
 
-TEST_F(DelayBasedBweTest, ProbeDetection) {
+#[test]
+fn ProbeDetection() {
   let now_ms: i64 = self.clock.TimeInMilliseconds();
 
   // First burst sent at 8 * 1000 / 10 = 800 kbps.
@@ -52,7 +53,8 @@ TEST_F(DelayBasedBweTest, ProbeDetection) {
   EXPECT_GT(self.bitrate_observer.latest_bitrate(), 1500000u);
 }
 
-TEST_F(DelayBasedBweTest, ProbeDetectionNonPacedPackets) {
+#[test]
+fn ProbeDetectionNonPacedPackets() {
   let now_ms: i64 = self.clock.TimeInMilliseconds();
   // First burst sent at 8 * 1000 / 10 = 800 kbps, but with every other packet
   // not being paced which could mess things up.
@@ -69,7 +71,8 @@ TEST_F(DelayBasedBweTest, ProbeDetectionNonPacedPackets) {
   EXPECT_GT(self.bitrate_observer.latest_bitrate(), 800000u);
 }
 
-TEST_F(DelayBasedBweTest, ProbeDetectionFasterArrival) {
+#[test]
+fn ProbeDetectionFasterArrival() {
   let now_ms: i64 = self.clock.TimeInMilliseconds();
   // First burst sent at 8 * 1000 / 10 = 800 kbps.
   // Arriving at 8 * 1000 / 5 = 1600 kbps.
@@ -84,7 +87,8 @@ TEST_F(DelayBasedBweTest, ProbeDetectionFasterArrival) {
   assert!(!(self.bitrate_observer.updated());
 }
 
-TEST_F(DelayBasedBweTest, ProbeDetectionSlowerArrival) {
+#[test]
+fn ProbeDetectionSlowerArrival() {
   let now_ms: i64 = self.clock.TimeInMilliseconds();
   // First burst sent at 8 * 1000 / 5 = 1600 kbps.
   // Arriving at 8 * 1000 / 7 = 1142 kbps.
@@ -103,7 +107,8 @@ TEST_F(DelayBasedBweTest, ProbeDetectionSlowerArrival) {
               kTargetUtilizationFraction * 1140000u, 10000u);
 }
 
-TEST_F(DelayBasedBweTest, ProbeDetectionSlowerArrivalHighBitrate) {
+#[test]
+fn ProbeDetectionSlowerArrivalHighBitrate() {
   let now_ms: i64 = self.clock.TimeInMilliseconds();
   // Burst sent at 8 * 1000 / 1 = 8000 kbps.
   // Arriving at 8 * 1000 / 2 = 4000 kbps.
@@ -122,7 +127,8 @@ TEST_F(DelayBasedBweTest, ProbeDetectionSlowerArrivalHighBitrate) {
               kTargetUtilizationFraction * 4000000u, 10000u);
 }
 
-TEST_F(DelayBasedBweTest, GetExpectedBwePeriodMs) {
+#[test]
+fn GetExpectedBwePeriodMs() {
 let default_interval = self.bitrate_estimator.GetExpectedBwePeriod();
   EXPECT_GT(default_interval.ms(), 0);
   CapacityDropTestHelper(1, true, 533, 0);
@@ -131,50 +137,61 @@ let interval = self.bitrate_estimator.GetExpectedBwePeriod();
   EXPECT_NE(interval.ms(), default_interval.ms());
 }
 
-TEST_F(DelayBasedBweTest, InitialBehavior) {
+#[test]
+fn InitialBehavior() {
   InitialBehaviorTestHelper(730000);
 }
 
-TEST_F(DelayBasedBweTest, InitializeResult) {
+#[test]
+fn InitializeResult() {
   DelayBasedBwe::Result result;
   assert_eq!(result.delay_detector_state, BandwidthUsage::kBwNormal);
 }
 
-TEST_F(DelayBasedBweTest, RateIncreaseReordering) {
+#[test]
+fn RateIncreaseReordering() {
   RateIncreaseReorderingTestHelper(730000);
 }
-TEST_F(DelayBasedBweTest, RateIncreaseRtpTimestamps) {
+#[test]
+fn RateIncreaseRtpTimestamps() {
   RateIncreaseRtpTimestampsTestHelper(617);
 }
 
-TEST_F(DelayBasedBweTest, CapacityDropOneStream) {
+#[test]
+fn CapacityDropOneStream() {
   CapacityDropTestHelper(1, false, 500, 0);
 }
 
-TEST_F(DelayBasedBweTest, CapacityDropPosOffsetChange) {
+#[test]
+fn CapacityDropPosOffsetChange() {
   CapacityDropTestHelper(1, false, 867, 30000);
 }
 
-TEST_F(DelayBasedBweTest, CapacityDropNegOffsetChange) {
+#[test]
+fn CapacityDropNegOffsetChange() {
   CapacityDropTestHelper(1, false, 933, -30000);
 }
 
-TEST_F(DelayBasedBweTest, CapacityDropOneStreamWrap) {
+#[test]
+fn CapacityDropOneStreamWrap() {
   CapacityDropTestHelper(1, true, 533, 0);
 }
 
-TEST_F(DelayBasedBweTest, TestTimestampGrouping) {
+#[test]
+fn TestTimestampGrouping() {
   TestTimestampGroupingTestHelper();
 }
 
-TEST_F(DelayBasedBweTest, TestShortTimeoutAndWrap) {
+#[test]
+fn TestShortTimeoutAndWrap() {
   // Simulate a client leaving and rejoining the call after 35 seconds. This
   // will make abs send time wrap, so if streams aren't timed out properly
   // the next 30 seconds of packets will be out of order.
   TestWrappingHelper(35);
 }
 
-TEST_F(DelayBasedBweTest, TestLongTimeoutAndWrap) {
+#[test]
+fn TestLongTimeoutAndWrap() {
   // Simulate a client leaving and rejoining the call after some multiple of
   // 64 seconds later. This will cause a zero difference in abs send times due
   // to the wrap, but a big difference in arrival time, if streams aren't
@@ -182,7 +199,8 @@ TEST_F(DelayBasedBweTest, TestLongTimeoutAndWrap) {
   TestWrappingHelper(10 * 64);
 }
 
-TEST_F(DelayBasedBweTest, TestInitialOveruse) {
+#[test]
+fn TestInitialOveruse() {
   const StartBitrate: DataRate = DataRate::KilobitsPerSec(300);
   const InitialCapacity: DataRate = DataRate::KilobitsPerSec(200);
   const DummySsrc: u32 = 0;
@@ -218,7 +236,8 @@ TEST_F(DelayBasedBweTest, TestInitialOveruse) {
   EXPECT_GT(self.bitrate_observer.latest_bitrate(), 0.8 * kInitialCapacity.bps());
 }
 
-TEST_F(DelayBasedBweTest, TestTimestampPrecisionHandling) {
+#[test]
+fn TestTimestampPrecisionHandling() {
   // This test does some basic checks to make sure that timestamps with higher
   // than millisecond precision are handled properly and do not cause any
   // problems in the estimator. Specifically, previously reported in

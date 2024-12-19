@@ -8,19 +8,18 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use std::time::Instant;
 
-use crate::api::units::DataRate;
+use crate::{api::{transport::PacketResult, units::{DataRate, Timestamp}}, AcknowledgedBitrateEstimatorInterface, BitrateEstimator};
 
 
 pub struct AcknowledgedBitrateEstimator {
-  alr_ended_time: Option<Instant>,
+  alr_ended_time: Option<Timestamp>,
   in_alr: bool,
   bitrate_estimator: BitrateEstimator,
 }
 
 impl AcknowledgedBitrateEstimatorInterface for AcknowledgedBitrateEstimator {
-  fn incoming_packet_feedback(&self,
+  fn incoming_packet_feedback(&mut self,
     packet_feedback: &[PacketResult]) {
       assert!(packet_feedback.is_sorted_by_key(|x| x.receive_time));
 
@@ -31,7 +30,7 @@ impl AcknowledgedBitrateEstimatorInterface for AcknowledgedBitrateEstimator {
         self.alr_ended_time = None;
       }
     }
-    let acknowledged_estimate= packet.sent_packet.size;
+    let mut acknowledged_estimate= packet.sent_packet.size;
     acknowledged_estimate += packet.sent_packet.prior_unacked_data;
     self.bitrate_estimator.Update(packet.receive_time, acknowledged_estimate,
                                self.in_alr);
@@ -46,7 +45,7 @@ fn peek_rate(&self) -> Option<DataRate> {
   self.bitrate_estimator.PeekRate()
 }
 
-fn set_alr_ended_time(&mut self, alr_ended_time: Instant) {
+fn set_alr_ended_time(&mut self, alr_ended_time: Timestamp) {
   self.alr_ended_time.replace(alr_ended_time);
 }
 

@@ -20,40 +20,77 @@ use super::{DataSize, Frequency, TimeDelta};
 super::relative_unit!(DataRate);
 
 impl DataRate {
-   pub const fn BitsPerSec<T: Into<Self>>(value: T) -> Self {
-     value.into()
+  const ONE_SIDED: bool = true;
+
+   pub const fn BitsPerSec(value: i64) -> Self {
+    Self::FromValue(value)
    }
 
-   pub const fn BytesPerSec<T: Into<Self>>(value: T) -> Self {
+   pub const fn BitsPerSecFloat(value: f64) -> Self {
+    Self::FromValueFloat(value)
+   }
+
+   pub const fn BytesPerSec(value: i64) -> Self {
     Self::FromFraction(8, value)
    }
 
-   pub const fn KilobitsPerSec<T: Into<Self>>(value: T) -> Self {
+   pub const fn BytesPerSecFloat(value: f64) -> Self {
+    Self::FromFractionFloat(8.0, value)
+   }
+
+   pub const fn KilobitsPerSec(value: i64) -> Self {
      Self::FromFraction(1000, value)
+   }
+
+   pub const fn KilobitsPerSecFloat(value: f64) -> Self {
+     Self::FromFractionFloat(1000.0, value)
    }
 
    pub const fn Infinity() -> Self { Self::PlusInfinity() }
 
-   pub const fn bps<T: From<Self>>(&self) -> T { self.into() }
+   pub const fn bps(&self) -> i64 {
+    self.ToValue()
+   }
 
-   pub const fn bytes_per_sec<T: From<Self>>(&self) -> T { self.ToFraction(8) }
+   pub const fn bps_float(&self) -> f64 {
+    self.ToValueFloat()
+   }
 
-   pub const fn kbps<T: From<Self>>(&self) -> T {
+   pub const fn bytes_per_sec(&self) -> i64 { self.ToFraction(8) }
+
+   pub const fn bytes_per_sec_float(&self) -> f64 {
+    self.ToFractionFloat(8.0)
+   }
+
+   pub const fn kbps(&self) -> i64 {
     self.ToFraction(1000)
 }
-   pub const fn bps_or<T: From<Self>>(&self, fallback_value: T) -> T{
+
+    pub const fn kbps_float(&self) -> f64 {
+      self.ToFractionFloat(1000.0)
+    }
+
+   pub const fn bps_or(&self, fallback_value: i64) ->i64{
      self.ToFractionOr(1, fallback_value)
    }
 
-   pub const fn kbps_or<T: From<Self>>(&self, fallback_value: T) -> T {
+   pub const fn bps_or_float(&self, fallback_value: f64) -> f64 {
+     self.ToFractionOrFloat(1.0, fallback_value)
+   }
+
+   pub const fn kbps_or(&self, fallback_value: i64) -> i64 {
      self.ToFractionOr(1000, fallback_value)
+   }
+
+   pub const fn kbps_or_float(&self, fallback_value: f64) -> f64 {
+     self.ToFractionOrFloat(1000.0, fallback_value)
    }
 
    pub const fn MillibytePerSec(&self) -> i64 {
     const MaxBeforeConversion: i64 =
         i64::MAX / (1000 / 8);
     assert!(self.bps() < MaxBeforeConversion, "rate is too large to be expressed in microbytes per second");
-    return self.bps() * (1000 / 8);
+    self.bps() * (1000 / 8)
    }
  }
 
@@ -78,7 +115,7 @@ impl DataRate {
 
    fn mul(self, duration: TimeDelta) -> Self::Output {
     let microbits: i64 = self.bps() * duration.us();
-    return DataSize::Bytes((microbits + 4000000) / 8000000);
+    DataSize::Bytes((microbits + 4000000) / 8000000)
    }
  }
 
@@ -94,10 +131,10 @@ impl DataRate {
     type Output = DataSize;
 
     fn div(self, frequency: Frequency) -> Self::Output {
-    let millihertz: i64 = frequency.millihertz::<i64>();
+    let millihertz: i64 = frequency.millihertz();
     // Note that the value is truncated here reather than rounded, potentially
     // introducing an error of .5 bytes if rounding were expected.
-    return DataSize::Bytes(self.MillibytePerSec() / millihertz);
+    DataSize::Bytes(self.MillibytePerSec() / millihertz)
     }
  }
 
@@ -105,7 +142,7 @@ impl DataRate {
     type Output = Frequency;
 
     fn div(self, size: DataSize) -> Self::Output {
-        return Frequency::MilliHertz(self.MillibytePerSec() / size.bytes());
+        Frequency::MilliHertz(self.MillibytePerSec() / size.bytes())
     }
  }
 
@@ -118,7 +155,7 @@ impl DataRate {
                                         frequency.millihertz());
         let millibits_per_second: i64 =
             self.bytes() * 8 * frequency.millihertz();
-        return DataRate::BitsPerSec((millibits_per_second + 500) / 1000);
+        DataRate::BitsPerSec((millibits_per_second + 500) / 1000)
     }
  }
 
@@ -136,12 +173,10 @@ impl DataRate {
             write!(f, "+inf bps")
         } else if self.IsMinusInfinity() {
             write!(f, "-inf bps")
+        } else if self.bps() == 0 || self.bps() % 1000 != 0 {
+            write!(f, "{} bps", self.bps())
         } else {
-            if self.bps() == 0 || self.bps() % 1000 != 0 {
-                write!(f, "{} bps", self.bps())
-            } else {
-                write!(f, "{} kbps", self.kbps())
-            }
+            write!(f, "{} kbps", self.kbps())
         }
     }
 }
@@ -164,16 +199,16 @@ impl DataRate {
    const DataRateZero: DataRate = DataRate::Zero();
    const DataRateInf: DataRate = DataRate::Infinity();
    assert_eq!(DataRate::default(), DataRateZero);
-   assert!(DataRateZero.IsZero(), "");
-   assert!(DataRateInf.IsInfinite(), "");
-   assert!(DataRateInf.bps_or(-1) == -1, "");
-   assert!(DataRateInf > DataRateZero, "");
+   assert!(DataRateZero.IsZero());
+   assert!(DataRateInf.IsInfinite());
+   assert!(DataRateInf.bps_or(-1) == -1);
+   assert!(DataRateInf > DataRateZero);
 
    const DataRateBps: DataRate = DataRate::BitsPerSec(Value);
    const DataRateKbps: DataRate = DataRate::KilobitsPerSec(Value);
-   assert!(DataRateBps.bps() == Value, "");
-   assert!(DataRateBps.bps_or(0) == Value, "");
-   assert!(DataRateKbps.kbps_or(0) == Value, "");
+   assert!(DataRateBps.bps() == Value);
+   assert!(DataRateBps.bps_or(0) == Value);
+   assert!(DataRateKbps.kbps_or(0) == Value);
  }
 
 #[test]
@@ -232,16 +267,16 @@ fn ConvertsToAndFromDouble() {
    const kDoubleKbps: f64 = Value as f64 * 1e-3;
    const kFloatKbps: f32 = kDoubleKbps as f32;
 
-   assert_eq!(DataRate::BitsPerSec(Value).bps::<f64>(), kDoubleValue);
-   assert_eq!(DataRate::BitsPerSec(Value).kbps::<f64>(), kDoubleKbps);
-   assert_eq!(DataRate::BitsPerSec(Value).kbps::<f32>(), kFloatKbps);
-   assert_eq!(DataRate::BitsPerSec(kDoubleValue).bps(), Value);
-   assert_eq!(DataRate::KilobitsPerSec(kDoubleKbps).bps(), Value);
+   assert_eq!(DataRate::BitsPerSec(Value).bps_float(), kDoubleValue);
+   assert_eq!(DataRate::BitsPerSec(Value).kbps_float(), kDoubleKbps);
+   assert_eq!(DataRate::BitsPerSec(Value).kbps_float() as f32, kFloatKbps);
+   assert_eq!(DataRate::BitsPerSecFloat(kDoubleValue).bps(), Value);
+   assert_eq!(DataRate::KilobitsPerSecFloat(kDoubleKbps).bps(), Value);
 
    const kInfinity: f64 = f64::INFINITY;
-   assert_eq!(DataRate::Infinity().bps::<f64>(), kInfinity);
-   assert!(DataRate::BitsPerSec(kInfinity).IsInfinite());
-   assert!(DataRate::KilobitsPerSec(kInfinity).IsInfinite());
+   assert_eq!(DataRate::Infinity().bps_float(), kInfinity);
+   assert!(DataRate::BitsPerSecFloat(kInfinity).IsInfinite());
+   assert!(DataRate::KilobitsPerSecFloat(kInfinity).IsInfinite());
  }
 #[test]
 fn Clamping() {
@@ -254,7 +289,7 @@ fn Clamping() {
    assert_eq!(inside.Clamped(lower, upper), inside);
    assert_eq!(over.Clamped(lower, upper), upper);
 
-   let mutable_rate: DataRate = lower;
+   let mut mutable_rate: DataRate = lower;
    mutable_rate.Clamp(lower, upper);
    assert_eq!(mutable_rate, lower);
    mutable_rate = inside;
@@ -278,15 +313,15 @@ fn MathOperations() {
    assert_eq!((rate_a - rate_b).bps(), ValueA - ValueB);
 
    assert_eq!((rate_a * ValueB).bps(), ValueA * ValueB);
-   assert_eq!((rate_a * kInt32Value).bps(), ValueA * kInt32Value);
-   assert_eq!((rate_a * kFloatValue).bps(), ValueA * kFloatValue);
+   assert_eq!((rate_a * kInt32Value).bps(), ValueA * kInt32Value as i64);
+   assert_eq!((rate_a * kFloatValue).bps(), ValueA * kFloatValue as i64);
 
-   assert_eq!(rate_a / rate_b, (ValueA) as f64 / ValueB);
+   assert_eq!((rate_a / rate_b).bps_float(), (ValueA) as f64 / ValueB as f64);
 
    assert_eq!((rate_a / 10).bps(), ValueA / 10);
    assert!(((rate_a / 0.5).bps() - ValueA * 2).abs() <= 1);
 
-   let mutable_rate: DataRate = DataRate::BitsPerSec(ValueA);
+   let mut mutable_rate: DataRate = DataRate::BitsPerSec(ValueA);
    mutable_rate += rate_b;
    assert_eq!(mutable_rate.bps(), ValueA + ValueB);
    mutable_rate -= rate_a;
@@ -317,7 +352,7 @@ fn DataRateAndDataSizeAndFrequency() {
    const size_c: DataSize = DataSize::Bytes(Bytes);
    assert_eq!((freq_a * size_c).bps(), Hertz * Bytes * 8);
    assert_eq!((size_c * freq_a).bps(), Hertz * Bytes * 8);
-   assert_eq!((rate_b / size_c).hertz::<i64>(), BitsPerSecond / Bytes / 8);
+   assert_eq!((rate_b / size_c).hertz(), BitsPerSecond / Bytes / 8);
    assert_eq!((rate_b / freq_a).bytes(), BitsPerSecond / Hertz / 8);
  }
 
