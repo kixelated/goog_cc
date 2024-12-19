@@ -74,16 +74,8 @@ impl DataRate {
      self.ToFractionOr(1, fallback_value)
    }
 
-   pub const fn bps_or_float(&self, fallback_value: f64) -> f64 {
-     self.ToFractionOrFloat(1.0, fallback_value)
-   }
-
    pub const fn kbps_or(&self, fallback_value: i64) -> i64 {
      self.ToFractionOr(1000, fallback_value)
-   }
-
-   pub const fn kbps_or_float(&self, fallback_value: f64) -> f64 {
-     self.ToFractionOrFloat(1000.0, fallback_value)
    }
 
    pub const fn MillibytePerSec(&self) -> i64 {
@@ -316,7 +308,7 @@ fn MathOperations() {
    assert_eq!((rate_a * kInt32Value).bps(), ValueA * kInt32Value as i64);
    assert_eq!((rate_a * kFloatValue).bps(), ValueA * kFloatValue as i64);
 
-   assert_eq!((rate_a / rate_b).bps_float(), (ValueA) as f64 / ValueB as f64);
+   assert_eq!(rate_a / rate_b, ValueA as f64 / ValueB as f64);
 
    assert_eq!((rate_a / 10).bps(), ValueA / 10);
    assert!(((rate_a / 0.5).bps() - ValueA * 2).abs() <= 1);
@@ -357,8 +349,7 @@ fn DataRateAndDataSizeAndFrequency() {
  }
 
    const JustSmallEnoughForDivision: i64 = i64::MAX / 8000000;
-   const ToolargeForDivision: i64 = JustSmallEnoughForDivision + 1;
-   const too_large_size: DataSize = DataSize::Bytes(ToolargeForDivision);
+   const ToolargeForDivision : DataSize = DataSize::Bytes(JustSmallEnoughForDivision + 1);
 
 #[test]
 fn DivisionFailsOnLargeSize() {
@@ -376,12 +367,12 @@ fn DivisionFailsOnLargeSize() {
 #[should_panic]
 fn DivisionFailsOnLargeSize1() {
    const data_rate: DataRate = DataRate::KilobitsPerSec(100);
-   too_large_size / data_rate;
+   ToolargeForDivision / data_rate;
  }
 #[test]
 #[should_panic]
 fn DivisionFailsOnLargeSize2() {
    const time_delta: TimeDelta = TimeDelta::Millis(100);
-   too_large_size / time_delta;
+   ToolargeForDivision / time_delta;
 }
  }

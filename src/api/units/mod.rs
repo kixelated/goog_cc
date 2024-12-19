@@ -1,6 +1,5 @@
 mod data_rate;
 mod unit_base;
-mod relative_unit;
 mod data_size;
 mod frequency;
 mod timestamp;
@@ -12,5 +11,4 @@ pub use time_delta::*;
 pub use frequency::*;
 pub use data_size::*;
 
-use unit_base::*;
-use relative_unit::*;
+pub(crate) use unit_base::*;

@@ -91,24 +91,12 @@ use std::fmt;
       self.ToFractionOr(1_000_000, fallback_value)
     }
 
-    pub const fn seconds_or_float(&self, fallback_value: f64) -> f64 {
-      self.ToFractionOrFloat(1_000_000.0, fallback_value)
-    }
-
     pub const fn ms_or(&self, fallback_value: i64) -> i64 {
       self.ToFractionOr(1_000, fallback_value)
     }
 
-    pub const fn ms_or_float(&self, fallback_value: f64) -> f64 {
-      self.ToFractionOrFloat(1_000.0, fallback_value)
-    }
-
     pub const fn us_or(&self, fallback_value: i64) -> i64 {
       self.ToValueOr(fallback_value)
-    }
-
-    pub const fn us_or_float(&self, fallback_value: f64) -> f64 {
-      self.ToValueOrFloat(fallback_value)
     }
 
     pub const fn abs(&self) -> Self {
@@ -322,7 +310,7 @@ fn MathOperations() {
   assert_eq!((delta_a - delta_b).ms(), ValueA - ValueB);
 
   assert_eq!((delta_b / 10).ms(), ValueB / 10);
-  assert_eq!((delta_b / delta_a).ToValue(), (ValueB as f64 / ValueA as f64) as i64);
+  assert_eq!(delta_b / delta_a, ValueB as f64 / ValueA as f64);
 
   assert_eq!(TimeDelta::Micros(-ValueA).abs().us(), ValueA);
   assert_eq!(TimeDelta::Micros(ValueA).abs().us(), ValueA);

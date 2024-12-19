@@ -148,23 +148,23 @@ fn GetDifferentPrefix() {
 fn IdentityChecks() {
   const Value: i64 = 31;
   assert!(Frequency::Zero().IsZero());
-  assert!(Frequency::Hertz(Value).IsZero());
+  assert!(!Frequency::Hertz(Value).IsZero());
 
   assert!(Frequency::PlusInfinity().IsInfinite());
   assert!(Frequency::MinusInfinity().IsInfinite());
-  assert!(Frequency::Zero().IsInfinite());
-  assert!(Frequency::Hertz(Value).IsInfinite());
+  assert!(!Frequency::Zero().IsInfinite());
+  assert!(!Frequency::Hertz(Value).IsInfinite());
 
-  assert!(Frequency::PlusInfinity().IsFinite());
-  assert!(Frequency::MinusInfinity().IsFinite());
+  assert!(!Frequency::PlusInfinity().IsFinite());
+  assert!(!Frequency::MinusInfinity().IsFinite());
   assert!(Frequency::Hertz(Value).IsFinite());
   assert!(Frequency::Zero().IsFinite());
 
   assert!(Frequency::PlusInfinity().IsPlusInfinity());
-  assert!(Frequency::MinusInfinity().IsPlusInfinity());
+  assert!(!Frequency::MinusInfinity().IsPlusInfinity());
 
   assert!(Frequency::MinusInfinity().IsMinusInfinity());
-  assert!(Frequency::PlusInfinity().IsMinusInfinity());
+  assert!(!Frequency::PlusInfinity().IsMinusInfinity());
 }
 
 #[test]
@@ -225,7 +225,7 @@ fn MathOperations() {
             ValueA * ValueB);
 
   assert_eq!((frequency_b / 10).hertz(), ValueB / 10);
-  assert_eq!((frequency_b / frequency_a).ToValueFloat(), ValueB as f64 / ValueA as f64);
+  assert_eq!(frequency_b / frequency_a, ValueB as f64 / ValueA as f64);
 
   let mut mutable_frequency: Frequency = Frequency::Hertz(ValueA);
   mutable_frequency += Frequency::Hertz(ValueB);

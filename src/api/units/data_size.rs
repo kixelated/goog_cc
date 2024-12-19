@@ -39,14 +39,10 @@ impl DataSize {
         self.ToValueOr(fallback_value)
     }
 
-    pub const fn bytes_or_float(&self, fallback_value: f64) -> f64 {
-        self.ToValueOrFloat(fallback_value)
-    }
-
    pub const fn Microbits(&self) -> i64 {
     const MaxBeforeConversion: i64 =
         i64::MAX / 8000000;
-    assert!(self.bytes() < MaxBeforeConversion, "size is too large to be expressed in microbits");
+    assert!(self.bytes() <= MaxBeforeConversion, "size is too large to be expressed in microbits");
     self.bytes() * 8000000
    }
 
@@ -95,13 +91,13 @@ fn GetBackSameValues() {
 fn IdentityChecks() {
   const Value: i64 = 3000;
   assert!(DataSize::Zero().IsZero());
-  assert!(DataSize::Bytes(Value).IsZero());
+  assert!(!DataSize::Bytes(Value).IsZero());
 
   assert!(DataSize::Infinity().IsInfinite());
-  assert!(DataSize::Zero().IsInfinite());
-  assert!(DataSize::Bytes(Value).IsInfinite());
+  assert!(!DataSize::Zero().IsInfinite());
+  assert!(!DataSize::Bytes(Value).IsInfinite());
 
-  assert!(DataSize::Infinity().IsFinite());
+  assert!(!DataSize::Infinity().IsFinite());
   assert!(DataSize::Bytes(Value).IsFinite());
   assert!(DataSize::Zero().IsFinite());
 }
@@ -156,7 +152,7 @@ fn MathOperations() {
   assert_eq!((size_a * FloatValue).bytes_float(), ValueA as f64 * FloatValue);
 
   assert_eq!((size_a / 10).bytes(), ValueA / 10);
-  assert_eq!((size_a / size_b).ToValueFloat(), (ValueA as f64) / ValueB as f64);
+  assert_eq!(size_a / size_b, ValueA as f64 / ValueB as f64);
 
   let mut mutable_size: DataSize = DataSize::Bytes(ValueA);
   mutable_size += size_b;

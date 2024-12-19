@@ -74,24 +74,12 @@ use super::TimeDelta;
       self.ToFractionOr(1_000_000, fallback_value)
     }
 
-    pub const fn seconds_or_float(&self, fallback_value: f64) -> f64 {
-      self.ToFractionOrFloat(1_000_000.0, fallback_value)
-    }
-
     pub const fn ms_or(&self, fallback_value: i64) -> i64 {
       self.ToFractionOr(1_000, fallback_value)
     }
 
-    pub const fn ms_or_float(&self, fallback_value: f64) -> f64 {
-      self.ToFractionOrFloat(1_000.0, fallback_value)
-    }
-
     pub const fn us_or(&self, fallback_value: i64) -> i64 {
       self.ToValueOr(fallback_value)
-    }
-
-    pub const fn us_or_float(&self, fallback_value: f64) -> f64 {
-      self.ToValueOrFloat(fallback_value)
     }
 }
 
