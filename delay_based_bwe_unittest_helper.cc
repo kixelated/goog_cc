@@ -30,21 +30,21 @@
 
 
 const kMtu: usize = 1200;
-constexpr uint32_t kAcceptedBitrateErrorBps = 50000;
+const AcceptedBitrateErrorBps: u32 = 50000;
 
 // Number of packets needed before we have a valid estimate.
-constexpr int kNumInitialPackets = 2;
+const NumInitialPackets: isize = 2;
 
-constexpr int kInitialProbingPackets = 5;
+const InitialProbingPackets: isize = 5;
 
 namespace test {
 
-fn OnReceiveBitrateChanged(&self /* TestBitrateObserver */,uint32_t bitrate) {
+fn OnReceiveBitrateChanged(&self /* TestBitrateObserver */,u32 bitrate) {
   self.latest_bitrate = bitrate;
   self.updated = true;
 }
 
-RtpStream::RtpStream(int fps, int bitrate_bps)
+RtpStream::RtpStream(isize fps, isize bitrate_bps)
     : fps_(fps), bitrate_bps_(bitrate_bps), next_rtp_time_(0) {
   RTC_CHECK_GT(self.fps, 0);
 }
@@ -59,11 +59,11 @@ i64 GenerateFrame(&self /* RtpStream */,i64 time_now_us,
     next_rtp_time: return,
   }
   RTC_CHECK(packets != NULL);
-  let bits_per_frame: usize = (self.bitrate_bps + fps_ / 2) / self.fps;
-  usize n_packets =
+  let bits_per_frame: usize = (self.bitrate_bps + self.fps / 2) / self.fps;
+  let n_packets: usize =
       std::cmp::max<usize>((bits_per_frame + 4 * kMtu) / (8 * kMtu), 1u);
   let payload_size: usize = (bits_per_frame + 4 * n_packets) / (8 * n_packets);
-  for i = 0; i < n_packetsi += 1) {
+  let i: for = 0; i < n_packetsi += 1) {
     PacketResult packet;
     packet.sent_packet.send_time =
         Timestamp::Micros(time_now_us + kSendSideOffsetUs);
@@ -71,7 +71,7 @@ i64 GenerateFrame(&self /* RtpStream */,i64 time_now_us,
     packet.sent_packet.sequence_number = (*next_sequence_number)++;
     packets->push_back(packet);
   }
-  self.next_rtp_time = time_now_us + (1000000 + fps_ / 2) / self.fps;
+  self.next_rtp_time = time_now_us + (1000000 + self.fps / 2) / self.fps;
   return self.next_rtp_time;
 }
 
@@ -94,7 +94,7 @@ bool Compare(&self /* RtpStream */,const std::unique_ptr<RtpStream>& lhs,
   return lhs->self.next_rtp_time < rhs->self.next_rtp_time;
 }
 
-StreamGenerator::StreamGenerator(int capacity, i64 time_now)
+StreamGenerator::StreamGenerator(isize capacity, i64 time_now)
     : capacity_(capacity), prev_arrival_time_us_(time_now) {}
 
 StreamGenerator::~StreamGenerator() = default;
@@ -114,22 +114,22 @@ fn set_capacity_bps(&self /* StreamGenerator */,int capacity_bps) {
 // is decided by the current allocation ratios.
 fn SetBitrateBps(&self /* StreamGenerator */,int bitrate_bps) {
   ASSERT_GE(self.streams.len(), 0u);
-  int total_bitrate_before = 0;
+  let total_bitrate_before: isize = 0;
   for stream in &streams_ {
     total_bitrate_before += stream->bitrate_bps();
   }
-  i64 bitrate_before = 0;
-  int total_bitrate_after = 0;
+  let bitrate_before: i64 = 0;
+  let total_bitrate_after: isize = 0;
   for stream in &streams_ {
     bitrate_before += stream->bitrate_bps();
-    i64 bitrate_after =
+    let bitrate_after: i64 =
         (bitrate_before * bitrate_bps + total_bitrate_before / 2) /
         total_bitrate_before;
     stream->set_bitrate_bps(bitrate_after - total_bitrate_after);
     total_bitrate_after += stream->bitrate_bps();
   }
   ASSERT_EQ(bitrate_before, total_bitrate_before);
-  EXPECT_EQ(total_bitrate_after, bitrate_bps);
+  assert_eq!(total_bitrate_after, bitrate_bps);
 }
 
 // TODO(holmer): Break out the channel simulation part from this class to make
@@ -144,8 +144,8 @@ let it =
       std::cmp::min_element(self.streams.begin(), self.streams.end(), RtpStream::Compare);
   (*it)->GenerateFrame(time_now_us, next_sequence_number, packets);
   for (PacketResult& packet : *packets) {
-    int capacity_bpus = capacity_ / 1000;
-    i64 required_network_time_us =
+    let capacity_bpus: isize = self.capacity / 1000;
+    let required_network_time_us: i64 =
         (8 * 1000 * packet.sent_packet.size.bytes() + capacity_bpus / 2) /
         capacity_bpus;
     self.prev_arrival_time_us =
@@ -179,7 +179,7 @@ fn AddDefaultStream(&self /* DelayBasedBweTest */) {
   self.stream_generator.AddStream(new test::RtpStream(30, 3e5));
 }
 
-const uint32_t DelayBasedBweTest::kDefaultSsrc = 0;
+const u32 DelayBasedBweTest::kDefaultSsrc = 0;
 
 fn IncomingFeedback(&self /* DelayBasedBweTest */,i64 arrival_time_ms,
                                          i64 send_time_ms,
@@ -232,17 +232,17 @@ fn IncomingFeedback(&self /* DelayBasedBweTest */,Timestamp receive_time,
 // Returns true if an over-use was seen, false otherwise.
 // The StreamGenerator::updated() should be used to check for any changes in
 // target bitrate after the call to this function.
-bool GenerateAndProcessFrame(&self /* DelayBasedBweTest */,uint32_t /* ssrc */,
-                                                uint32_t bitrate_bps) {
+bool GenerateAndProcessFrame(&self /* DelayBasedBweTest */,u32 /* ssrc */,
+                                                u32 bitrate_bps) {
   self.stream_generator.SetBitrateBps(bitrate_bps);
   Vec<PacketResult> packets;
 
-  i64 next_time_us = self.stream_generator.GenerateFrame(
+  let next_time_us: i64 = self.stream_generator.GenerateFrame(
       self.clock.TimeInMicroseconds(), &self.next_sequence_number, &packets);
   if (packets.empty())
     return false;
 
-  bool overuse = false;
+  let overuse: bool = false;
   self.bitrate_observer.Reset();
   self.clock.AdvanceTimeMicroseconds(packets.back().receive_time.us() -
                                  self.clock.TimeInMicroseconds());
@@ -280,17 +280,17 @@ bool GenerateAndProcessFrame(&self /* DelayBasedBweTest */,uint32_t /* ssrc */,
 // until it reaches `target_bitrate`.
 // Can for instance be used to run the estimator for some time to get it
 // into a steady state.
-uint32_t SteadyStateRun(&self /* DelayBasedBweTest */,uint32_t ssrc,
-                                           int max_number_of_frames,
-                                           uint32_t start_bitrate,
-                                           uint32_t min_bitrate,
-                                           uint32_t max_bitrate,
-                                           uint32_t target_bitrate) {
-  uint32_t bitrate_bps = start_bitrate;
-  bool bitrate_update_seen = false;
+u32 SteadyStateRun(&self /* DelayBasedBweTest */,u32 ssrc,
+                                           isize max_number_of_frames,
+                                           u32 start_bitrate,
+                                           u32 min_bitrate,
+                                           u32 max_bitrate,
+                                           u32 target_bitrate) {
+  let bitrate_bps: u32 = start_bitrate;
+  let bitrate_update_seen: bool = false;
   // Produce `number_of_frames` frames and give them to the estimator.
-  for (int i = 0; i < max_number_of_framesi += 1) {
-    bool overuse = GenerateAndProcessFrame(ssrc, bitrate_bps);
+  for (isize i = 0; i < max_number_of_framesi += 1) {
+    let overuse: bool = GenerateAndProcessFrame(ssrc, bitrate_bps);
     if (overuse) {
       EXPECT_LT(self.bitrate_observer.latest_bitrate(), max_bitrate);
       EXPECT_GT(self.bitrate_observer.latest_bitrate(), min_bitrate);
@@ -304,36 +304,36 @@ uint32_t SteadyStateRun(&self /* DelayBasedBweTest */,uint32_t ssrc,
       break;
     }
   }
-  EXPECT_TRUE(bitrate_update_seen);
+  assert!((bitrate_update_seen);
   return bitrate_bps;
 }
 
 fn InitialBehaviorTestHelper(&self /* DelayBasedBweTest */,
-    uint32_t expected_converge_bitrate) {
-  const int kFramerate = 50;  // 50 fps to avoid rounding errors.
-  const int kFrameIntervalMs = 1000 / kFramerate;
+    u32 expected_converge_bitrate) {
+  const Framerate: isize = 50;  // 50 fps to avoid rounding errors.
+  const FrameIntervalMs: isize = 1000 / kFramerate;
   const PacedPacketInfo kPacingInfo(0, 5, 5000);
-  DataRate bitrate = DataRate::Zero();
-  i64 send_time_ms = 0;
-  Vec<uint32_t> ssrcs;
-  EXPECT_FALSE(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
-  EXPECT_EQ(0u, ssrcs.len());
+  let bitrate: DataRate = DataRate::Zero();
+  let send_time_ms: i64 = 0;
+  Vec<u32> ssrcs;
+  assert!(!(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
+  assert_eq!(0u, ssrcs.len());
   self.clock.AdvanceTimeMilliseconds(1000);
-  EXPECT_FALSE(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
-  EXPECT_FALSE(self.bitrate_observer.updated());
+  assert!(!(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
+  assert!(!(self.bitrate_observer.updated());
   self.bitrate_observer.Reset();
   self.clock.AdvanceTimeMilliseconds(1000);
   // Inserting packets for 5 seconds to get a valid estimate.
-  for (int i = 0; i < 5 * kFramerate + 1 + kNumInitialPacketsi += 1) {
+  for (isize i = 0; i < 5 * kFramerate + 1 + kNumInitialPacketsi += 1) {
     // NOTE!!! If the following line is moved under the if case then this test
     //         wont work on windows realease bots.
-    PacedPacketInfo pacing_info =
+    let pacing_info: PacedPacketInfo =
         i < kInitialProbingPackets ? kPacingInfo : PacedPacketInfo();
 
     if (i == kNumInitialPackets) {
-      EXPECT_FALSE(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
-      EXPECT_EQ(0u, ssrcs.len());
-      EXPECT_FALSE(self.bitrate_observer.updated());
+      assert!(!(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
+      assert_eq!(0u, ssrcs.len());
+      assert!(!(self.bitrate_observer.updated());
       self.bitrate_observer.Reset();
     }
     IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, kMtu,
@@ -341,27 +341,27 @@ fn InitialBehaviorTestHelper(&self /* DelayBasedBweTest */,
     self.clock.AdvanceTimeMilliseconds(1000 / kFramerate);
     send_time_ms += kFrameIntervalMs;
   }
-  EXPECT_TRUE(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
+  assert!((self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
   ASSERT_EQ(1u, ssrcs.len());
-  EXPECT_EQ(kDefaultSsrc, ssrcs.front());
+  assert_eq!(kDefaultSsrc, ssrcs.front());
   EXPECT_NEAR(expected_converge_bitrate, bitrate.bps(),
               kAcceptedBitrateErrorBps);
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   self.bitrate_observer.Reset();
-  EXPECT_EQ(self.bitrate_observer.latest_bitrate(), bitrate.bps());
+  assert_eq!(self.bitrate_observer.latest_bitrate(), bitrate.bps());
 }
 
 fn RateIncreaseReorderingTestHelper(&self /* DelayBasedBweTest */,
-    uint32_t expected_bitrate_bps) {
-  const int kFramerate = 50;  // 50 fps to avoid rounding errors.
-  const int kFrameIntervalMs = 1000 / kFramerate;
+    u32 expected_bitrate_bps) {
+  const Framerate: isize = 50;  // 50 fps to avoid rounding errors.
+  const FrameIntervalMs: isize = 1000 / kFramerate;
   const PacedPacketInfo kPacingInfo(0, 5, 5000);
-  i64 send_time_ms = 0;
+  let send_time_ms: i64 = 0;
   // Inserting packets for five seconds to get a valid estimate.
-  for (int i = 0; i < 5 * kFramerate + 1 + kNumInitialPacketsi += 1) {
+  for (isize i = 0; i < 5 * kFramerate + 1 + kNumInitialPacketsi += 1) {
     // NOTE!!! If the following line is moved under the if case then this test
     //         wont work on windows realease bots.
-    PacedPacketInfo pacing_info =
+    let pacing_info: PacedPacketInfo =
         i < kInitialProbingPackets ? kPacingInfo : PacedPacketInfo();
 
     // TODO(sprang): Remove this hack once the single stream estimator is gone,
@@ -369,41 +369,41 @@ fn RateIncreaseReorderingTestHelper(&self /* DelayBasedBweTest */,
     if (i == kNumInitialPackets) {
       // Process after we have enough frames to get a valid input rate estimate.
 
-      EXPECT_FALSE(self.bitrate_observer.updated());  // No valid estimate.
+      assert!(!(self.bitrate_observer.updated());  // No valid estimate.
     }
     IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, kMtu,
                      pacing_info);
     self.clock.AdvanceTimeMilliseconds(kFrameIntervalMs);
     send_time_ms += kFrameIntervalMs;
   }
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   EXPECT_NEAR(expected_bitrate_bps, self.bitrate_observer.latest_bitrate(),
               kAcceptedBitrateErrorBps);
-  for (int i = 0; i < 10i += 1) {
+  for (isize i = 0; i < 10i += 1) {
     self.clock.AdvanceTimeMilliseconds(2 * kFrameIntervalMs);
     send_time_ms += 2 * kFrameIntervalMs;
     IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, 1000);
     IncomingFeedback(self.clock.TimeInMilliseconds(),
                      send_time_ms - kFrameIntervalMs, 1000);
   }
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   EXPECT_NEAR(expected_bitrate_bps, self.bitrate_observer.latest_bitrate(),
               kAcceptedBitrateErrorBps);
 }
 
 // Make sure we initially increase the bitrate as expected.
 fn RateIncreaseRtpTimestampsTestHelper(&self /* DelayBasedBweTest */,
-    int expected_iterations) {
+    isize expected_iterations) {
   // This threshold corresponds approximately to increasing linearly with
   // bitrate(i) = 1.04 * bitrate(i-1) + 1000
   // until bitrate(i) > 500000, with bitrate(1) ~= 30000.
-  uint32_t bitrate_bps = 30000;
-  int iterations = 0;
+  let bitrate_bps: u32 = 30000;
+  let iterations: isize = 0;
   AddDefaultStream();
   // Feed the estimator with a stream of packets and verify that it reaches
   // 500 kbps at the expected time.
   while (bitrate_bps < 5e5) {
-    bool overuse = GenerateAndProcessFrame(kDefaultSsrc, bitrate_bps);
+    let overuse: bool = GenerateAndProcessFrame(kDefaultSsrc, bitrate_bps);
     if (overuse) {
       EXPECT_GT(self.bitrate_observer.latest_bitrate(), bitrate_bps);
       bitrate_bps = self.bitrate_observer.latest_bitrate();
@@ -418,29 +418,29 @@ fn RateIncreaseRtpTimestampsTestHelper(&self /* DelayBasedBweTest */,
 }
 
 fn CapacityDropTestHelper(&self /* DelayBasedBweTest */,
-    int number_of_streams,
+    isize number_of_streams,
     bool /* wrap_time_stamp */,
-    uint32_t expected_bitrate_drop_delta,
+    u32 expected_bitrate_drop_delta,
     i64 receiver_clock_offset_change_ms) {
-  const int kFramerate = 30;
-  const int kStartBitrate = 900e3;
-  const int kMinExpectedBitrate = 800e3;
-  const int kMaxExpectedBitrate = 1100e3;
-  const uint32_t kInitialCapacityBps = 1000e3;
-  const uint32_t kReducedCapacityBps = 500e3;
+  const Framerate: isize = 30;
+  const StartBitrate: isize = 900e3;
+  const MinExpectedBitrate: isize = 800e3;
+  const MaxExpectedBitrate: isize = 1100e3;
+  const InitialCapacityBps: u32 = 1000e3;
+  const ReducedCapacityBps: u32 = 500e3;
 
-  int steady_state_time = 0;
+  let steady_state_time: isize = 0;
   if (number_of_streams <= 1) {
     steady_state_time = 10;
     AddDefaultStream();
   } else {
     steady_state_time = 10 * number_of_streams;
-    int bitrate_sum = 0;
-    int kBitrateDenom = number_of_streams * (number_of_streams - 1);
-    for (int i = 0; i < number_of_streams; i++) {
+    let bitrate_sum: isize = 0;
+    let kBitrateDenom: isize = number_of_streams * (number_of_streams - 1);
+    for (isize i = 0; i < number_of_streams; i++) {
       // First stream gets half available bitrate, while the rest share the
       // remaining half i.e.: 1/2 = Sum[n/(N*(N-1))] for n=1..N-1 (rounded up)
-      int bitrate = kStartBitrate / 2;
+      let bitrate: isize = kStartBitrate / 2;
       if (i > 0) {
         bitrate = (kStartBitrate * i + kBitrateDenom / 2) / kBitrateDenom;
       }
@@ -452,7 +452,7 @@ fn CapacityDropTestHelper(&self /* DelayBasedBweTest */,
 
   // Run in steady state to make the estimator converge.
   self.stream_generator.set_capacity_bps(kInitialCapacityBps);
-  uint32_t bitrate_bps = SteadyStateRun(
+  let bitrate_bps: u32 = SteadyStateRun(
       kDefaultSsrc, steady_state_time * kFramerate, kStartBitrate,
       kMinExpectedBitrate, kMaxExpectedBitrate, kInitialCapacityBps);
   EXPECT_NEAR(kInitialCapacityBps, bitrate_bps, 180000u);
@@ -463,9 +463,9 @@ fn CapacityDropTestHelper(&self /* DelayBasedBweTest */,
 
   // Reduce the capacity and verify the decrease time.
   self.stream_generator.set_capacity_bps(kReducedCapacityBps);
-  i64 overuse_start_time = self.clock.TimeInMilliseconds();
-  i64 bitrate_drop_time = -1;
-  for (int i = 0; i < 100 * number_of_streamsi += 1) {
+  let overuse_start_time: i64 = self.clock.TimeInMilliseconds();
+  let bitrate_drop_time: i64 = -1;
+  for (isize i = 0; i < 100 * number_of_streamsi += 1) {
     GenerateAndProcessFrame(kDefaultSsrc, bitrate_bps);
     if (bitrate_drop_time == -1 &&
         self.bitrate_observer.latest_bitrate() <= kReducedCapacityBps) {
@@ -480,25 +480,25 @@ fn CapacityDropTestHelper(&self /* DelayBasedBweTest */,
 }
 
 fn TestTimestampGroupingTestHelper(&self /* DelayBasedBweTest */) {
-  const int kFramerate = 50;  // 50 fps to avoid rounding errors.
-  const int kFrameIntervalMs = 1000 / kFramerate;
-  i64 send_time_ms = 0;
+  const Framerate: isize = 50;  // 50 fps to avoid rounding errors.
+  const FrameIntervalMs: isize = 1000 / kFramerate;
+  let send_time_ms: i64 = 0;
   // Initial set of frames to increase the bitrate. 6 seconds to have enough
   // time for the first estimate to be generated and for Process() to be called.
-  for (int i = 0; i <= 6 * kFrameratei += 1) {
+  for (isize i = 0; i <= 6 * kFrameratei += 1) {
     IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, 1000);
 
     self.clock.AdvanceTimeMilliseconds(kFrameIntervalMs);
     send_time_ms += kFrameIntervalMs;
   }
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   EXPECT_GE(self.bitrate_observer.latest_bitrate(), 400000u);
 
   // Insert batches of frames which were sent very close in time. Also simulate
   // capacity over-use to see that we back off correctly.
-  const int kTimestampGroupLength = 15;
-  for (int i = 0; i < 100i += 1) {
-    for (int j = 0; j < kTimestampGroupLengthj += 1) {
+  const TimestampGroupLength: isize = 15;
+  for (isize i = 0; i < 100i += 1) {
+    for (isize j = 0; j < kTimestampGroupLengthj += 1) {
       // Insert `kTimestampGroupLength` frames with just 1 timestamp ticks in
       // between. Should be treated as part of the same group by the estimator.
       IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, 100);
@@ -509,34 +509,34 @@ fn TestTimestampGroupingTestHelper(&self /* DelayBasedBweTest */) {
     self.clock.AdvanceTimeMilliseconds(10);
     send_time_ms += kFrameIntervalMs - kTimestampGroupLength;
   }
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   // Should have reduced the estimate.
   EXPECT_LT(self.bitrate_observer.latest_bitrate(), 400000u);
 }
 
 fn TestWrappingHelper(&self /* DelayBasedBweTest */,int silence_time_s) {
-  const int kFramerate = 100;
-  const int kFrameIntervalMs = 1000 / kFramerate;
-  i64 send_time_ms = 0;
+  const Framerate: isize = 100;
+  const FrameIntervalMs: isize = 1000 / kFramerate;
+  let send_time_ms: i64 = 0;
 
-  for i = 0; i < 3000i += 1) {
+  let i: for = 0; i < 3000i += 1) {
     IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, 1000);
     self.clock.AdvanceTimeMilliseconds(kFrameIntervalMs);
     send_time_ms += kFrameIntervalMs;
   }
-  DataRate bitrate_before = DataRate::Zero();
-  Vec<uint32_t> ssrcs;
+  let bitrate_before: DataRate = DataRate::Zero();
+  Vec<u32> ssrcs;
   self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate_before);
 
   self.clock.AdvanceTimeMilliseconds(silence_time_s * 1000);
   send_time_ms += silence_time_s * 1000;
 
-  for i = 0; i < 24i += 1) {
+  let i: for = 0; i < 24i += 1) {
     IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, 1000);
     self.clock.AdvanceTimeMilliseconds(2 * kFrameIntervalMs);
     send_time_ms += kFrameIntervalMs;
   }
-  DataRate bitrate_after = DataRate::Zero();
+  let bitrate_after: DataRate = DataRate::Zero();
   self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate_after);
   EXPECT_LT(bitrate_after, bitrate_before);
 }

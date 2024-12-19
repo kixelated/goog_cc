@@ -143,7 +143,7 @@ pub struct SendSideBandwidthEstimation {
   fn SetMinMaxBitrate(DataRate min_bitrate, DataRate max_bitrate) {
   todo!();
 }
-  int GetMinBitrate() const;
+  isize GetMinBitrate() const;
   void SetAcknowledgedRate(Option<DataRate> acknowledged_rate,
                            Timestamp at_time);
   void UpdateLossBasedEstimator(const TransportPacketsFeedback& report,
@@ -159,7 +159,7 @@ pub struct SendSideBandwidthEstimation {
 
   bool IsInStartPhase(Timestamp at_time) const;
 
-  fn UpdateUmaStatsPacketsLost(Timestamp at_time, int packets_lost) {
+  fn UpdateUmaStatsPacketsLost(Timestamp at_time, isize packets_lost) {
   todo!();
 }
 
@@ -209,8 +209,8 @@ pub struct SendSideBandwidthEstimation {
   VecDeque<std::pair<Timestamp, DataRate> > self.min_bitrate_history;
 
   // incoming filters
-  lost_packets_since_last_loss_update: int,
-  expected_packets_since_last_loss_update: int,
+  lost_packets_since_last_loss_update: isize,
+  expected_packets_since_last_loss_update: isize,
 
   acknowledged_rate: Option<DataRate>,
   current_target: DataRate,
@@ -233,15 +233,15 @@ pub struct SendSideBandwidthEstimation {
   delay_based_limit: DataRate,
   time_last_decrease: Timestamp,
   first_report_time: Timestamp,
-  initially_lost_packets: int,
+  initially_lost_packets: isize,
   bitrate_at_2_seconds: DataRate,
   uma_update_state: UmaState,
   uma_rtt_state: UmaState,
   rampup_uma_stats_updated: Vec<bool>,
   event_log: RtcEventLog*,
   last_rtc_event_log: Timestamp,
-  low_loss_threshold: float,
-  high_loss_threshold: float,
+  low_loss_threshold: f32,
+  high_loss_threshold: f32,
   bitrate_threshold: DataRate,
   loss_based_bandwidth_estimator_v1: LossBasedBandwidthEstimation,
   loss_based_bandwidth_estimator_v2: std::unique_ptr<LossBasedBweV2>,

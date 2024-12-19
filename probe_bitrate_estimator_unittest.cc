@@ -25,9 +25,9 @@
 
 
 namespace {
-constexpr int kDefaultMinProbes = 5;
-constexpr int kDefaultMinBytes = 5000;
-constexpr float kTargetUtilizationFraction = 0.95f;
+const DefaultMinProbes: isize = 5;
+const DefaultMinBytes: isize = 5000;
+const TargetUtilizationFraction: f32 = 0.95f;
 }  // anonymous namespace
 
 class TestProbeBitrateEstimator : public ::testing::Test {
@@ -36,13 +36,13 @@ class TestProbeBitrateEstimator : public ::testing::Test {
 
   // TODO(philipel): Use PacedPacketInfo when ProbeBitrateEstimator is rewritten
   //                 to use that information.
-  void AddPacketFeedback(int probe_cluster_id,
+  void AddPacketFeedback(isize probe_cluster_id,
                          usize size_bytes,
                          i64 send_time_ms,
                          i64 arrival_time_ms,
-                         int min_probes = kDefaultMinProbes,
-                         int min_bytes = kDefaultMinBytes) {
-    const Timestamp kReferenceTime = Timestamp::Seconds(1000);
+                         let min_probes: isize = kDefaultMinProbes,
+                         let min_bytes: isize = kDefaultMinBytes) {
+    const ReferenceTime: Timestamp = Timestamp::Seconds(1000);
     PacketResult feedback;
     feedback.sent_packet.send_time =
         kReferenceTime + TimeDelta::Millis(send_time_ms);
@@ -73,22 +73,22 @@ TEST_F(TestProbeBitrateEstimator, OneClusterTooFewProbes) {
   AddPacketFeedback(0, 2000, 10, 20);
   AddPacketFeedback(0, 2000, 20, 30);
 
-  EXPECT_FALSE(self.measured_data_rate);
+  assert!(!(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, OneClusterTooFewBytes) {
-  const int kMinBytes = 6000;
+  const MinBytes: isize = 6000;
   AddPacketFeedback(0, 800, 0, 10, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 800, 10, 20, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 800, 20, 30, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 800, 30, 40, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 800, 40, 50, kDefaultMinProbes, kMinBytes);
 
-  EXPECT_FALSE(self.measured_data_rate);
+  assert!(!(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, SmallCluster) {
-  const int kMinBytes = 1000;
+  const MinBytes: isize = 1000;
   AddPacketFeedback(0, 150, 0, 10, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 150, 10, 20, kDefaultMinProbes, kMinBytes);
   AddPacketFeedback(0, 150, 20, 30, kDefaultMinProbes, kMinBytes);
@@ -99,12 +99,12 @@ TEST_F(TestProbeBitrateEstimator, SmallCluster) {
 }
 
 TEST_F(TestProbeBitrateEstimator, LargeCluster) {
-  const int kMinProbes = 30;
-  const int kMinBytes = 312500;
+  const MinProbes: isize = 30;
+  const MinBytes: isize = 312500;
 
-  i64 send_time = 0;
-  i64 receive_time = 5;
-  for (int i = 0; i < 25i += 1) {
+  let send_time: i64 = 0;
+  let receive_time: i64 = 5;
+  for (isize i = 0; i < 25i += 1) {
     AddPacketFeedback(0, 12500, send_time, receive_time, kMinProbes, kMinBytes);
     send_time += 1;
     receive_time += 1;
@@ -127,7 +127,7 @@ TEST_F(TestProbeBitrateEstimator, TooFastReceive) {
   AddPacketFeedback(0, 1000, 20, 25);
   AddPacketFeedback(0, 1000, 40, 27);
 
-  EXPECT_FALSE(self.measured_data_rate);
+  assert!(!(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, SlowReceive) {
@@ -147,7 +147,7 @@ TEST_F(TestProbeBitrateEstimator, BurstReceive) {
   AddPacketFeedback(0, 1000, 20, 50);
   AddPacketFeedback(0, 1000, 40, 50);
 
-  EXPECT_FALSE(self.measured_data_rate);
+  assert!(!(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, MultipleClusters) {
@@ -190,7 +190,7 @@ TEST_F(TestProbeBitrateEstimator, IgnoreOldClusters) {
   // Coming in 6s later
   AddPacketFeedback(0, 1000, 40 + 6000, 60 + 6000);
 
-  EXPECT_FALSE(self.measured_data_rate);
+  assert!(!(self.measured_data_rate);
 }
 
 TEST_F(TestProbeBitrateEstimator, IgnoreSizeLastSendPacket) {
@@ -216,7 +216,7 @@ TEST_F(TestProbeBitrateEstimator, IgnoreSizeFirstReceivePacket) {
 }
 
 TEST_F(TestProbeBitrateEstimator, NoLastEstimatedBitrateBps) {
-  EXPECT_FALSE(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
+  assert!(!(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
 }
 
 TEST_F(TestProbeBitrateEstimator, FetchLastEstimatedBitrateBps) {
@@ -227,9 +227,9 @@ TEST_F(TestProbeBitrateEstimator, FetchLastEstimatedBitrateBps) {
 
 let estimated_bitrate =
       self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate();
-  EXPECT_TRUE(estimated_bitrate);
+  assert!((estimated_bitrate);
   EXPECT_NEAR(estimated_bitrate->bps(), 800000, 10);
-  EXPECT_FALSE(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
+  assert!(!(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
 }
 
 }  // namespace webrtc

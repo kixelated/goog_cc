@@ -48,7 +48,7 @@ pub struct TrendlineEstimator {
   smoothing_coef: f64,
   threshold_gain: f64,
   // Used by the existing threshold.
-  num_of_deltas: int,
+  num_of_deltas: isize,
   // Keep the arrival times small by using the change from the first packet.
   first_arrival_time_ms: i64,
   // Exponential backoff filtering.
@@ -138,7 +138,11 @@ impl DelayIncreaseDetectorInterface for TrendlineEstimator {
   }
 }
   fn state(&self) -> BandwidthUsage {
-    return self.network_state_predictor ? self.hypothesis_predicted : self.hypothesis;
+    if self.network_state_predictor.is_some() {
+      return self.hypothesis_predicted;
+    } else {
+      return self.hypothesis;
+    }
   }
 }
 
@@ -255,7 +259,7 @@ fn UpdateTrendline(&mut self, recv_delta_ms: f64,
       (arrival_time_ms - self.first_arrival_time_ms) as f64,
       self.smoothed_delay, self.accumulated_delay);
   if self.settings.enable_sort {
-    let i = self.delay_hist.len() - 1;
+    let i= self.delay_hist.len() - 1;
     while
          i > 0 &&
          self.delay_hist[i].arrival_time_ms < self.delay_hist[i - 1].arrival_time_ms {
@@ -277,7 +281,7 @@ fn UpdateTrendline(&mut self, recv_delta_ms: f64,
     //   trend < 0     ->  the delay decreases, queues are being emptied
     trend = LinearFitSlope(&self.delay_hist).unwrap_or(trend);
     if (self.settings.enable_cap) {
-      let cap = ComputeSlopeCap(self.delay_hist, self.settings);
+      let cap= ComputeSlopeCap(self.delay_hist, self.settings);
       // We only use the cap to filter out overuse detections, not
       // to detect additional underuses.
       if let Some(cap) = cap {

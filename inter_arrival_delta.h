@@ -25,8 +25,8 @@ pub struct InterArrivalDelta {
  public:
   // After this many packet groups received out of order InterArrival will
   // reset, assuming that clocks have made a jump.
-  static constexpr int kReorderedResetThreshold = 3;
-  static constexpr TimeDelta kArrivalTimeOffsetThreshold =
+  static const ReorderedResetThreshold: isize = 3;
+  static const ArrivalTimeOffsetThreshold: TimeDelta =
       Duration::from_secs(3);
 
   // A send time group is defined as all packets with a send time which are at
@@ -85,7 +85,7 @@ pub struct InterArrivalDelta {
   const TimeDelta self.send_time_group_length;
   current_timestamp_group: SendTimeGroup,
   prev_timestamp_group: SendTimeGroup,
-  num_consecutive_reordered_packets: int,
+  num_consecutive_reordered_packets: isize,
 };
 }  // namespace webrtc
 

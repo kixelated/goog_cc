@@ -42,15 +42,15 @@ fn SetDataWindow(&self /* CongestionWindowPushbackController */,DataSize data_wi
   self.current_data_window = data_window;
 }
 
-uint32_t UpdateTargetBitrate(&self /* CongestionWindowPushbackController */,
-    uint32_t bitrate_bps) {
-  if (!current_data_window_ || self.current_data_window.IsZero())
+u32 UpdateTargetBitrate(&self /* CongestionWindowPushbackController */,
+    u32 bitrate_bps) {
+  if (!self.current_data_window || self.current_data_window.IsZero())
     return bitrate_bps;
-  i64 total_bytes = self.outstanding_bytes;
+  let total_bytes: i64 = self.outstanding_bytes;
   if (self.add_pacing)
     total_bytes += self.pacing_bytes;
-  f64 fill_ratio =
-      total_bytes / static_cast<f64>(self.current_data_window.bytes());
+  let fill_ratio: f64 =
+      total_bytes / (self.current_data_window.bytes() as f64);
   if (fill_ratio > 1.5) {
     self.encoding_rate_ratio *= 0.9;
   } else if (fill_ratio > 1) {
@@ -61,8 +61,8 @@ uint32_t UpdateTargetBitrate(&self /* CongestionWindowPushbackController */,
     self.encoding_rate_ratio *= 1.05;
     self.encoding_rate_ratio = std::cmp::min(self.encoding_rate_ratio, 1.0);
   }
-  uint32_t adjusted_target_bitrate_bps =
-      static_cast<uint32_t>(bitrate_bps * self.encoding_rate_ratio);
+  let adjusted_target_bitrate_bps: u32 =
+      (bitrate_bps * self.encoding_rate_ratio) as u32;
 
   // Do not adjust below the minimum pushback bitrate but do obey if the
   // original estimate is below it.

@@ -23,40 +23,40 @@
 
 
 namespace {
-constexpr int kNumProbesCluster0 = 5;
-constexpr int kNumProbesCluster1 = 8;
+const NumProbesCluster0: isize = 5;
+const NumProbesCluster1: isize = 8;
 const PacedPacketInfo kPacingInfo0(0, kNumProbesCluster0, 2000);
 const PacedPacketInfo kPacingInfo1(1, kNumProbesCluster1, 4000);
-constexpr float kTargetUtilizationFraction = 0.95f;
+const TargetUtilizationFraction: f32 = 0.95f;
 }  // namespace
 
 TEST_F(DelayBasedBweTest, ProbeDetection) {
-  i64 now_ms = self.clock.TimeInMilliseconds();
+  let now_ms: i64 = self.clock.TimeInMilliseconds();
 
   // First burst sent at 8 * 1000 / 10 = 800 kbps.
-  for (int i = 0; i < kNumProbesCluster0i += 1) {
+  for (isize i = 0; i < kNumProbesCluster0i += 1) {
     self.clock.AdvanceTimeMilliseconds(10);
     now_ms = self.clock.TimeInMilliseconds();
     IncomingFeedback(now_ms, now_ms, 1000, kPacingInfo0);
   }
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
 
   // Second burst sent at 8 * 1000 / 5 = 1600 kbps.
-  for (int i = 0; i < kNumProbesCluster1i += 1) {
+  for (isize i = 0; i < kNumProbesCluster1i += 1) {
     self.clock.AdvanceTimeMilliseconds(5);
     now_ms = self.clock.TimeInMilliseconds();
     IncomingFeedback(now_ms, now_ms, 1000, kPacingInfo1);
   }
 
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   EXPECT_GT(self.bitrate_observer.latest_bitrate(), 1500000u);
 }
 
 TEST_F(DelayBasedBweTest, ProbeDetectionNonPacedPackets) {
-  i64 now_ms = self.clock.TimeInMilliseconds();
+  let now_ms: i64 = self.clock.TimeInMilliseconds();
   // First burst sent at 8 * 1000 / 10 = 800 kbps, but with every other packet
   // not being paced which could mess things up.
-  for (int i = 0; i < kNumProbesCluster0i += 1) {
+  for (isize i = 0; i < kNumProbesCluster0i += 1) {
     self.clock.AdvanceTimeMilliseconds(5);
     now_ms = self.clock.TimeInMilliseconds();
     IncomingFeedback(now_ms, now_ms, 1000, kPacingInfo0);
@@ -65,59 +65,59 @@ TEST_F(DelayBasedBweTest, ProbeDetectionNonPacedPackets) {
     IncomingFeedback(now_ms, now_ms, 100, PacedPacketInfo());
   }
 
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   EXPECT_GT(self.bitrate_observer.latest_bitrate(), 800000u);
 }
 
 TEST_F(DelayBasedBweTest, ProbeDetectionFasterArrival) {
-  i64 now_ms = self.clock.TimeInMilliseconds();
+  let now_ms: i64 = self.clock.TimeInMilliseconds();
   // First burst sent at 8 * 1000 / 10 = 800 kbps.
   // Arriving at 8 * 1000 / 5 = 1600 kbps.
-  i64 send_time_ms = 0;
-  for (int i = 0; i < kNumProbesCluster0i += 1) {
+  let send_time_ms: i64 = 0;
+  for (isize i = 0; i < kNumProbesCluster0i += 1) {
     self.clock.AdvanceTimeMilliseconds(1);
     send_time_ms += 10;
     now_ms = self.clock.TimeInMilliseconds();
     IncomingFeedback(now_ms, send_time_ms, 1000, kPacingInfo0);
   }
 
-  EXPECT_FALSE(self.bitrate_observer.updated());
+  assert!(!(self.bitrate_observer.updated());
 }
 
 TEST_F(DelayBasedBweTest, ProbeDetectionSlowerArrival) {
-  i64 now_ms = self.clock.TimeInMilliseconds();
+  let now_ms: i64 = self.clock.TimeInMilliseconds();
   // First burst sent at 8 * 1000 / 5 = 1600 kbps.
   // Arriving at 8 * 1000 / 7 = 1142 kbps.
   // Since the receive rate is significantly below the send rate, we expect to
   // use 95% of the estimated capacity.
-  i64 send_time_ms = 0;
-  for (int i = 0; i < kNumProbesCluster1i += 1) {
+  let send_time_ms: i64 = 0;
+  for (isize i = 0; i < kNumProbesCluster1i += 1) {
     self.clock.AdvanceTimeMilliseconds(7);
     send_time_ms += 5;
     now_ms = self.clock.TimeInMilliseconds();
     IncomingFeedback(now_ms, send_time_ms, 1000, kPacingInfo1);
   }
 
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   EXPECT_NEAR(self.bitrate_observer.latest_bitrate(),
               kTargetUtilizationFraction * 1140000u, 10000u);
 }
 
 TEST_F(DelayBasedBweTest, ProbeDetectionSlowerArrivalHighBitrate) {
-  i64 now_ms = self.clock.TimeInMilliseconds();
+  let now_ms: i64 = self.clock.TimeInMilliseconds();
   // Burst sent at 8 * 1000 / 1 = 8000 kbps.
   // Arriving at 8 * 1000 / 2 = 4000 kbps.
   // Since the receive rate is significantly below the send rate, we expect to
   // use 95% of the estimated capacity.
-  i64 send_time_ms = 0;
-  for (int i = 0; i < kNumProbesCluster1i += 1) {
+  let send_time_ms: i64 = 0;
+  for (isize i = 0; i < kNumProbesCluster1i += 1) {
     self.clock.AdvanceTimeMilliseconds(2);
     send_time_ms += 1;
     now_ms = self.clock.TimeInMilliseconds();
     IncomingFeedback(now_ms, send_time_ms, 1000, kPacingInfo1);
   }
 
-  EXPECT_TRUE(self.bitrate_observer.updated());
+  assert!((self.bitrate_observer.updated());
   EXPECT_NEAR(self.bitrate_observer.latest_bitrate(),
               kTargetUtilizationFraction * 4000000u, 10000u);
 }
@@ -137,7 +137,7 @@ TEST_F(DelayBasedBweTest, InitialBehavior) {
 
 TEST_F(DelayBasedBweTest, InitializeResult) {
   DelayBasedBwe::Result result;
-  EXPECT_EQ(result.delay_detector_state, BandwidthUsage::kBwNormal);
+  assert_eq!(result.delay_detector_state, BandwidthUsage::kBwNormal);
 }
 
 TEST_F(DelayBasedBweTest, RateIncreaseReordering) {
@@ -183,11 +183,11 @@ TEST_F(DelayBasedBweTest, TestLongTimeoutAndWrap) {
 }
 
 TEST_F(DelayBasedBweTest, TestInitialOveruse) {
-  const DataRate kStartBitrate = DataRate::KilobitsPerSec(300);
-  const DataRate kInitialCapacity = DataRate::KilobitsPerSec(200);
-  const uint32_t kDummySsrc = 0;
+  const StartBitrate: DataRate = DataRate::KilobitsPerSec(300);
+  const InitialCapacity: DataRate = DataRate::KilobitsPerSec(200);
+  const DummySsrc: u32 = 0;
   // High FPS to ensure that we send a lot of packets in a short time.
-  const int kFps = 90;
+  const Fps: isize = 90;
 
   self.stream_generator.AddStream(new test::RtpStream(kFps, kStartBitrate.bps()));
   self.stream_generator.set_capacity_bps(kInitialCapacity.bps());
@@ -196,12 +196,12 @@ TEST_F(DelayBasedBweTest, TestInitialOveruse) {
   self.bitrate_estimator.SetStartBitrate(kStartBitrate);
 
   // Produce 40 frames (in 1/3 second) and give them to the estimator.
-  i64 bitrate_bps = kStartBitrate.bps();
-  bool seen_overuse = false;
-  for (int i = 0; i < 40i += 1) {
-    bool overuse = GenerateAndProcessFrame(kDummySsrc, bitrate_bps);
+  let bitrate_bps: i64 = kStartBitrate.bps();
+  let seen_overuse: bool = false;
+  for (isize i = 0; i < 40i += 1) {
+    let overuse: bool = GenerateAndProcessFrame(kDummySsrc, bitrate_bps);
     if (overuse) {
-      EXPECT_TRUE(self.bitrate_observer.updated());
+      assert!((self.bitrate_observer.updated());
       EXPECT_LE(self.bitrate_observer.latest_bitrate(), kInitialCapacity.bps());
       EXPECT_GT(self.bitrate_observer.latest_bitrate(),
                 0.8 * kInitialCapacity.bps());
@@ -213,7 +213,7 @@ TEST_F(DelayBasedBweTest, TestInitialOveruse) {
       self.bitrate_observer.Reset();
     }
   }
-  EXPECT_TRUE(seen_overuse);
+  assert!((seen_overuse);
   EXPECT_LE(self.bitrate_observer.latest_bitrate(), kInitialCapacity.bps());
   EXPECT_GT(self.bitrate_observer.latest_bitrate(), 0.8 * kInitialCapacity.bps());
 }
@@ -235,8 +235,8 @@ TEST_F(DelayBasedBweTest, TestTimestampPrecisionHandling) {
   // the time deltas were accidentally rounded to the nearest milliseconds, then
   // all the send deltas would be equal to 10ms while some recv deltas would
   // round up to 11ms which would lead in a false illusion of delay build up.
-  uint32_t last_bitrate = self.bitrate_observer.latest_bitrate();
-  for (int i = 0; i < 1000i += 1) {
+  let last_bitrate: u32 = self.bitrate_observer.latest_bitrate();
+  for (isize i = 0; i < 1000i += 1) {
     self.clock.AdvanceTimeMicroseconds(500);
     IncomingFeedback(self.clock.CurrentTime(),
                      self.clock.CurrentTime() - TimeDelta::Micros(500), 1000,

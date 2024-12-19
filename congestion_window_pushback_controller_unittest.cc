@@ -28,13 +28,13 @@ fn FullCongestionWindow() {
   cwnd_controller.UpdateOutstandingData(100000);
   cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
 
-  uint32_t bitrate_bps = 80000;
+  let bitrate_bps: u32 = 80000;
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
-  EXPECT_EQ(72000u, bitrate_bps);
+  assert_eq!(72000u, bitrate_bps);
 
   cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
-  EXPECT_EQ(static_cast<uint32_t>(72000 * 0.9 * 0.9), bitrate_bps);
+  assert_eq!((72000 * 0.9 * 0.9) as u32, bitrate_bps);
 }
 
 #[test]
@@ -45,9 +45,9 @@ fn NormalCongestionWindow() {
   cwnd_controller.UpdateOutstandingData(199999);
   cwnd_controller.SetDataWindow(DataSize::Bytes(200000));
 
-  uint32_t bitrate_bps = 80000;
+  let bitrate_bps: u32 = 80000;
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
-  EXPECT_EQ(80000u, bitrate_bps);
+  assert_eq!(80000u, bitrate_bps);
 }
 
 #[test]
@@ -58,13 +58,13 @@ fn LowBitrate() {
   cwnd_controller.UpdateOutstandingData(100000);
   cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
 
-  uint32_t bitrate_bps = 35000;
+  let bitrate_bps: u32 = 35000;
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
-  EXPECT_EQ(static_cast<uint32_t>(35000 * 0.9), bitrate_bps);
+  assert_eq!((35000 * 0.9) as u32, bitrate_bps);
 
   cwnd_controller.SetDataWindow(DataSize::Bytes(20000));
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
-  EXPECT_EQ(30000u, bitrate_bps);
+  assert_eq!(30000u, bitrate_bps);
 }
 
 #[test]
@@ -74,9 +74,9 @@ fn NoPushbackOnDataWindowUnset() {
 
   cwnd_controller.UpdateOutstandingData(1e8);  // Large number
 
-  uint32_t bitrate_bps = 80000;
+  let bitrate_bps: u32 = 80000;
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
-  EXPECT_EQ(80000u, bitrate_bps);
+  assert_eq!(80000u, bitrate_bps);
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn PushbackOnInititialDataWindow() {
 
   cwnd_controller.UpdateOutstandingData(1e8);  // Large number
 
-  uint32_t bitrate_bps = 80000;
+  let bitrate_bps: u32 = 80000;
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
   EXPECT_GT(80000u, bitrate_bps);
 }
@@ -99,7 +99,7 @@ fn PushbackDropFrame() {
   cwnd_controller.UpdateOutstandingData(1e8);  // Large number
   cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
 
-  uint32_t bitrate_bps = 80000;
+  let bitrate_bps: u32 = 80000;
   bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
   EXPECT_GT(80000u, bitrate_bps);
 }

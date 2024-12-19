@@ -35,14 +35,14 @@ pub struct CongestionWindowPushbackController {
   fn UpdatePacingQueue(i64 pacing_bytes) {
   todo!();
 }
-  uint32_t UpdateTargetBitrate(uint32_t bitrate_bps);
+  u32 UpdateTargetBitrate(u32 bitrate_bps);
   fn SetDataWindow(DataSize data_window) {
   todo!();
 }
 
  private:
   const bool self.add_pacing;
-  const uint32_t self.min_pushback_target_bitrate_bps;
+  const u32 self.min_pushback_target_bitrate_bps;
   current_data_window: Option<DataSize>,
   i64 self.outstanding_bytes = 0;
   i64 self.pacing_bytes = 0;

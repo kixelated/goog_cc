@@ -10,6 +10,8 @@
 
 use std::time::{Duration, Instant};
 
+use crate::api::units::DataRate;
+
 
 pub struct RobustThroughputEstimatorSettings {
   // Set `enabled` to true to use the RobustThroughputEstimator, false to use
@@ -61,7 +63,7 @@ impl Default for RobustThroughputEstimatorSettings {
 
 
 pub trait AcknowledgedBitrateEstimatorInterface {
-  fn create(key_value_config: &FieldTrialsView) -> Self;
+  fn create() -> Self;
   fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]);
   fn bitrate() -> Option<DataRate>;
   fn peek_rate() -> Option<DataRate>;

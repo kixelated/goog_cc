@@ -36,22 +36,22 @@
 
 
 namespace {
-fn WriteTypedValue(RtcEventLogOutput* out, int value) -> void {
+fn WriteTypedValue(RtcEventLogOutput* out, isize value) {
   LogWriteFormat(out, "%i", value);
 }
-fn WriteTypedValue(RtcEventLogOutput* out, f64 value) -> void {
+fn WriteTypedValue(RtcEventLogOutput* out, f64 value) {
   LogWriteFormat(out, "%.6f", value);
 }
-fn WriteTypedValue(RtcEventLogOutput* out, Option<DataRate> value) -> void {
+fn WriteTypedValue(RtcEventLogOutput* out, Option<DataRate> value) {
   LogWriteFormat(out, "%.0f", value ? value->bytes_per_sec<f64>() : NAN);
 }
-fn WriteTypedValue(RtcEventLogOutput* out, Option<DataSize> value) -> void {
+fn WriteTypedValue(RtcEventLogOutput* out, Option<DataSize> value) {
   LogWriteFormat(out, "%.0f", value ? value->bytes<f64>() : NAN);
 }
-fn WriteTypedValue(RtcEventLogOutput* out, Option<TimeDelta> value) -> void {
+fn WriteTypedValue(RtcEventLogOutput* out, Option<TimeDelta> value) {
   LogWriteFormat(out, "%.3f", value ? value->seconds<f64>() : NAN);
 }
-fn WriteTypedValue(RtcEventLogOutput* out, Option<Timestamp> value) -> void {
+fn WriteTypedValue(RtcEventLogOutput* out, Option<Timestamp> value) {
   LogWriteFormat(out, "%.3f", value ? value->seconds<f64>() : NAN);
 }
 
@@ -93,7 +93,7 @@ let stable_estimate = [this] {
             .self.estimate_kbps.unwrap_or(-INFINITY));
   };
 let rate_control_state = [this] {
-    return static_cast<int>(
+    return static_cast<isize>(
         self.controller.self.delay_based_bwe.self.rate_control.self.rate_control_state);
   };
 let trend = [this] {
@@ -151,7 +151,7 @@ let loss_cont = [&] {
 GoogCcStatePrinter::~GoogCcStatePrinter() = default;
 
 fn PrintHeaders(&self /* GoogCcStatePrinter */,RtcEventLogOutput* log) {
-  int ix = 0;
+  let ix: isize = 0;
   for logger in &loggers_ {
     if (ix++)
       log->Write(" ");
@@ -175,7 +175,7 @@ let state_update = self.controller.GetNetworkState(at_time);
         NetworkStateEstimate());
   }
 
-  int ix = 0;
+  let ix: isize = 0;
   for logger in &loggers_ {
     if (ix++)
       log->Write(" ");

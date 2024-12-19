@@ -43,9 +43,9 @@ struct BweSeparateAudioPacketsSettings {
   explicit BweSeparateAudioPacketsSettings(
       const FieldTrialsView* key_value_config);
 
-  bool enabled = false;
-  int packet_threshold = 10;
-  TimeDelta time_threshold = Duration::from_secs(1);
+  let enabled: bool = false;
+  let packet_threshold: isize = 10;
+  let time_threshold: TimeDelta = Duration::from_secs(1);
 
   std::unique_ptr<StructParametersParser> Parser();
 };
@@ -57,7 +57,7 @@ pub struct DelayBasedBwe {
     ~Result() = default;
     bool updated;
     bool probe;
-    DataRate target_bitrate = DataRate::Zero();
+    let target_bitrate: DataRate = DataRate::Zero();
     bool recovered_from_overuse;
     BandwidthUsage delay_detector_state;
   };
@@ -81,7 +81,7 @@ pub struct DelayBasedBwe {
   fn OnRttUpdate(TimeDelta avg_rtt) {
   todo!();
 }
-  bool LatestEstimate(Vec<uint32_t>* ssrcs, DataRate* bitrate) const;
+  bool LatestEstimate(Vec<u32>* ssrcs, DataRate* bitrate) const;
   fn SetStartBitrate(DataRate start_bitrate) {
   todo!();
 }

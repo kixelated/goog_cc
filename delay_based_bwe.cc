@@ -39,12 +39,12 @@
 
 
 namespace {
-constexpr TimeDelta kStreamTimeOut = Duration::from_secs(2);
-constexpr TimeDelta kSendTimeGroupLength = TimeDelta::Millis(5);
+const StreamTimeOut: TimeDelta = Duration::from_secs(2);
+const SendTimeGroupLength: TimeDelta = TimeDelta::Millis(5);
 
 // This ssrc is used to fulfill the current API but will be removed
 // after the API has been changed.
-constexpr uint32_t kFixedSsrc = 0;
+const FixedSsrc: u32 = 0;
 }  // namespace
 
 constexpr char BweSeparateAudioPacketsSettings::kKey[];
@@ -119,9 +119,9 @@ let packet_feedback_vector = msg.SortedByReceiveTime();
                               BweNames::kBweNamesMax);
     self.uma_recorded = true;
   }
-  bool delayed_feedback = true;
-  bool recovered_from_overuse = false;
-  BandwidthUsage prev_detector_state = self.active_delay_detector.State();
+  let delayed_feedback: bool = true;
+  let recovered_from_overuse: bool = false;
+  let prev_detector_state: BandwidthUsage = self.active_delay_detector.State();
   for packet_feedback in &packet_feedback_vector {
     delayed_feedback = false;
     IncomingPacketFeedback(packet_feedback, msg.feedback_time);
@@ -182,17 +182,17 @@ fn IncomingPacketFeedback(&self /* DelayBasedBwe */,const PacketResult& packet_f
       self.active_delay_detector = self.video_delay_detector.get();
     }
   }
-  DataSize packet_size = packet_feedback.sent_packet.size;
+  let packet_size: DataSize = packet_feedback.sent_packet.size;
 
-  TimeDelta send_delta = TimeDelta::Zero();
-  TimeDelta recv_delta = TimeDelta::Zero();
-  int size_delta = 0;
+  let send_delta: TimeDelta = TimeDelta::Zero();
+  let recv_delta: TimeDelta = TimeDelta::Zero();
+  let size_delta: isize = 0;
 
   InterArrivalDelta* inter_arrival_for_packet =
       (self.separate_audio.enabled && packet_feedback.sent_packet.audio)
           ? self.audio_inter_arrival_delta.get()
           : self.video_inter_arrival_delta.get();
-  bool calculated_deltas = inter_arrival_for_packet->ComputeDeltas(
+  let calculated_deltas: bool = inter_arrival_for_packet->ComputeDeltas(
       packet_feedback.sent_packet.send_time, packet_feedback.receive_time,
       at_time, packet_size.bytes(), &send_delta, &recv_delta, &size_delta);
 
@@ -247,10 +247,10 @@ DelayBasedBwe::Result MaybeUpdateEstimate(&self /* DelayBasedBwe */,
       result.recovered_from_overuse = recovered_from_overuse;
     }
   }
-  BandwidthUsage detector_state = self.active_delay_detector.State();
+  let detector_state: BandwidthUsage = self.active_delay_detector.State();
   if ((result.updated && prev_bitrate_ != result.target_bitrate) ||
       detector_state != self.prev_state) {
-    DataRate bitrate = result.updated ? result.target_bitrate : self.prev_bitrate;
+    let bitrate: DataRate = result.updated ? result.target_bitrate : self.prev_bitrate;
 
     if (self.event_log) {
       self.event_log.Log(std::make_unique<RtcEventBweUpdateDelayBased>(
@@ -277,7 +277,7 @@ fn OnRttUpdate(&self /* DelayBasedBwe */,TimeDelta avg_rtt) {
   self.rate_control.SetRtt(avg_rtt);
 }
 
-bool LatestEstimate(&self /* DelayBasedBwe */,Vec<uint32_t>* ssrcs,
+bool LatestEstimate(&self /* DelayBasedBwe */,Vec<u32>* ssrcs,
                                    DataRate* bitrate) {
   // Currently accessed from both the process thread (see
   // ModuleRtpRtcpImpl::Process()) and the configuration thread (see

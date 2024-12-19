@@ -35,8 +35,8 @@
 
 namespace {
 
-constexpr TimeDelta kInitHoldDuration = TimeDelta::Millis(300);
-constexpr TimeDelta kMaxHoldDuration = Duration::from_secs(60);
+const InitHoldDuration: TimeDelta = TimeDelta::Millis(300);
+const MaxHoldDuration: TimeDelta = Duration::from_secs(60);
 
 fn IsValid(DataRate datarate) -> bool {
   return datarate.IsFinite();
@@ -212,7 +212,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
                           .state = LossBasedState::kDelayBasedEstimate};
   }
 
-  ChannelParameters best_candidate = self.current_best_estimate;
+  let best_candidate: ChannelParameters = self.current_best_estimate;
   let objective_max: f64 = std::numeric_limits<f64>::lowest();
   for (ChannelParameters candidate : GetCandidates(in_alr)) {
     NewtonsMethodUpdate(candidate);
@@ -252,7 +252,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
           self.bandwidth_limit_in_current_window;
     }
 
-    bool increasing_when_loss_limited = IsEstimateIncreasingWhenLossLimited(
+    let increasing_when_loss_limited: bool = IsEstimateIncreasingWhenLossLimited(
         /*old_estimate=*/self.current_best_estimate.loss_limited_bandwidth,
         /*new_estimate=*/best_candidate.loss_limited_bandwidth);
     // Bound the best candidate by the acked bitrate.
@@ -280,7 +280,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
     }
   }
 
-  DataRate bounded_bandwidth_estimate = DataRate::PlusInfinity();
+  let bounded_bandwidth_estimate: DataRate = DataRate::PlusInfinity();
   if (IsValid(self.delay_based_estimate)) {
     bounded_bandwidth_estimate =
         std::cmp::max(GetInstantLowerBound(),
@@ -423,7 +423,7 @@ Option<LossBasedBweV2::Config> CreateConfig(&self /* LossBasedBweV2 */,
       "InherentLossUpperBoundOffset", 0.05);
   FieldTrialParameter<f64> initial_inherent_loss_estimate(
       "InitialInherentLossEstimate", 0.01);
-  FieldTrialParameter<int> newton_iterations("NewtonIterations", 1);
+  FieldTrialParameter<isize> newton_iterations("NewtonIterations", 1);
   FieldTrialParameter<f64> newton_step_size("NewtonStepSize", 0.75);
   FieldTrialParameter<bool> append_acknowledged_rate_candidate(
       "AckedRateCandidate", true);
@@ -433,7 +433,7 @@ Option<LossBasedBweV2::Config> CreateConfig(&self /* LossBasedBweV2 */,
       "UpperBoundCandidateInAlr", false);
   FieldTrialParameter<TimeDelta> observation_duration_lower_bound(
       "ObservationDurationLowerBound", TimeDelta::Millis(250));
-  FieldTrialParameter<int> observation_window_size("ObservationWindowSize", 20);
+  FieldTrialParameter<isize> observation_window_size("ObservationWindowSize", 20);
   FieldTrialParameter<f64> sending_rate_smoothing_factor(
       "SendingRateSmoothingFactor", 0.0);
   FieldTrialParameter<f64> instant_upper_bound_temporal_weight_factor(
@@ -455,7 +455,7 @@ Option<LossBasedBweV2::Config> CreateConfig(&self /* LossBasedBweV2 */,
   FieldTrialParameter<bool> not_use_acked_rate_in_alr("NotUseAckedRateInAlr",
                                                       true);
   FieldTrialParameter<bool> use_in_start_phase("UseInStartPhase", false);
-  FieldTrialParameter<int> min_num_observations("MinNumObservations", 3);
+  FieldTrialParameter<isize> min_num_observations("MinNumObservations", 3);
   FieldTrialParameter<f64> lower_bound_by_acked_rate_factor(
       "LowerBoundByAckedRateFactor", 0.0);
   FieldTrialParameter<f64> hold_duration_factor("HoldDurationFactor", 0.0);
@@ -583,7 +583,7 @@ bool IsConfigValid(&self /* LossBasedBweV2 */) {
     return false;
   }
 
-  bool valid = true;
+  let valid: bool = true;
 
   if (self.config.bandwidth_rampup_upper_bound_factor <= 1.0) {
     RTC_LOG(LS_WARNING)
@@ -793,8 +793,8 @@ f64 CalculateAverageReportedPacketLossRatio(&self /* LossBasedBweV2 */) {
       continue;
     }
 
-    f64 instant_temporal_weight =
-        self.instant_upper_bound_temporal_weights[(num_observations_ - 1) -
+    let instant_temporal_weight: f64 =
+        self.instant_upper_bound_temporal_weights[(self.num_observations - 1) -
                                               observation.id];
     num_packets += instant_temporal_weight * observation.num_packets;
     num_lost_packets += instant_temporal_weight * observation.num_lost_packets;
@@ -808,22 +808,22 @@ f64 CalculateAverageReportedByteLossRatio(&self /* LossBasedBweV2 */) {
     return 0.0;
   }
 
-  DataSize total_bytes = DataSize::Zero();
-  DataSize lost_bytes = DataSize::Zero();
+  let total_bytes: DataSize = DataSize::Zero();
+  let lost_bytes: DataSize = DataSize::Zero();
   let min_loss_rate: f64 = 1.0;
   let max_loss_rate: f64 = 0.0;
-  DataSize min_lost_bytes = DataSize::Zero();
-  DataSize max_lost_bytes = DataSize::Zero();
-  DataSize min_bytes_received = DataSize::Zero();
-  DataSize max_bytes_received = DataSize::Zero();
-  DataRate send_rate_of_max_loss_observation = DataRate::Zero();
+  let min_lost_bytes: DataSize = DataSize::Zero();
+  let max_lost_bytes: DataSize = DataSize::Zero();
+  let min_bytes_received: DataSize = DataSize::Zero();
+  let max_bytes_received: DataSize = DataSize::Zero();
+  let send_rate_of_max_loss_observation: DataRate = DataRate::Zero();
   for (const Observation& observation : self.observations) {
     if (!observation.IsInitialized()) {
       continue;
     }
 
-    f64 instant_temporal_weight =
-        self.instant_upper_bound_temporal_weights[(num_observations_ - 1) -
+    let instant_temporal_weight: f64 =
+        self.instant_upper_bound_temporal_weights[(self.num_observations - 1) -
                                               observation.id];
     total_bytes += instant_temporal_weight * observation.size;
     lost_bytes += instant_temporal_weight * observation.lost_size;
@@ -857,7 +857,7 @@ f64 CalculateAverageReportedByteLossRatio(&self /* LossBasedBweV2 */) {
 }
 
 DataRate GetCandidateBandwidthUpperBound(&self /* LossBasedBweV2 */) {
-  DataRate candidate_bandwidth_upper_bound = self.max_bitrate;
+  let candidate_bandwidth_upper_bound: DataRate = self.max_bitrate;
   if (IsInLossLimitedState() && IsValid(self.bandwidth_limit_in_current_window)) {
     candidate_bandwidth_upper_bound = self.bandwidth_limit_in_current_window;
   }
@@ -868,7 +868,7 @@ DataRate GetCandidateBandwidthUpperBound(&self /* LossBasedBweV2 */) {
   if (self.config.rampup_acceleration_max_factor > 0.0) {
     const TimeDelta time_since_bandwidth_reduced = std::cmp::min(
         self.config.rampup_acceleration_maxout_time,
-        std::cmp::max(TimeDelta::Zero(), last_send_time_most_recent_observation_ -
+        std::cmp::max(TimeDelta::Zero(), self.last_send_time_most_recent_observation -
                                         self.last_time_estimate_reduced));
     let rampup_acceleration: f64 = self.config.rampup_acceleration_max_factor *
                                        time_since_bandwidth_reduced /
@@ -882,7 +882,7 @@ DataRate GetCandidateBandwidthUpperBound(&self /* LossBasedBweV2 */) {
 
 Vec<LossBasedBweV2::ChannelParameters> GetCandidates(&self /* LossBasedBweV2 */,
     bool in_alr) {
-  ChannelParameters best_estimate = self.current_best_estimate;
+  let best_estimate: ChannelParameters = self.current_best_estimate;
   Vec<DataRate> bandwidths;
   for (f64 candidate_factor : self.config.candidate_factors) {
     bandwidths.push_back(candidate_factor *
@@ -917,8 +917,8 @@ Vec<LossBasedBweV2::ChannelParameters> GetCandidates(&self /* LossBasedBweV2 */,
 
   Vec<ChannelParameters> candidates;
   candidates.resize(bandwidths.len());
-  for i = 0; i < bandwidths.len()i += 1) {
-    ChannelParameters candidate = best_estimate;
+  let i: for = 0; i < bandwidths.len()i += 1) {
+    let candidate: ChannelParameters = best_estimate;
     candidate.loss_limited_bandwidth =
         std::cmp::min(bandwidths[i], std::cmp::max(best_estimate.loss_limited_bandwidth,
                                          candidate_bandwidth_upper_bound));
@@ -941,8 +941,8 @@ LossBasedBweV2::Derivatives GetDerivatives(&self /* LossBasedBweV2 */,
         channel_parameters.inherent_loss,
         channel_parameters.loss_limited_bandwidth, observation.sending_rate);
 
-    f64 temporal_weight =
-        self.temporal_weights[(num_observations_ - 1) - observation.id];
+    let temporal_weight: f64 =
+        self.temporal_weights[(self.num_observations - 1) - observation.id];
     if (self.config.use_byte_loss_rate) {
       derivatives.first +=
           temporal_weight *
@@ -991,7 +991,7 @@ f64 GetInherentLossUpperBound(&self /* LossBasedBweV2 */,DataRate bandwidth) {
     return 1.0;
   }
 
-  f64 inherent_loss_upper_bound =
+  let inherent_loss_upper_bound: f64 =
       self.config.inherent_loss_upper_bound_offset +
       self.config.inherent_loss_upper_bound_bandwidth_balance / bandwidth;
   return std::cmp::min(inherent_loss_upper_bound, 1.0);
@@ -1022,7 +1022,7 @@ f64 GetObjective(&self /* LossBasedBweV2 */,
     const ChannelParameters& channel_parameters) {
   let objective: f64 = 0.0;
 
-  f64 high_bandwidth_bias =
+  let high_bandwidth_bias: f64 =
       GetHighBandwidthBias(channel_parameters.loss_limited_bandwidth);
 
   for (const Observation& observation : self.observations) {
@@ -1034,8 +1034,8 @@ f64 GetObjective(&self /* LossBasedBweV2 */,
         channel_parameters.inherent_loss,
         channel_parameters.loss_limited_bandwidth, observation.sending_rate);
 
-    f64 temporal_weight =
-        self.temporal_weights[(num_observations_ - 1) - observation.id];
+    let temporal_weight: f64 =
+        self.temporal_weights[(self.num_observations - 1) - observation.id];
     if (self.config.use_byte_loss_rate) {
       objective +=
           temporal_weight *
@@ -1064,11 +1064,11 @@ DataRate GetSendingRate(&self /* LossBasedBweV2 */,
     return instantaneous_sending_rate;
   }
 
-  const int most_recent_observation_idx =
-      (num_observations_ - 1) % self.config.observation_window_size;
+  const isize most_recent_observation_idx =
+      (self.num_observations - 1) % self.config.observation_window_size;
   const Observation& most_recent_observation =
       self.observations[most_recent_observation_idx];
-  DataRate sending_rate_previous_observation =
+  let sending_rate_previous_observation: DataRate =
       most_recent_observation.sending_rate;
 
   return self.config.sending_rate_smoothing_factor *
@@ -1082,10 +1082,10 @@ DataRate GetInstantUpperBound(&self /* LossBasedBweV2 */) {
 }
 
 fn CalculateInstantUpperBound(&self /* LossBasedBweV2 */) {
-  DataRate instant_limit = self.max_bitrate;
+  let instant_limit: DataRate = self.max_bitrate;
   if (self.average_reported_loss_ratio > self.config.instant_upper_bound_loss_offset) {
     instant_limit = self.config.instant_upper_bound_bandwidth_balance /
-                    (average_reported_loss_ratio_ -
+                    (self.average_reported_loss_ratio -
                      self.config.instant_upper_bound_loss_offset);
   }
 
@@ -1097,7 +1097,7 @@ DataRate GetInstantLowerBound(&self /* LossBasedBweV2 */) {
 }
 
 fn CalculateInstantLowerBound(&self /* LossBasedBweV2 */) {
-  DataRate instance_lower_bound = DataRate::Zero();
+  let instance_lower_bound: DataRate = DataRate::Zero();
   if (IsValid(self.acknowledged_bitrate) &&
       self.config.lower_bound_by_acked_rate_factor > 0.0) {
     instance_lower_bound = self.config.lower_bound_by_acked_rate_factor *
@@ -1111,7 +1111,7 @@ fn CalculateInstantLowerBound(&self /* LossBasedBweV2 */) {
 }
 
 fn CalculateTemporalWeights(&self /* LossBasedBweV2 */) {
-  for (int i = 0; i < self.config.observation_window_sizei += 1) {
+  for (isize i = 0; i < self.config.observation_window_sizei += 1) {
     self.temporal_weights[i] = std::pow(self.config.temporal_weight_factor, i);
     self.instant_upper_bound_temporal_weights[i] =
         std::pow(self.config.instant_upper_bound_temporal_weight_factor, i);
@@ -1124,7 +1124,7 @@ fn NewtonsMethodUpdate(&self /* LossBasedBweV2 */,
     return;
   }
 
-  for (int i = 0; i < self.config.newton_iterationsi += 1) {
+  for (isize i = 0; i < self.config.newton_iterationsi += 1) {
     const Derivatives derivatives = GetDerivatives(channel_parameters);
     channel_parameters.inherent_loss -=
         self.config.newton_step_size * derivatives.first / derivatives.second;
@@ -1140,8 +1140,8 @@ bool PushBackObservation(&self /* LossBasedBweV2 */,
   }
 
   self.partial_observation.num_packets += packet_results.len();
-  Timestamp last_send_time = Timestamp::MinusInfinity();
-  Timestamp first_send_time = Timestamp::PlusInfinity();
+  let last_send_time: Timestamp = Timestamp::MinusInfinity();
+  let first_send_time: Timestamp = Timestamp::PlusInfinity();
   for (const PacketResult& packet : packet_results) {
     if (packet.IsReceived()) {
       self.partial_observation.lost_packets.erase(
@@ -1206,7 +1206,7 @@ bool CanKeepIncreasingState(&self /* LossBasedBweV2 */,DataRate estimate) {
   // kIncreaseUsingPadding for less than kPaddingDuration or the estimate
   // increases.
   return self.last_padding_info.padding_timestamp + self.config.padding_duration >=
-             last_send_time_most_recent_observation_ ||
+             self.last_send_time_most_recent_observation ||
          self.last_padding_info.padding_rate < estimate;
 }
 

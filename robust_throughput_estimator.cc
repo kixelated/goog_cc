@@ -42,7 +42,7 @@ bool FirstPacketOutsideWindow(&self /* RobustThroughputEstimator */) {
     return false;
   if (self.window.len() > self.settings.max_window_packets)
     return true;
-  TimeDelta current_window_duration =
+  let current_window_duration: TimeDelta =
       self.window.back().receive_time - self.window.front().receive_time;
   if (current_window_duration > self.settings.max_window_duration)
     return true;
@@ -77,11 +77,11 @@ fn IncomingPacketFeedbackVector(&self /* RobustThroughputEstimator */,
     // In most cases, receive timestamps should already be in order, but in the
     // rare case where feedback packets have been reordered, we do some swaps to
     // ensure that the window is sorted.
-    for i = self.window.len() - 1;
+    let i: for = self.window.len() - 1;
          i > 0 && self.window[i].receive_time < self.window[i - 1].receive_time; i--) {
       std::swap(self.window[i], self.window[i - 1]);
     }
-    constexpr TimeDelta kMaxReorderingTime = Duration::from_secs(1);
+    const MaxReorderingTime: TimeDelta = Duration::from_secs(1);
     const TimeDelta receive_delta =
         (self.window.back().receive_time - packet.receive_time);
     if (receive_delta > kMaxReorderingTime) {
@@ -107,9 +107,9 @@ Option<DataRate> bitrate(&self /* RobustThroughputEstimator */) {
 
   TimeDelta largest_recv_gap(TimeDelta::Zero());
   TimeDelta second_largest_recv_gap(TimeDelta::Zero());
-  for i = 1; i < self.window.len(); i++) {
+  let i: for = 1; i < self.window.len(); i++) {
     // Find receive time gaps.
-    TimeDelta gap = self.window[i].receive_time - self.window[i - 1].receive_time;
+    let gap: TimeDelta = self.window[i].receive_time - self.window[i - 1].receive_time;
     if (gap > largest_recv_gap) {
       second_largest_recv_gap = largest_recv_gap;
       largest_recv_gap = gap;
@@ -118,14 +118,14 @@ Option<DataRate> bitrate(&self /* RobustThroughputEstimator */) {
     }
   }
 
-  Timestamp first_send_time = Timestamp::PlusInfinity();
-  Timestamp last_send_time = Timestamp::MinusInfinity();
-  Timestamp first_recv_time = Timestamp::PlusInfinity();
-  Timestamp last_recv_time = Timestamp::MinusInfinity();
-  DataSize recv_size = DataSize::Bytes(0);
-  DataSize send_size = DataSize::Bytes(0);
-  DataSize first_recv_size = DataSize::Bytes(0);
-  DataSize last_send_size = DataSize::Bytes(0);
+  let first_send_time: Timestamp = Timestamp::PlusInfinity();
+  let last_send_time: Timestamp = Timestamp::MinusInfinity();
+  let first_recv_time: Timestamp = Timestamp::PlusInfinity();
+  let last_recv_time: Timestamp = Timestamp::MinusInfinity();
+  let recv_size: DataSize = DataSize::Bytes(0);
+  let send_size: DataSize = DataSize::Bytes(0);
+  let first_recv_size: DataSize = DataSize::Bytes(0);
+  let last_send_size: DataSize = DataSize::Bytes(0);
   let num_sent_packets_in_window: usize = 0;
   for packet in &window_ {
     if (packet.receive_time < first_recv_time) {
@@ -184,7 +184,7 @@ Option<DataRate> bitrate(&self /* RobustThroughputEstimator */) {
   // never returning an estimate above the send rate.
   assert!(first_recv_time.IsFinite());
   assert!(last_recv_time.IsFinite());
-  TimeDelta recv_duration = (last_recv_time - first_recv_time) -
+  let recv_duration: TimeDelta = (last_recv_time - first_recv_time) -
                             largest_recv_gap + second_largest_recv_gap;
   recv_duration = std::cmp::max(recv_duration, TimeDelta::Millis(1));
 
@@ -195,7 +195,7 @@ Option<DataRate> bitrate(&self /* RobustThroughputEstimator */) {
 
   assert!(first_send_time.IsFinite());
   assert!(last_send_time.IsFinite());
-  TimeDelta send_duration = last_send_time - first_send_time;
+  let send_duration: TimeDelta = last_send_time - first_send_time;
   send_duration = std::cmp::max(send_duration, TimeDelta::Millis(1));
 
   return std::cmp::min(send_size / send_duration, recv_size / recv_duration);

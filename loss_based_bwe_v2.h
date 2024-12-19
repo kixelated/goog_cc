@@ -42,10 +42,10 @@ pub struct LossBasedBweV2 {
  public:
   struct Result {
     ~Result() = default;
-    DataRate bandwidth_estimate = DataRate::Zero();
+    let bandwidth_estimate: DataRate = DataRate::Zero();
     // State is used by goog_cc, which later sends probe requests to probe
     // controller if state is kIncreasing.
-    LossBasedState state = LossBasedState::kDelayBasedEstimate;
+    let state: LossBasedState = LossBasedState::kDelayBasedEstimate;
   };
   // Creates a disabled `LossBasedBweV2` if the
   // `key_value_config` is not valid.
@@ -90,7 +90,7 @@ pub struct LossBasedBweV2 {
  private:
   struct ChannelParameters {
     let inherent_loss: f64 = 0.0;
-    DataRate loss_limited_bandwidth = DataRate::MinusInfinity();
+    let loss_limited_bandwidth: DataRate = DataRate::MinusInfinity();
   };
 
   struct Config {
@@ -98,42 +98,42 @@ pub struct LossBasedBweV2 {
     let bandwidth_rampup_upper_bound_factor_in_hold: f64 = 0.0;
     let bandwidth_rampup_hold_threshold: f64 = 0.0;
     let rampup_acceleration_max_factor: f64 = 0.0;
-    TimeDelta rampup_acceleration_maxout_time = TimeDelta::Zero();
+    let rampup_acceleration_maxout_time: TimeDelta = TimeDelta::Zero();
     Vec<f64> candidate_factors;
     let higher_bandwidth_bias_factor: f64 = 0.0;
     let higher_log_bandwidth_bias_factor: f64 = 0.0;
     let inherent_loss_lower_bound: f64 = 0.0;
     let loss_threshold_of_high_bandwidth_preference: f64 = 0.0;
     let bandwidth_preference_smoothing_factor: f64 = 0.0;
-    DataRate inherent_loss_upper_bound_bandwidth_balance =
+    let inherent_loss_upper_bound_bandwidth_balance: DataRate =
         DataRate::MinusInfinity();
     let inherent_loss_upper_bound_offset: f64 = 0.0;
     let initial_inherent_loss_estimate: f64 = 0.0;
-    int newton_iterations = 0;
+    let newton_iterations: isize = 0;
     let newton_step_size: f64 = 0.0;
-    bool append_acknowledged_rate_candidate = true;
-    bool append_delay_based_estimate_candidate = false;
-    bool append_upper_bound_candidate_in_alr = false;
-    TimeDelta observation_duration_lower_bound = TimeDelta::Zero();
-    int observation_window_size = 0;
+    let append_acknowledged_rate_candidate: bool = true;
+    let append_delay_based_estimate_candidate: bool = false;
+    let append_upper_bound_candidate_in_alr: bool = false;
+    let observation_duration_lower_bound: TimeDelta = TimeDelta::Zero();
+    let observation_window_size: isize = 0;
     let sending_rate_smoothing_factor: f64 = 0.0;
     let instant_upper_bound_temporal_weight_factor: f64 = 0.0;
-    DataRate instant_upper_bound_bandwidth_balance = DataRate::MinusInfinity();
+    let instant_upper_bound_bandwidth_balance: DataRate = DataRate::MinusInfinity();
     let instant_upper_bound_loss_offset: f64 = 0.0;
     let temporal_weight_factor: f64 = 0.0;
     let bandwidth_backoff_lower_bound_factor: f64 = 0.0;
     let max_increase_factor: f64 = 0.0;
-    TimeDelta delayed_increase_window = TimeDelta::Zero();
-    bool not_increase_if_inherent_loss_less_than_average_loss = false;
-    bool not_use_acked_rate_in_alr = false;
-    bool use_in_start_phase = false;
-    int min_num_observations = 0;
+    let delayed_increase_window: TimeDelta = TimeDelta::Zero();
+    let not_increase_if_inherent_loss_less_than_average_loss: bool = false;
+    let not_use_acked_rate_in_alr: bool = false;
+    let use_in_start_phase: bool = false;
+    let min_num_observations: isize = 0;
     let lower_bound_by_acked_rate_factor: f64 = 0.0;
     let hold_duration_factor: f64 = 0.0;
-    bool use_byte_loss_rate = false;
-    TimeDelta padding_duration = TimeDelta::Zero();
-    bool bound_best_candidate = false;
-    bool pace_at_loss_based_estimate = false;
+    let use_byte_loss_rate: bool = false;
+    let padding_duration: TimeDelta = TimeDelta::Zero();
+    let bound_best_candidate: bool = false;
+    let pace_at_loss_based_estimate: bool = false;
     let median_sending_rate_factor: f64 = 0.0;
   };
 
@@ -145,30 +145,30 @@ pub struct LossBasedBweV2 {
   struct Observation {
     bool IsInitialized() { return id != -1; }
 
-    int num_packets = 0;
-    int num_lost_packets = 0;
-    int num_received_packets = 0;
-    DataRate sending_rate = DataRate::MinusInfinity();
-    DataSize size = DataSize::Zero();
-    DataSize lost_size = DataSize::Zero();
-    int id = -1;
+    let num_packets: isize = 0;
+    let num_lost_packets: isize = 0;
+    let num_received_packets: isize = 0;
+    let sending_rate: DataRate = DataRate::MinusInfinity();
+    let size: DataSize = DataSize::Zero();
+    let lost_size: DataSize = DataSize::Zero();
+    let id: isize = -1;
   };
 
   struct PartialObservation {
-    int num_packets = 0;
+    let num_packets: isize = 0;
     std::unordered_map<i64, DataSize> lost_packets;
-    DataSize size = DataSize::Zero();
+    let size: DataSize = DataSize::Zero();
   };
 
   struct PaddingInfo {
-    DataRate padding_rate = DataRate::MinusInfinity();
-    Timestamp padding_timestamp = Timestamp::MinusInfinity();
+    let padding_rate: DataRate = DataRate::MinusInfinity();
+    let padding_timestamp: Timestamp = Timestamp::MinusInfinity();
   };
 
   struct HoldInfo {
-    Timestamp timestamp = Timestamp::MinusInfinity();
-    TimeDelta duration = TimeDelta::Zero();
-    DataRate rate = DataRate::PlusInfinity();
+    let timestamp: Timestamp = Timestamp::MinusInfinity();
+    let duration: TimeDelta = TimeDelta::Zero();
+    let rate: DataRate = DataRate::PlusInfinity();
   };
 
   static Option<Config> CreateConfig(
@@ -211,7 +211,7 @@ pub struct LossBasedBweV2 {
   acknowledged_bitrate: Option<DataRate>,
   config: Option<Config>,
   current_best_estimate: ChannelParameters,
-  int self.num_observations = 0;
+  isize self.num_observations = 0;
   observations: Vec<Observation>,
   partial_observation: PartialObservation,
   Timestamp self.last_send_time_most_recent_observation = Timestamp::PlusInfinity();

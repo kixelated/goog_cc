@@ -35,26 +35,26 @@ pub struct TestBitrateObserver {
   TestBitrateObserver() : updated_(false), latest_bitrate_(0) {}
   ~TestBitrateObserver() {}
 
-  fn OnReceiveBitrateChanged(uint32_t bitrate) {
+  fn OnReceiveBitrateChanged(u32 bitrate) {
   todo!();
 }
 
-fn Reset() -> void { self.updated = false; }
+fn Reset() { self.updated = false; }
 
   bool updated() { return self.updated; }
 
-  uint32_t latest_bitrate() { return self.latest_bitrate; }
+  u32 latest_bitrate() { return self.latest_bitrate; }
 
  private:
   updated: bool,
-  latest_bitrate: uint32_t,
+  latest_bitrate: u32,
 };
 
 pub struct RtpStream {
  public:
   enum { kSendSideOffsetUs = 1000000 };
 
-  RtpStream(int fps, int bitrate_bps);
+  RtpStream(isize fps, isize bitrate_bps);
 
   RtpStream(const RtpStream&) = delete;
   RtpStream& operator=(const RtpStream&) = delete;
@@ -69,24 +69,24 @@ pub struct RtpStream {
   // The send-side time when the next frame can be generated.
   i64 next_rtp_time() const;
 
-  fn set_bitrate_bps(int bitrate_bps) {
+  fn set_bitrate_bps(isize bitrate_bps) {
   todo!();
 }
 
-  int bitrate_bps() const;
+  isize bitrate_bps() const;
 
   static bool Compare(const std::unique_ptr<RtpStream>& lhs,
                       const std::unique_ptr<RtpStream>& rhs);
 
  private:
-  fps: int,
-  bitrate_bps: int,
+  fps: isize,
+  bitrate_bps: isize,
   next_rtp_time: i64,
 };
 
 pub struct StreamGenerator {
  public:
-  StreamGenerator(int capacity, i64 time_now);
+  StreamGenerator(isize capacity, i64 time_now);
   ~StreamGenerator();
 
   StreamGenerator(const StreamGenerator&) = delete;
@@ -98,18 +98,18 @@ pub struct StreamGenerator {
 }
 
   // Set the link capacity.
-  fn set_capacity_bps(int capacity_bps) {
+  fn set_capacity_bps(isize capacity_bps) {
   todo!();
 }
 
   // Divides `bitrate_bps` among all streams. The allocated bitrate per stream
   // is decided by the initial allocation ratios.
-  fn SetBitrateBps(int bitrate_bps) {
+  fn SetBitrateBps(isize bitrate_bps) {
   todo!();
 }
 
   // Set the RTP timestamp offset for the stream identified by `ssrc`.
-  fn set_rtp_timestamp_offset(uint32_t ssrc, uint32_t offset) {
+  fn set_rtp_timestamp_offset(u32 ssrc, u32 offset) {
   todo!();
 }
 
@@ -121,7 +121,7 @@ pub struct StreamGenerator {
 
  private:
   // Capacity of the simulated channel in bits per second.
-  capacity: int,
+  capacity: isize,
   // The time when the last packet arrived.
   prev_arrival_time_us: i64,
   // All streams being transmitted on this simulated channel.
@@ -156,40 +156,40 @@ class DelayBasedBweTest : public ::testing::Test {
   // Returns true if an over-use was seen, false otherwise.
   // The StreamGenerator::updated() should be used to check for any changes in
   // target bitrate after the call to this function.
-  bool GenerateAndProcessFrame(uint32_t ssrc, uint32_t bitrate_bps);
+  bool GenerateAndProcessFrame(u32 ssrc, u32 bitrate_bps);
 
   // Run the bandwidth estimator with a stream of `number_of_frames` frames, or
   // until it reaches `target_bitrate`.
   // Can for instance be used to run the estimator for some time to get it
   // into a steady state.
-  uint32_t SteadyStateRun(uint32_t ssrc,
-                          int number_of_frames,
-                          uint32_t start_bitrate,
-                          uint32_t min_bitrate,
-                          uint32_t max_bitrate,
-                          uint32_t target_bitrate);
+  u32 SteadyStateRun(u32 ssrc,
+                          isize number_of_frames,
+                          u32 start_bitrate,
+                          u32 min_bitrate,
+                          u32 max_bitrate,
+                          u32 target_bitrate);
 
   void TestTimestampGroupingTestHelper();
 
-  fn TestWrappingHelper(int silence_time_s) {
+  fn TestWrappingHelper(isize silence_time_s) {
   todo!();
 }
 
-  fn InitialBehaviorTestHelper(uint32_t expected_converge_bitrate) {
+  fn InitialBehaviorTestHelper(u32 expected_converge_bitrate) {
   todo!();
 }
-  fn RateIncreaseReorderingTestHelper(uint32_t expected_bitrate) {
+  fn RateIncreaseReorderingTestHelper(u32 expected_bitrate) {
   todo!();
 }
-  fn RateIncreaseRtpTimestampsTestHelper(int expected_iterations) {
+  fn RateIncreaseRtpTimestampsTestHelper(isize expected_iterations) {
   todo!();
 }
-  void CapacityDropTestHelper(int number_of_streams,
+  void CapacityDropTestHelper(isize number_of_streams,
                               bool wrap_time_stamp,
-                              uint32_t expected_bitrate_drop_delta,
+                              u32 expected_bitrate_drop_delta,
                               i64 receiver_clock_offset_change_ms);
 
-  static const uint32_t kDefaultSsrc;
+  static const u32 kDefaultSsrc;
   field_trial_config: FieldTrialBasedConfig,
 
   std::unique_ptr<test::ScopedFieldTrials>

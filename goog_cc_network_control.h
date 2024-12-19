@@ -41,7 +41,7 @@
 struct GoogCcConfig {
   std::unique_ptr<NetworkStateEstimator> network_state_estimator = nullptr;
   std::unique_ptr<NetworkStatePredictor> network_state_predictor = nullptr;
-  bool feedback_only = false;
+  let feedback_only: bool = false;
 };
 
 impl NetworkControllerInterface for GoogCcNetworkController {
@@ -127,8 +127,8 @@ pub struct GoogCcNetworkController {
   estimate: Option<NetworkStateEstimate>,
 
   Timestamp self.next_loss_update = Timestamp::MinusInfinity();
-  int self.lost_packets_since_last_loss_update = 0;
-  int self.expected_packets_since_last_loss_update = 0;
+  isize self.lost_packets_since_last_loss_update = 0;
+  isize self.expected_packets_since_last_loss_update = 0;
 
   feedback_max_rtts: VecDeque<i64>,
 

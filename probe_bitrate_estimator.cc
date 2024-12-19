@@ -36,26 +36,26 @@ const kMinReceivedProbesRatio: f64 = .80;
 const kMinReceivedBytesRatio: f64 = .80;
 
 // The maximum |receive rate| / |send rate| ratio for a valid estimate.
-constexpr float kMaxValidRatio = 2.0f;
+const MaxValidRatio: f32 = 2.0;
 
 // The minimum |receive rate| / |send rate| ratio assuming that the link is
 // not saturated, i.e. we assume that we will receive at least
 // kMinRatioForUnsaturatedLink * |send rate| if |send rate| is less than the
 // link capacity.
-constexpr float kMinRatioForUnsaturatedLink = 0.9f;
+const MinRatioForUnsaturatedLink: f32 = 0.9f;
 
 // The target utilization of the link. If we know true link capacity
 // we'd like to send at 95% of that rate.
-constexpr float kTargetUtilizationFraction = 0.95f;
+const TargetUtilizationFraction: f32 = 0.95f;
 
 // The maximum time period over which the cluster history is retained.
 // This is also the maximum time period beyond which a probing burst is not
 // expected to last.
-constexpr TimeDelta kMaxClusterHistory = Duration::from_secs(1);
+const MaxClusterHistory: TimeDelta = Duration::from_secs(1);
 
 // The maximum time interval between first and the last probe on a cluster
 // on the sender side as well as the receive side.
-constexpr TimeDelta kMaxProbeInterval = Duration::from_secs(1);
+const MaxProbeInterval: TimeDelta = Duration::from_secs(1);
 
 }  // namespace
 
@@ -66,7 +66,7 @@ ProbeBitrateEstimator::~ProbeBitrateEstimator() = default;
 
 Option<DataRate> HandleProbeAndEstimateBitrate(&self /* ProbeBitrateEstimator */,
     const PacketResult& packet_feedback) {
-  int cluster_id = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
+  let cluster_id: isize = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
   assert!_NE(cluster_id, PacedPacketInfo::kNotAProbe);
 
   EraseOldClusters(packet_feedback.receive_time);
@@ -95,18 +95,18 @@ Option<DataRate> HandleProbeAndEstimateBitrate(&self /* ProbeBitrateEstimator */
   assert!_GT(packet_feedback.sent_packet.pacing_info.probe_cluster_min_bytes,
                 0);
 
-  int min_probes =
+  let min_probes: isize =
       packet_feedback.sent_packet.pacing_info.probe_cluster_min_probes *
       kMinReceivedProbesRatio;
-  DataSize min_size =
+  let min_size: DataSize =
       DataSize::Bytes(
           packet_feedback.sent_packet.pacing_info.probe_cluster_min_bytes) *
       kMinReceivedBytesRatio;
   if (cluster->num_probes < min_probes || cluster->usizeotal < min_size)
     return None;
 
-  TimeDelta send_interval = cluster->last_send - cluster->first_send;
-  TimeDelta receive_interval = cluster->last_receive - cluster->first_receive;
+  let send_interval: TimeDelta = cluster->last_send - cluster->first_send;
+  let receive_interval: TimeDelta = cluster->last_receive - cluster->first_receive;
 
   if (send_interval <= TimeDelta::Zero() || send_interval > kMaxProbeInterval ||
       receive_interval <= TimeDelta::Zero() ||
@@ -128,15 +128,15 @@ Option<DataRate> HandleProbeAndEstimateBitrate(&self /* ProbeBitrateEstimator */
   // send the last packet the size of the last sent packet should not be
   // included when calculating the send bitrate.
   assert!_GT(cluster->usizeotal, cluster->size_last_send);
-  DataSize send_size = cluster->usizeotal - cluster->size_last_send;
-  DataRate send_rate = send_size / send_interval;
+  let send_size: DataSize = cluster->usizeotal - cluster->size_last_send;
+  let send_rate: DataRate = send_size / send_interval;
 
   // Since the `receive_interval` does not include the time it takes to
   // actually receive the first packet the size of the first received packet
   // should not be included when calculating the receive bitrate.
   assert!_GT(cluster->usizeotal, cluster->size_first_receive);
-  DataSize receive_size = cluster->usizeotal - cluster->size_first_receive;
-  DataRate receive_rate = receive_size / receive_interval;
+  let receive_size: DataSize = cluster->usizeotal - cluster->size_first_receive;
+  let receive_rate: DataRate = receive_size / receive_interval;
 
   let ratio: f64 = receive_rate / send_rate;
   if (ratio > kMaxValidRatio) {
@@ -171,7 +171,7 @@ Option<DataRate> HandleProbeAndEstimateBitrate(&self /* ProbeBitrateEstimator */
                    << ToString(receive_interval) << " = "
                    << ToString(receive_rate) << "]";
 
-  DataRate res = std::cmp::min(send_rate, receive_rate);
+  let res: DataRate = std::cmp::min(send_rate, receive_rate);
   // If we're receiving at significantly lower bitrate than we were sending at,
   // it suggests that we've found the true capacity of the link. In this case,
   // set the target bitrate slightly lower to not immediately overuse.

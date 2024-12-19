@@ -34,15 +34,15 @@ namespace test {
 
 namespace {
 
-constexpr DataRate kMinBitrate = DataRate::BitsPerSec(100);
-constexpr DataRate kStartBitrate = DataRate::BitsPerSec(300);
-constexpr DataRate kMaxBitrate = DataRate::BitsPerSec(10000);
+const MinBitrate: DataRate = DataRate::BitsPerSec(100);
+const StartBitrate: DataRate = DataRate::BitsPerSec(300);
+const MaxBitrate: DataRate = DataRate::BitsPerSec(10000);
 
-constexpr TimeDelta kExponentialProbingTimeout = Duration::from_secs(5);
+const ExponentialProbingTimeout: TimeDelta = Duration::from_secs(5);
 
-constexpr TimeDelta kAlrProbeInterval = Duration::from_secs(5);
-constexpr TimeDelta kAlrEndedTimeout = Duration::from_secs(3);
-constexpr TimeDelta kBitrateDropTimeout = Duration::from_secs(5);
+const AlrProbeInterval: TimeDelta = Duration::from_secs(5);
+const AlrEndedTimeout: TimeDelta = Duration::from_secs(3);
+const BitrateDropTimeout: TimeDelta = Duration::from_secs(5);
 }  // namespace
 
 pub struct ProbeControllerFixture {
@@ -56,7 +56,7 @@ fn CreateController() -> std::unique_ptr<ProbeController> {
   }
 
 fn CurrentTime() -> Timestamp { return self.clock.CurrentTime(); }
-fn AdvanceTime(TimeDelta delta) -> void { self.clock.AdvanceTime(delta); }
+fn AdvanceTime(TimeDelta delta) { self.clock.AdvanceTime(delta); }
 
   field_trial_config: ExplicitKeyValueConfig,
   clock: SimulatedClock,
@@ -102,8 +102,8 @@ fn SetsDefaultTargetDurationAndTargetProbeCount() {
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
   ASSERT_GE(probes.len(), 2u);
 
-  EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(15));
-  EXPECT_EQ(probes[0].target_probe_count, 5);
+  assert_eq!(probes[0].target_duration, TimeDelta::Millis(15));
+  assert_eq!(probes[0].target_probe_count, 5);
 }
 
 TEST(ProbeControllerTest,
@@ -120,8 +120,8 @@ TEST(ProbeControllerTest,
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
   ASSERT_GE(probes.len(), 2u);
 
-  EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(123));
-  EXPECT_EQ(probes[0].target_probe_count, 2);
+  assert_eq!(probes[0].target_duration, TimeDelta::Millis(123));
+  assert_eq!(probes[0].target_probe_count, 2);
 }
 
 #[test]
@@ -133,7 +133,7 @@ let probes = probe_controller->OnNetworkAvailability(
       {.at_time = fixture.CurrentTime(), .network_available = false});
   probes = probe_controller->SetBitrates(kMinBitrate, kStartBitrate,
                                          kMaxBitrate, fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
   probes = probe_controller->OnNetworkAvailability(
       {.at_time = fixture.CurrentTime(), .network_available = true});
   EXPECT_GE(probes.len(), 2u);
@@ -149,9 +149,9 @@ fn CanConfigureInitialProbeRateFactor() {
       IsEmpty());
 let probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
-  EXPECT_EQ(probes[0].target_data_rate, kStartBitrate * 2);
-  EXPECT_EQ(probes[1].target_data_rate, kStartBitrate * 3);
+  assert_eq!(probes.len(), 2u);
+  assert_eq!(probes[0].target_data_rate, kStartBitrate * 2);
+  assert_eq!(probes[1].target_data_rate, kStartBitrate * 3);
 }
 
 #[test]
@@ -164,8 +164,8 @@ fn DisableSecondInitialProbeIfRateFactorZero() {
       IsEmpty());
 let probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, kStartBitrate * 2);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate, kStartBitrate * 2);
 }
 
 #[test]
@@ -187,8 +187,8 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate + DataRate::BitsPerSec(100),
       fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), kMaxBitrate.bps() + 100);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate.bps(), kMaxBitrate.bps() + 100);
 }
 
 #[test]
@@ -208,20 +208,20 @@ let probes = probe_controller->SetBitrates(
   // Wait long enough to time out exponential probing.
   fixture.AdvanceTime(kExponentialProbingTimeout);
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   // Probe when in alr.
   probe_controller->SetAlrStartTimeMs(fixture.CurrentTime().ms());
   probes = probe_controller->OnMaxTotalAllocatedBitrate(
       kMaxBitrate + DataRate::BitsPerSec(1), fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
-  EXPECT_EQ(probes.at(0).target_data_rate, kMaxBitrate);
+  assert_eq!(probes.len(), 2u);
+  assert_eq!(probes.at(0).target_data_rate, kMaxBitrate);
 
   // Do not probe when not in alr.
   probe_controller->SetAlrStartTimeMs(None);
   probes = probe_controller->OnMaxTotalAllocatedBitrate(
       kMaxBitrate + DataRate::BitsPerSec(2), fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -243,20 +243,20 @@ let probes = probe_controller->SetBitrates(
   // Wait long enough to time out exponential probing.
   fixture.AdvanceTime(kExponentialProbingTimeout);
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   // Probe when in alr.
   probe_controller->SetAlrStartTimeMs(fixture.CurrentTime().ms());
   probes = probe_controller->OnMaxTotalAllocatedBitrate(kMaxBitrate,
                                                         fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes.at(0).target_data_rate, 2.0 * kStartBitrate);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes.at(0).target_data_rate, 2.0 * kStartBitrate);
 
   // Continue probing if probe succeeds.
   probes = probe_controller->SetEstimatedBitrate(
       1.5 * kStartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
+  assert_eq!(probes.len(), 1u);
   EXPECT_GT(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
 }
 
@@ -284,7 +284,7 @@ let probes = probe_controller->SetBitrates(
   probe_controller->SetAlrStartTimeMs(fixture.CurrentTime().ms());
   probes = probe_controller->OnMaxTotalAllocatedBitrate(
       kMaxBitrate + DataRate::BitsPerSec(1), fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -309,8 +309,8 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate + DataRate::BitsPerSec(100),
       fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate,
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate,
             kMaxBitrate + DataRate::BitsPerSec(100));
 }
 
@@ -330,13 +330,13 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(1000), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 2 * 1800);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate.bps(), 2 * 1800);
 }
 
 #[test]
@@ -416,7 +416,7 @@ let probes = probe_controller->SetBitrates(
       DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 2 * kStartBitrate.bps());
+  assert_eq!(probes[0].target_data_rate.bps(), 2 * kStartBitrate.bps());
 }
 
 #[test]
@@ -452,17 +452,17 @@ fn RepeatedInitialProbingSendsNewProbeAfterTimeout() {
 let probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
   EXPECT_THAT(probes, SizeIs(Gt(0)));
-  Timestamp start_time = fixture.CurrentTime();
-  Timestamp last_probe_time = fixture.CurrentTime();
+  let start_time: Timestamp = fixture.CurrentTime();
+  let last_probe_time: Timestamp = fixture.CurrentTime();
   while (fixture.CurrentTime() < start_time + Duration::from_secs(5)) {
     fixture.AdvanceTime(TimeDelta::Millis(100));
     probes = probe_controller->Process(fixture.CurrentTime());
     if (!probes.empty()) {
       // Expect a probe every second.
-      EXPECT_EQ(fixture.CurrentTime() - last_probe_time,
+      assert_eq!(fixture.CurrentTime() - last_probe_time,
                 Duration::from_secs(1.1));
-      EXPECT_EQ(probes[0].min_probe_delta, TimeDelta::Millis(20));
-      EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(100));
+      assert_eq!(probes[0].min_probe_delta, TimeDelta::Millis(20));
+      assert_eq!(probes[0].target_duration, TimeDelta::Millis(100));
       last_probe_time = fixture.CurrentTime();
     } else {
       EXPECT_LT(fixture.CurrentTime() - last_probe_time,
@@ -520,8 +520,8 @@ let probes = probe_controller->SetBitrates(
       fixture.CurrentTime());
   probes = probe_controller->RequestProbe(fixture.CurrentTime());
 
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 0.85 * 500);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate.bps(), 0.85 * 500);
 }
 
 #[test]
@@ -534,7 +534,7 @@ fn RequestProbeWhenAlrEndedRecently() {
       IsEmpty());
 let probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
+  assert_eq!(probes.len(), 2u);
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
@@ -549,8 +549,8 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(kAlrEndedTimeout - TimeDelta::Millis(1));
   probes = probe_controller->RequestProbe(fixture.CurrentTime());
 
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 0.85 * 500);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate.bps(), 0.85 * 500);
 }
 
 #[test]
@@ -563,7 +563,7 @@ fn RequestProbeWhenAlrNotEndedRecently() {
       IsEmpty());
 let probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
+  assert_eq!(probes.len(), 2u);
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
@@ -577,7 +577,7 @@ let probes = probe_controller->SetBitrates(
   probe_controller->SetAlrEndedTimeMs(fixture.CurrentTime().ms());
   fixture.AdvanceTime(kAlrEndedTimeout + TimeDelta::Millis(1));
   probes = probe_controller->RequestProbe(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -590,7 +590,7 @@ fn RequestProbeWhenBweDropNotRecent() {
       IsEmpty());
 let probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
+  assert_eq!(probes.len(), 2u);
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
@@ -603,7 +603,7 @@ let probes = probe_controller->SetBitrates(
       fixture.CurrentTime());
   fixture.AdvanceTime(kBitrateDropTimeout + TimeDelta::Millis(1));
   probes = probe_controller->RequestProbe(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -617,19 +617,19 @@ fn PeriodicProbing() {
   probe_controller->EnablePeriodicAlrProbing(true);
 let probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
+  assert_eq!(probes.len(), 2u);
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
 
-  Timestamp start_time = fixture.CurrentTime();
+  let start_time: Timestamp = fixture.CurrentTime();
 
   // Expect the controller to send a new probe after 5s has passed.
   probe_controller->SetAlrStartTimeMs(start_time.ms());
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 1000);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate.bps(), 1000);
 
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
@@ -642,16 +642,16 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   probe_controller->SetAlrStartTimeMs(start_time.ms());
   fixture.AdvanceTime(Duration::from_secs(1));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
+  assert_eq!(probes.len(), 1u);
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -662,7 +662,7 @@ fn PeriodicProbingAfterReset() {
   ASSERT_THAT(
       probe_controller->OnNetworkAvailability({.network_available = true}),
       IsEmpty());
-  Timestamp alr_start_time = fixture.CurrentTime();
+  let alr_start_time: Timestamp = fixture.CurrentTime();
 
   probe_controller->SetAlrStartTimeMs(alr_start_time.ms());
   probe_controller->EnablePeriodicAlrProbing(true);
@@ -674,18 +674,18 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->Process(fixture.CurrentTime());
   // Since bitrates are not yet set, no probe is sent event though we are in ALR
   // mode.
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   probes = probe_controller->SetBitrates(kMinBitrate, kStartBitrate,
                                          kMaxBitrate, fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
+  assert_eq!(probes.len(), 2u);
 
   // Make sure we use `kStartBitrateBps` as the estimated bitrate
   // until SetEstimatedBitrate is called with an updated estimate.
   fixture.AdvanceTime(Duration::from_secs(10));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, kStartBitrate * 2);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate, kStartBitrate * 2);
 }
 
 #[test]
@@ -725,7 +725,7 @@ fn TestExponentialProbingOverflow() {
   ASSERT_THAT(
       probe_controller->OnNetworkAvailability({.network_available = true}),
       IsEmpty());
-  const DataRate kMbpsMultiplier = DataRate::KilobitsPerSec(1000);
+  const MbpsMultiplier: DataRate = DataRate::KilobitsPerSec(1000);
 let probes = probe_controller->SetBitrates(kMinBitrate, 10 * kMbpsMultiplier,
                                               100 * kMbpsMultiplier,
                                               fixture.CurrentTime());
@@ -733,13 +733,13 @@ let probes = probe_controller->SetBitrates(kMinBitrate, 10 * kMbpsMultiplier,
   probes = probe_controller->SetEstimatedBitrate(
       60 * kMbpsMultiplier, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, 100 * kMbpsMultiplier);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate, 100 * kMbpsMultiplier);
   // Verify that repeated probes aren't sent.
   probes = probe_controller->SetEstimatedBitrate(
       100 * kMbpsMultiplier, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -750,42 +750,42 @@ fn TestAllocatedBitrateCap() {
   ASSERT_THAT(
       probe_controller->OnNetworkAvailability({.network_available = true}),
       IsEmpty());
-  const DataRate kMbpsMultiplier = DataRate::KilobitsPerSec(1000);
-  const DataRate kMaxBitrate = 100 * kMbpsMultiplier;
+  const MbpsMultiplier: DataRate = DataRate::KilobitsPerSec(1000);
+  const MaxBitrate: DataRate = 100 * kMbpsMultiplier;
 let probes = probe_controller->SetBitrates(
       kMinBitrate, 10 * kMbpsMultiplier, kMaxBitrate, fixture.CurrentTime());
 
   // Configure ALR for periodic probing.
   probe_controller->EnablePeriodicAlrProbing(true);
-  Timestamp alr_start_time = fixture.CurrentTime();
+  let alr_start_time: Timestamp = fixture.CurrentTime();
   probe_controller->SetAlrStartTimeMs(alr_start_time.ms());
 
-  DataRate estimated_bitrate = kMaxBitrate / 10;
+  let estimated_bitrate: DataRate = kMaxBitrate / 10;
   probes = probe_controller->SetEstimatedBitrate(
       estimated_bitrate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
 
   // Set a max allocated bitrate below the current estimate.
-  DataRate max_allocated = estimated_bitrate - 1 * kMbpsMultiplier;
+  let max_allocated: DataRate = estimated_bitrate - 1 * kMbpsMultiplier;
   probes = probe_controller->OnMaxTotalAllocatedBitrate(max_allocated,
                                                         fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());  // No probe since lower than current max.
+  assert!((probes.empty());  // No probe since lower than current max.
 
   // Probes such as ALR capped at 2x the max allocation limit.
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, 2 * max_allocated);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate, 2 * max_allocated);
 
   // Remove allocation limit.
-  EXPECT_TRUE(
+  assert!((
       probe_controller
           ->OnMaxTotalAllocatedBitrate(DataRate::Zero(), fixture.CurrentTime())
           .empty());
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, estimated_bitrate * 2);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate, estimated_bitrate * 2);
 }
 
 #[test]
@@ -804,24 +804,24 @@ fn ConfigurableProbingFieldTrial() {
 let probes = probe_controller->SetBitrates(kMinBitrate, kStartBitrate,
                                               DataRate::KilobitsPerSec(5000),
                                               fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 2u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 600);
-  EXPECT_EQ(probes[0].target_probe_count, 2);
-  EXPECT_EQ(probes[1].target_data_rate.bps(), 1500);
-  EXPECT_EQ(probes[1].target_probe_count, 2);
+  assert_eq!(probes.len(), 2u);
+  assert_eq!(probes[0].target_data_rate.bps(), 600);
+  assert_eq!(probes[0].target_probe_count, 2);
+  assert_eq!(probes[1].target_data_rate.bps(), 1500);
+  assert_eq!(probes[1].target_probe_count, 2);
 
   // Repeated probe should only be sent when estimated bitrate climbs above
   // 0.8 * 5 * kStartBitrateBps = 1200.
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(1100), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 0u);
+  assert_eq!(probes.len(), 0u);
 
   probes = probe_controller->SetEstimatedBitrate(
       DataRate::BitsPerSec(1250), BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 3 * 1250);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate.bps(), 3 * 1250);
 
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
@@ -829,8 +829,8 @@ let probes = probe_controller->SetBitrates(kMinBitrate, kStartBitrate,
   probe_controller->SetAlrStartTimeMs(fixture.CurrentTime().ms());
   probes = probe_controller->OnMaxTotalAllocatedBitrate(
       DataRate::KilobitsPerSec(200), fixture.CurrentTime());
-  EXPECT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate.bps(), 400'000);
+  assert_eq!(probes.len(), 1u);
+  assert_eq!(probes[0].target_data_rate.bps(), 400'000);
 }
 
 #[test]
@@ -859,7 +859,7 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(Duration::from_secs(6));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, 1.5 * DataRate::BitsPerSec(500));
+  assert_eq!(probes[0].target_data_rate, 1.5 * DataRate::BitsPerSec(500));
 
   probes = probe_controller->SetEstimatedBitrate(
       1.5 * DataRate::BitsPerSec(500),
@@ -893,11 +893,11 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, state_estimate.link_capacity_upper);
+  assert_eq!(probes[0].target_data_rate, state_estimate.link_capacity_upper);
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, state_estimate.link_capacity_upper);
+  assert_eq!(probes[0].target_data_rate, state_estimate.link_capacity_upper);
 }
 
 TEST(ProbeControllerTest,
@@ -931,7 +931,7 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
-  EXPECT_EQ(probes[0].target_data_rate, DataRate::BitsPerSec(700));
+  assert_eq!(probes[0].target_data_rate, DataRate::BitsPerSec(700));
 }
 
 #[test]
@@ -954,7 +954,7 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, kMaxBitrate);
+  assert_eq!(probes[0].target_data_rate, kMaxBitrate);
 
   NetworkStateEstimate state_estimate;
   state_estimate.link_capacity_upper = DataRate::BitsPerSec(8000);
@@ -962,7 +962,7 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, state_estimate.link_capacity_upper);
+  assert_eq!(probes[0].target_data_rate, state_estimate.link_capacity_upper);
 }
 
 #[test]
@@ -990,7 +990,7 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(100));
+  assert_eq!(probes[0].target_duration, TimeDelta::Millis(100));
 }
 
 #[test]
@@ -1018,7 +1018,7 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(kAlrProbeInterval + TimeDelta::Millis(1));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_EQ(probes.len(), 1u);
-  EXPECT_EQ(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
+  assert_eq!(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
 }
 
 #[test]
@@ -1045,7 +1045,7 @@ let probes = probe_controller->SetBitrates(
   probe_controller->SetAlrStartTimeMs(fixture.CurrentTime().ms());
   fixture.AdvanceTime(kAlrProbeInterval + TimeDelta::Millis(1));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -1071,7 +1071,7 @@ let probes = probe_controller->SetBitrates(
   probe_controller->SetAlrStartTimeMs(None);
   fixture.AdvanceTime(kAlrProbeInterval + TimeDelta::Millis(1));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -1101,7 +1101,7 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
 
-  DataRate probe_target_rate = probes[0].target_data_rate;
+  let probe_target_rate: DataRate = probes[0].target_data_rate;
   EXPECT_LT(probe_target_rate, state_estimate.link_capacity_upper);
   // Expect that more probes are sent if BWE is the same as delay based
   // estimate.
@@ -1109,7 +1109,7 @@ let probes = probe_controller->SetBitrates(
       probe_target_rate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
-  EXPECT_EQ(probes[0].target_data_rate, 2 * probe_target_rate);
+  assert_eq!(probes[0].target_data_rate, 2 * probe_target_rate);
 }
 
 #[test]
@@ -1134,13 +1134,13 @@ let probes = probe_controller->SetBitrates(
   // Need to wait at least one second before process can trigger a new probe.
   fixture.AdvanceTime(TimeDelta::Millis(1100));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   NetworkStateEstimate state_estimate;
   state_estimate.link_capacity_upper = kStartBitrate;
   probe_controller->SetNetworkStateEstimate(state_estimate);
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   state_estimate.link_capacity_upper = kStartBitrate * 3;
   probe_controller->SetNetworkStateEstimate(state_estimate);
@@ -1151,7 +1151,7 @@ let probes = probe_controller->SetBitrates(
   // If network state not increased, send another probe.
   fixture.AdvanceTime(TimeDelta::Millis(1100));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
+  assert!(!(probes.empty());
 
   // Stop probing if estimate increase. We might probe further here though.
   probes = probe_controller->SetEstimatedBitrate(
@@ -1160,7 +1160,7 @@ let probes = probe_controller->SetBitrates(
   // No more periodic probes.
   fixture.AdvanceTime(TimeDelta::Millis(1100));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -1181,20 +1181,20 @@ let probes = probe_controller->SetBitrates(
   // Need to wait at least one second before process can trigger a new probe.
   fixture.AdvanceTime(TimeDelta::Millis(1100));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   NetworkStateEstimate state_estimate;
   state_estimate.link_capacity_upper = 3 * kStartBitrate;
   probe_controller->SetNetworkStateEstimate(state_estimate);
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
+  assert!(!(probes.empty());
   EXPECT_LT(probes[0].target_data_rate, state_estimate.link_capacity_upper);
   // Expect that no more probes are sent immediately if BWE is loss limited.
   probes = probe_controller->SetEstimatedBitrate(
       probes[0].target_data_rate, BandwidthLimitedCause::kLossLimitedBwe,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -1215,21 +1215,21 @@ let probes = probe_controller->SetBitrates(
   // Need to wait at least one second before process can trigger a new probe.
   fixture.AdvanceTime(TimeDelta::Millis(1100));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   NetworkStateEstimate state_estimate;
   state_estimate.link_capacity_upper = 3 * kStartBitrate;
   probe_controller->SetNetworkStateEstimate(state_estimate);
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
+  assert!(!(probes.empty());
   EXPECT_LT(probes[0].target_data_rate, state_estimate.link_capacity_upper);
   // Since the probe was successfull, expect to continue probing.
   probes = probe_controller->SetEstimatedBitrate(
       probes[0].target_data_rate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
-  EXPECT_EQ(probes[0].target_data_rate, state_estimate.link_capacity_upper);
+  assert!(!(probes.empty());
+  assert_eq!(probes[0].target_data_rate, state_estimate.link_capacity_upper);
 }
 
 TEST(ProbeControllerTest,
@@ -1276,7 +1276,7 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetEstimatedBitrate(
       state_estimate.link_capacity_upper * 0.9,
       BandwidthLimitedCause::kDelayBasedLimited, fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -1301,14 +1301,14 @@ let probes = probe_controller->SetBitrates(
       kMaxBitrate * 0.8, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
-  EXPECT_EQ(probes[0].target_data_rate, kMaxBitrate);
+  assert_eq!(probes[0].target_data_rate, kMaxBitrate);
 
   // If the probe result arrives, dont expect a new probe immediately since we
   // already tried to probe at the max rate.
   probes = probe_controller->SetEstimatedBitrate(
       kMaxBitrate * 0.8, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   fixture.AdvanceTime(TimeDelta::Millis(1000));
   probes = probe_controller->Process(fixture.CurrentTime());
@@ -1338,7 +1338,7 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetBitrates(kMinBitrate, kStartBitrate,
                                          kMaxBitrate, fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
-  EXPECT_EQ(probes[0].target_data_rate, kStartBitrate / 4 * 2);
+  assert_eq!(probes[0].target_data_rate, kStartBitrate / 4 * 2);
 }
 
 #[test]
@@ -1359,17 +1359,17 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetEstimatedBitrate(
       kMaxBitrate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   probe_controller->SetAlrStartTimeMs(fixture.CurrentTime().ms());
   fixture.AdvanceTime(Duration::from_secs(10));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   // But if the max rate increase, A new probe is sent.
   probes = probe_controller->SetBitrates(
       kMinBitrate, kStartBitrate, 2 * kMaxBitrate, fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
+  assert!(!(probes.empty());
 }
 
 TEST(ProbeControllerTest,
@@ -1395,15 +1395,15 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->OnMaxTotalAllocatedBitrate(kMaxBitrate / 2,
                                                         fixture.CurrentTime());
   // No probes since total allocated is not higher than the current estimate.
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
   fixture.AdvanceTime(Duration::from_secs(2));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   // But if the max allocated increase, A new probe is sent.
   probes = probe_controller->OnMaxTotalAllocatedBitrate(
       kMaxBitrate / 2 + DataRate::BitsPerSec(1), fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
+  assert!(!(probes.empty());
 }
 
 #[test]
@@ -1425,11 +1425,11 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetEstimatedBitrate(
       kMaxBitrate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   fixture.AdvanceTime(Duration::from_secs(10));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -1452,7 +1452,7 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetEstimatedBitrate(
       kMaxBitrate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 
   // Need to wait at least two seconds before process can trigger a new probe.
   fixture.AdvanceTime(TimeDelta::Millis(2100));
@@ -1460,16 +1460,16 @@ let probes = probe_controller->SetBitrates(
   probes = probe_controller->SetEstimatedBitrate(
       kStartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
   probe_controller->SetNetworkStateEstimate(
       {.link_capacity_upper = 2 * kStartBitrate});
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
+  assert!(!(probes.empty());
   EXPECT_LE(probes[0].target_data_rate, 2 * kStartBitrate);
   // Expect probe durations to be picked from field trial probe target is lower
   // or equal to the network state estimate.
-  EXPECT_EQ(probes[0].min_probe_delta, TimeDelta::Millis(20));
-  EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(100));
+  assert_eq!(probes[0].min_probe_delta, TimeDelta::Millis(20));
+  assert_eq!(probes[0].target_duration, TimeDelta::Millis(100));
 }
 
 TEST(ProbeControllerTest,
@@ -1502,11 +1502,11 @@ let probes = probe_controller->SetBitrates(
   fixture.AdvanceTime(Duration::from_secs(6));
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
-  EXPECT_EQ(probes[0].target_data_rate, kStartBitrate);
+  assert_eq!(probes[0].target_data_rate, kStartBitrate);
   // Expect probe durations to be default since network state estimate is lower
   // than the probe rate.
-  EXPECT_EQ(probes[0].min_probe_delta, TimeDelta::Millis(2));
-  EXPECT_EQ(probes[0].target_duration, TimeDelta::Millis(15));
+  assert_eq!(probes[0].min_probe_delta, TimeDelta::Millis(2));
+  assert_eq!(probes[0].target_duration, TimeDelta::Millis(15));
 }
 
 #[test]
@@ -1537,7 +1537,7 @@ let probes = probe_controller->SetBitrates(
 
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 
 #[test]
@@ -1568,7 +1568,7 @@ let probes = probe_controller->SetBitrates(
 
   fixture.AdvanceTime(Duration::from_secs(5));
   probes = probe_controller->Process(fixture.CurrentTime());
-  EXPECT_TRUE(probes.empty());
+  assert!((probes.empty());
 }
 }  // namespace test
 }  // namespace webrtc

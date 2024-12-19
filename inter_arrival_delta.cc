@@ -20,8 +20,8 @@
 
 
 
-static constexpr TimeDelta kBurstDeltaThreshold = TimeDelta::Millis(5);
-static constexpr TimeDelta kMaxBurstDuration = TimeDelta::Millis(100);
+static const BurstDeltaThreshold: TimeDelta = TimeDelta::Millis(5);
+static const MaxBurstDuration: TimeDelta = TimeDelta::Millis(100);
 constexpr TimeDelta InterArrivalDelta::kArrivalTimeOffsetThreshold;
 
 InterArrivalDelta::InterArrivalDelta(TimeDelta send_time_group_length)
@@ -37,7 +37,7 @@ bool ComputeDeltas(&self /* InterArrivalDelta */,Timestamp send_time,
                                       TimeDelta* send_time_delta,
                                       TimeDelta* arrival_time_delta,
                                       int* packet_size_delta) {
-  bool calculated_deltas = false;
+  let calculated_deltas: bool = false;
   if (self.current_timestamp_group.IsFirstPacket()) {
     // We don't have enough data to update the filter, so we store it until we
     // have two frames of data to process.
@@ -55,7 +55,7 @@ bool ComputeDeltas(&self /* InterArrivalDelta */,Timestamp send_time,
       *arrival_time_delta = self.current_timestamp_group.complete_time -
                             self.prev_timestamp_group.complete_time;
 
-      TimeDelta system_time_delta = self.current_timestamp_group.last_system_time -
+      let system_time_delta: TimeDelta = self.current_timestamp_group.last_system_time -
                                     self.prev_timestamp_group.last_system_time;
 
       if (*arrival_time_delta - system_time_delta >=
@@ -82,8 +82,8 @@ bool ComputeDeltas(&self /* InterArrivalDelta */,Timestamp send_time,
       } else {
         self.num_consecutive_reordered_packets = 0;
       }
-      *packet_size_delta = static_cast<int>(self.current_timestamp_group.size) -
-                           static_cast<int>(self.prev_timestamp_group.size);
+      *packet_size_delta = (self.current_timestamp_group.size) as isize -
+                           (self.prev_timestamp_group.size) as isize;
       calculated_deltas = true;
     }
     self.prev_timestamp_group = self.current_timestamp_group;
@@ -121,12 +121,12 @@ bool NewTimestampGroup(&self /* InterArrivalDelta */,Timestamp arrival_time,
 bool BelongsToBurst(&self /* InterArrivalDelta */,Timestamp arrival_time,
                                        Timestamp send_time) {
   assert!(self.current_timestamp_group.complete_time.IsFinite());
-  TimeDelta arrival_time_delta =
+  let arrival_time_delta: TimeDelta =
       arrival_time - self.current_timestamp_group.complete_time;
-  TimeDelta send_time_delta = send_time - self.current_timestamp_group.send_time;
+  let send_time_delta: TimeDelta = send_time - self.current_timestamp_group.send_time;
   if (send_time_delta.IsZero())
     return true;
-  TimeDelta propagation_delta = arrival_time_delta - send_time_delta;
+  let propagation_delta: TimeDelta = arrival_time_delta - send_time_delta;
   if (propagation_delta < TimeDelta::Zero() &&
       arrival_time_delta <= kBurstDeltaThreshold &&
       arrival_time - self.current_timestamp_group.first_arrival < kMaxBurstDuration)

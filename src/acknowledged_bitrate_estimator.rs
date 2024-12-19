@@ -10,6 +10,8 @@
 
 use std::time::Instant;
 
+use crate::api::units::DataRate;
+
 
 pub struct AcknowledgedBitrateEstimator {
   alr_ended_time: Option<Instant>,
@@ -29,7 +31,7 @@ impl AcknowledgedBitrateEstimatorInterface for AcknowledgedBitrateEstimator {
         self.alr_ended_time = None;
       }
     }
-    let acknowledged_estimate = packet.sent_packet.size;
+    let acknowledged_estimate= packet.sent_packet.size;
     acknowledged_estimate += packet.sent_packet.prior_unacked_data;
     self.bitrate_estimator.Update(packet.receive_time, acknowledged_estimate,
                                self.in_alr);
@@ -45,7 +47,7 @@ fn peek_rate(&self) -> Option<DataRate> {
 }
 
 fn set_alr_ended_time(&mut self, alr_ended_time: Instant) {
-  self.alr_ended_time.push_back(alr_ended_time);
+  self.alr_ended_time.replace(alr_ended_time);
 }
 
 fn set_alr(&mut self, in_alr: bool) {
@@ -55,7 +57,7 @@ fn set_alr(&mut self, in_alr: bool) {
 }
 
 impl AcknowledgedBitrateEstimator {
-  pub fn new(key_value_config: &FieldTrialsView, bitrate_estimator: BitrateEstimator) -> Self {
+  pub fn new(bitrate_estimator: BitrateEstimator) -> Self {
     Self {
       alr_ended_time: None,
       in_alr: false,

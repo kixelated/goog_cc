@@ -51,7 +51,7 @@ class TrendlineEstimatorTest : public testing::Test {
     std::fill(packet_sizes.begin(), packet_sizes.end(), kPacketSizeBytes);
   }
 
-fn RunTestUntilStateChange() -> void {
+fn RunTestUntilStateChange() {
     assert!_EQ(send_times.len(), kPacketCount);
     assert!_EQ(recv_times.len(), kPacketCount);
     assert!_EQ(packet_sizes.len(), kPacketCount);
@@ -71,8 +71,8 @@ let initial_state = estimator.State();
   }
 
  protected:
-  const usize kPacketCount = 25;
-  const usize kPacketSizeBytes = 1200;
+  const PacketCount: usize = 25;
+  const PacketSizeBytes: usize = 1200;
   Vec<i64> send_times;
   Vec<i64> recv_times;
   Vec<usize> packet_sizes;
@@ -91,10 +91,10 @@ TEST_F(TrendlineEstimatorTest, Normal) {
                                           20 /*delivered at the same pace*/);
   std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
 
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwNormal);
+  assert_eq!(estimator.State(), BandwidthUsage::kBwNormal);
   RunTestUntilStateChange();
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwNormal);
-  EXPECT_EQ(count, kPacketCount);  // All packets processed
+  assert_eq!(estimator.State(), BandwidthUsage::kBwNormal);
+  assert_eq!(count, kPacketCount);  // All packets processed
 }
 
 TEST_F(TrendlineEstimatorTest, Overusing) {
@@ -106,12 +106,12 @@ TEST_F(TrendlineEstimatorTest, Overusing) {
                                           1.1 * 20 /*10% slower delivery*/);
   std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
 
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwNormal);
+  assert_eq!(estimator.State(), BandwidthUsage::kBwNormal);
   RunTestUntilStateChange();
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwOverusing);
+  assert_eq!(estimator.State(), BandwidthUsage::kBwOverusing);
   RunTestUntilStateChange();
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwOverusing);
-  EXPECT_EQ(count, kPacketCount);  // All packets processed
+  assert_eq!(estimator.State(), BandwidthUsage::kBwOverusing);
+  assert_eq!(count, kPacketCount);  // All packets processed
 }
 
 TEST_F(TrendlineEstimatorTest, Underusing) {
@@ -123,12 +123,12 @@ TEST_F(TrendlineEstimatorTest, Underusing) {
                                           0.85 * 20 /*15% faster delivery*/);
   std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
 
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwNormal);
+  assert_eq!(estimator.State(), BandwidthUsage::kBwNormal);
   RunTestUntilStateChange();
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwUnderusing);
+  assert_eq!(estimator.State(), BandwidthUsage::kBwUnderusing);
   RunTestUntilStateChange();
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwUnderusing);
-  EXPECT_EQ(count, kPacketCount);  // All packets processed
+  assert_eq!(estimator.State(), BandwidthUsage::kBwUnderusing);
+  assert_eq!(count, kPacketCount);  // All packets processed
 }
 
 TEST_F(TrendlineEstimatorTest, IncludesSmallPacketsByDefault) {
@@ -142,12 +142,12 @@ TEST_F(TrendlineEstimatorTest, IncludesSmallPacketsByDefault) {
 
   std::fill(packet_sizes.begin(), packet_sizes.end(), 100);
 
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwNormal);
+  assert_eq!(estimator.State(), BandwidthUsage::kBwNormal);
   RunTestUntilStateChange();
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwOverusing);
+  assert_eq!(estimator.State(), BandwidthUsage::kBwOverusing);
   RunTestUntilStateChange();
-  EXPECT_EQ(estimator.State(), BandwidthUsage::kBwOverusing);
-  EXPECT_EQ(count, kPacketCount);  // All packets processed
+  assert_eq!(estimator.State(), BandwidthUsage::kBwOverusing);
+  assert_eq!(count, kPacketCount);  // All packets processed
 }
 
 }  // namespace webrtc

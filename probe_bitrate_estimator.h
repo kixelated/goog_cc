@@ -36,14 +36,14 @@ pub struct ProbeBitrateEstimator {
 
  private:
   struct AggregatedCluster {
-    int num_probes = 0;
-    Timestamp first_send = Timestamp::PlusInfinity();
-    Timestamp last_send = Timestamp::MinusInfinity();
-    Timestamp first_receive = Timestamp::PlusInfinity();
-    Timestamp last_receive = Timestamp::MinusInfinity();
-    DataSize size_last_send = DataSize::Zero();
-    DataSize size_first_receive = DataSize::Zero();
-    DataSize usizeotal = DataSize::Zero();
+    let num_probes: isize = 0;
+    let first_send: Timestamp = Timestamp::PlusInfinity();
+    let last_send: Timestamp = Timestamp::MinusInfinity();
+    let first_receive: Timestamp = Timestamp::PlusInfinity();
+    let last_receive: Timestamp = Timestamp::MinusInfinity();
+    let size_last_send: DataSize = DataSize::Zero();
+    let size_first_receive: DataSize = DataSize::Zero();
+    let usizeotal: DataSize = DataSize::Zero();
   };
 
   // Erases old cluster data that was seen before `timestamp`.

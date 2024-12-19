@@ -30,7 +30,7 @@ const kBweLossBasedControl: &'static str = "WebRTC-Bwe-LossBasedControl";
 
 // Expecting RTCP feedback to be sent with roughly 1s intervals, a 5s gap
 // indicates a channel outage.
-constexpr TimeDelta kMaxRtcpFeedbackInterval = TimeDelta::Millis(5000);
+const MaxRtcpFeedbackInterval: TimeDelta = TimeDelta::Millis(5000);
 
 // Increase slower when RTT is high.
 fn GetIncreaseFactor(const LossBasedControlConfig& config, TimeDelta rtt) -> f64 {
@@ -76,9 +76,9 @@ fn ExponentialUpdate(TimeDelta window, TimeDelta interval) -> f64 {
   // infinite) is the time it takes to dampen to 1/e.
   if (window <= TimeDelta::Zero()) {
     assert!_NOTREACHED();
-    return 1.0f;
+    return 1.0;
   }
-  return 1.0f - exp(interval / window * -1.0);
+  return 1.0 - exp(interval / window * -1.0);
 }
 
 bool IsEnabled(const webrtc::FieldTrialsView& key_value_config,
@@ -143,11 +143,11 @@ fn UpdateLossStatistics(&self /* LossBasedBandwidthEstimation */,
     assert!_NOTREACHED();
     return;
   }
-  int loss_count = 0;
+  let loss_count: isize = 0;
   for pkt in &packet_results {
     loss_count += !pkt.IsReceived() ? 1 : 0;
   }
-  self.last_loss_ratio = static_cast<f64>(loss_count) / packet_results.len();
+  self.last_loss_ratio = (loss_count) as f64 / packet_results.len();
   const TimeDelta time_passed = self.last_loss_packet_report.IsFinite()
                                     ? at_time - last_loss_packet_report_
                                     : Duration::from_secs(1);
@@ -155,13 +155,13 @@ fn UpdateLossStatistics(&self /* LossBasedBandwidthEstimation */,
   self.has_decreased_since_last_loss_report = false;
 
   self.average_loss += ExponentialUpdate(self.config.loss_window, time_passed) *
-                   (last_loss_ratio_ - self.average_loss);
+                   (self.last_loss_ratio - self.average_loss);
   if (self.average_loss > self.average_loss_max) {
     self.average_loss_max = self.average_loss;
   } else {
     self.average_loss_max +=
         ExponentialUpdate(self.config.loss_max_window, time_passed) *
-        (average_loss_ - self.average_loss_max);
+        (self.average_loss - self.average_loss_max);
   }
 }
 
@@ -176,9 +176,9 @@ fn UpdateAcknowledgedBitrate(&self /* LossBasedBandwidthEstimation */,
   if (acknowledged_bitrate > self.acknowledged_bitrate_max) {
     self.acknowledged_bitrate_max = acknowledged_bitrate;
   } else {
-    acknowledged_bitrate_max_ -=
+    self.acknowledged_bitrate_max -=
         ExponentialUpdate(self.config.acknowledged_rate_max_window, time_passed) *
-        (acknowledged_bitrate_max_ - acknowledged_bitrate);
+        (self.acknowledged_bitrate_max - acknowledged_bitrate);
   }
 }
 
@@ -193,7 +193,7 @@ DataRate Update(&self /* LossBasedBandwidthEstimation */,Timestamp at_time,
   // Only increase if loss has been low for some time.
   let loss_estimate_for_increase: f64 = self.average_loss_max;
   // Avoid multiple decreases from averaging over one loss spike.
-  f64 loss_estimate_for_decrease =
+  let loss_estimate_for_decrease: f64 =
       std::cmp::min(self.average_loss, self.last_loss_ratio);
   const bool allow_decrease =
       !self.has_decreased_since_last_loss_report &&
@@ -209,7 +209,7 @@ DataRate Update(&self /* LossBasedBandwidthEstimation */,Timestamp at_time,
   } else if (loss_report_valid &&
              loss_estimate_for_increase < loss_increase_threshold()) {
     // Increase bitrate by RTT-adaptive ratio.
-    DataRate new_increased_bitrate =
+    let new_increased_bitrate: DataRate =
         min_bitrate * GetIncreaseFactor(self.config, last_round_trip_time) +
         self.config.increase_offset;
     // The bitrate that would make the loss "just high enough".
@@ -225,7 +225,7 @@ DataRate Update(&self /* LossBasedBandwidthEstimation */,Timestamp at_time,
     const DataRate new_decreased_bitrate_floor = BitrateFromLoss(
         loss_estimate_for_decrease, self.config.loss_bandwidth_balance_decrease,
         self.config.loss_bandwidth_balance_exponent);
-    DataRate new_decreased_bitrate =
+    let new_decreased_bitrate: DataRate =
         std::cmp::max(decreased_bitrate(), new_decreased_bitrate_floor);
     if (new_decreased_bitrate < self.loss_based_bitrate) {
       self.time_last_decrease = at_time;

@@ -80,7 +80,7 @@ struct ProbeControllerConfig {
   FieldTrialParameter<f64> allocation_probe_limit_by_current_scale;
 
   // The minimum number probing packets used.
-  FieldTrialParameter<int> min_probe_packets_sent;
+  FieldTrialParameter<isize> min_probe_packets_sent;
   // The minimum probing duration.
   FieldTrialParameter<TimeDelta> min_probe_duration;
   // Delta time between sent bursts of packets in a probe.
@@ -97,7 +97,7 @@ struct ProbeControllerConfig {
 // Reason that bandwidth estimate is limited. Bandwidth estimate can be limited
 // by either delay based bwe, or loss based bwe when it increases/decreases the
 // estimate.
-enum class BandwidthLimitedCause : int {
+enum class BandwidthLimitedCause : isize {
   kLossLimitedBweIncreasing = 0,
   kLossLimitedBwe = 1,
   kDelayBasedLimited = 2,
