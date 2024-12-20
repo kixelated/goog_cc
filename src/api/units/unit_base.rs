@@ -350,6 +350,8 @@ mod test {
 
     use std::fmt;
 
+    use approx::assert_relative_eq;
+
     use super::*;
 
     relative_unit!(TestUnit);
@@ -523,7 +525,7 @@ mod test {
         assert_eq!(TestUnit::FromValue(Value).ToValueFloat(), ValueDouble);
         assert_eq!(TestUnit::FromValueFloat(ValueDouble).ToValue(), Value);
 
-        assert!((TestUnit::FromValue(Value).ToMilliFloat() - MilliDouble).abs() <= 1.0);
+        assert_relative_eq!(TestUnit::FromValue(Value).ToMilliFloat(), MilliDouble, epsilon = 1.0);
 
         const PlusInfinity: f64 = f64::INFINITY;
         const MinusInfinity: f64 = -PlusInfinity;

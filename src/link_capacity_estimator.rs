@@ -15,6 +15,12 @@ pub struct LinkCapacityEstimator {
     deviation_kbps: f64,
 }
 
+impl Default for LinkCapacityEstimator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LinkCapacityEstimator {
     pub fn new() -> Self {
         Self {
@@ -24,21 +30,21 @@ impl LinkCapacityEstimator {
     }
     pub fn UpperBound(&self) -> DataRate {
         if let Some(estimate_kbps) = self.estimate_kbps {
-            return DataRate::KilobitsPerSecFloat(
+            DataRate::KilobitsPerSecFloat(
                 estimate_kbps + 3.0 * self.deviation_estimate_kbps(estimate_kbps),
-            );
+            )
         } else {
-            return DataRate::Infinity();
+            DataRate::Infinity()
         }
     }
 
     pub fn LowerBound(&self) -> DataRate {
         if let Some(estimate_kbps) = self.estimate_kbps {
-            return DataRate::KilobitsPerSecFloat(
+            DataRate::KilobitsPerSecFloat(
                 (estimate_kbps - 3.0 * self.deviation_estimate_kbps(estimate_kbps)).max(0.0),
-            );
+            )
         } else {
-            return DataRate::Zero();
+            DataRate::Zero()
         }
     }
     pub fn Reset(&mut self) {
@@ -51,11 +57,11 @@ impl LinkCapacityEstimator {
         self.Update(probe_rate, 0.5);
     }
     pub fn has_estimate(&self) -> bool {
-        return self.estimate_kbps.is_some();
+        self.estimate_kbps.is_some()
     }
 
     pub fn estimate(&self) -> DataRate {
-        return DataRate::KilobitsPerSecFloat(self.estimate_kbps.unwrap_or_default());
+        DataRate::KilobitsPerSecFloat(self.estimate_kbps.unwrap_or_default())
     }
 
     fn Update(&mut self, capacity_sample: DataRate, alpha: f64) {
@@ -82,6 +88,6 @@ impl LinkCapacityEstimator {
         // Calculate the max bit rate std dev given the normalized
         // variance and the current throughput bitrate. The standard deviation will
         // only be used if self.estimate_kbps has a value.
-        return (self.deviation_kbps * estimate_kbps).sqrt();
+        (self.deviation_kbps * estimate_kbps).sqrt()
     }
 }

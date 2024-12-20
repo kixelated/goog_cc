@@ -53,8 +53,8 @@ impl Default for BitrateEstimator {
 
 const InitialRateWindowMs: i64 = 500;
 const RateWindowMs: i64 = 150;
-const MinRateWindowMs: i64 = 150;
-const MaxRateWindowMs: i64 = 1000;
+//const MinRateWindowMs: i64 = 150;
+//const MaxRateWindowMs: i64 = 1000;
 
 impl BitrateEstimator {
     pub fn Update(&mut self, at_time: Timestamp, amount: DataSize, in_alr: bool) {

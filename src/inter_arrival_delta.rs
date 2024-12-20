@@ -34,7 +34,7 @@ impl Default for SendTimeGroup {
 }
 impl SendTimeGroup {
     pub fn IsFirstPacket(&self) -> bool {
-        return self.complete_time.IsInfinite();
+        self.complete_time.IsInfinite()
     }
 }
 
@@ -56,7 +56,7 @@ impl InterArrivalDelta {
 
     pub fn new(send_time_group_length: TimeDelta) -> Self {
         Self {
-            send_time_group_length: send_time_group_length,
+            send_time_group_length,
             current_timestamp_group: SendTimeGroup::default(),
             prev_timestamp_group: SendTimeGroup::default(),
             num_consecutive_reordered_packets: 0,
@@ -82,18 +82,18 @@ impl InterArrivalDelta {
         packet_size_delta: &mut isize,
     ) -> bool {
         let mut calculated_deltas: bool = false;
-        if (self.current_timestamp_group.IsFirstPacket()) {
+        if self.current_timestamp_group.IsFirstPacket() {
             // We don't have enough data to update the filter, so we store it until we
             // have two frames of data to process.
             self.current_timestamp_group.send_time = send_time;
             self.current_timestamp_group.first_send_time = send_time;
             self.current_timestamp_group.first_arrival = arrival_time;
-        } else if (self.current_timestamp_group.first_send_time > send_time) {
+        } else if self.current_timestamp_group.first_send_time > send_time {
             // Reordered packet.
             return false;
-        } else if (self.NewTimestampGroup(arrival_time, send_time)) {
+        } else if self.NewTimestampGroup(arrival_time, send_time) {
             // First packet of a later send burst, the previous packets sample is ready.
-            if (self.prev_timestamp_group.complete_time.IsFinite()) {
+            if self.prev_timestamp_group.complete_time.IsFinite() {
                 *send_time_delta =
                     self.current_timestamp_group.send_time - self.prev_timestamp_group.send_time;
                 *arrival_time_delta = self.current_timestamp_group.complete_time
@@ -102,7 +102,7 @@ impl InterArrivalDelta {
                 let system_time_delta: TimeDelta = self.current_timestamp_group.last_system_time
                     - self.prev_timestamp_group.last_system_time;
 
-                if (*arrival_time_delta - system_time_delta >= Self::ArrivalTimeOffsetThreshold) {
+                if *arrival_time_delta - system_time_delta >= Self::ArrivalTimeOffsetThreshold {
                     tracing::warn!(
                         "The arrival time clock offset has changed (diff = {} ms), resetting.",
                         arrival_time_delta.ms() - system_time_delta.ms()
@@ -110,11 +110,11 @@ impl InterArrivalDelta {
                     self.Reset();
                     return false;
                 }
-                if (*arrival_time_delta < TimeDelta::Zero()) {
+                if *arrival_time_delta < TimeDelta::Zero() {
                     // The group of packets has been reordered since receiving its local
                     // arrival timestamp.
                     self.num_consecutive_reordered_packets += 1;
-                    if (self.num_consecutive_reordered_packets >= Self::ReorderedResetThreshold) {
+                    if self.num_consecutive_reordered_packets >= Self::ReorderedResetThreshold {
                         tracing::warn!("Packets between send burst arrived out of order, resetting: arrival_time_delta_ms={}, send_time_delta_ms={}", arrival_time_delta.ms(), send_time_delta.ms());
                         self.Reset();
                     }
@@ -141,19 +141,17 @@ impl InterArrivalDelta {
         self.current_timestamp_group.complete_time = arrival_time;
         self.current_timestamp_group.last_system_time = system_time;
 
-        return calculated_deltas;
+        calculated_deltas
     }
 
     // Returns true if the last packet was the end of the current batch and the
     // packet with `send_time` is the first of a new batch.
     fn NewTimestampGroup(&self, arrival_time: Timestamp, send_time: Timestamp) -> bool {
-        if (self.current_timestamp_group.IsFirstPacket()) {
-            return false;
-        } else if (self.BelongsToBurst(arrival_time, send_time)) {
-            return false;
+        if self.current_timestamp_group.IsFirstPacket() || self.BelongsToBurst(arrival_time, send_time) {
+            false
         } else {
-            return send_time - self.current_timestamp_group.first_send_time
-                > self.send_time_group_length;
+            send_time - self.current_timestamp_group.first_send_time
+                > self.send_time_group_length
         }
     }
 
@@ -162,17 +160,17 @@ impl InterArrivalDelta {
         let arrival_time_delta: TimeDelta =
             arrival_time - self.current_timestamp_group.complete_time;
         let send_time_delta: TimeDelta = send_time - self.current_timestamp_group.send_time;
-        if (send_time_delta.IsZero()) {
+        if send_time_delta.IsZero() {
             return true;
         }
         let propagation_delta: TimeDelta = arrival_time_delta - send_time_delta;
-        if (propagation_delta < TimeDelta::Zero()
+        if propagation_delta < TimeDelta::Zero()
             && arrival_time_delta <= Self::BurstDeltaThreshold
-            && arrival_time - self.current_timestamp_group.first_arrival < Self::MaxBurstDuration)
+            && arrival_time - self.current_timestamp_group.first_arrival < Self::MaxBurstDuration
         {
             return true;
         }
-        return false;
+        false
     }
 
     fn Reset(&mut self) {

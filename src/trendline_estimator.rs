@@ -140,9 +140,9 @@ fn ComputeSlopeCap(
     assert!(1 <= settings.end_packets && settings.end_packets < packets.len());
     assert!(settings.beginning_packets + settings.end_packets <= packets.len());
     let mut early = &packets[0];
-    for i in 1..settings.beginning_packets {
-        if packets[i].raw_delay_ms < early.raw_delay_ms {
-            early = &packets[i];
+    for packet in packets.iter().take(settings.beginning_packets).skip(1) {
+        if packet.raw_delay_ms < early.raw_delay_ms {
+            early = &packet;
         }
     }
     let late_start: usize = packets.len() - settings.end_packets;
@@ -197,9 +197,9 @@ impl TrendlineEstimator {
         &mut self,
         recv_delta_ms: f64,
         send_delta_ms: f64,
-        send_time_ms: i64,
+        _send_time_ms: i64,
         arrival_time_ms: i64,
-        packet_size: usize,
+        _packet_size: usize,
     ) {
         let delta_ms: f64 = recv_delta_ms - send_delta_ms;
         self.num_of_deltas += 1;

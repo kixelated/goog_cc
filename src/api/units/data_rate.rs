@@ -178,6 +178,8 @@ impl fmt::Debug for DataRate {
 
 #[cfg(test)]
 mod test {
+    use approx::assert_relative_eq;
+
     use super::*;
 
     #[test]
@@ -314,7 +316,7 @@ mod test {
         assert_eq!(rate_a / rate_b, ValueA as f64 / ValueB as f64);
 
         assert_eq!((rate_a / 10).bps(), ValueA / 10);
-        assert!(((rate_a / 0.5).bps() - ValueA * 2).abs() <= 1);
+        assert_relative_eq!((rate_a / 0.5).bps_float(), ValueA as f64 * 2.0, epsilon = 1.0);
 
         let mut mutable_rate: DataRate = DataRate::BitsPerSec(ValueA);
         mutable_rate += rate_b;

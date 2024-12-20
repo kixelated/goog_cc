@@ -78,7 +78,7 @@ impl Default for AimdRateControl {
             no_bitrate_increase_in_alr: false,
             network_estimate: None,
             last_decrease: None,
-            disable_estimate_bounded_increase: true,
+            disable_estimate_bounded_increase: false,
             use_current_estimate_as_min_upper_bound: true,
         }
     }
@@ -99,7 +99,7 @@ impl AimdRateControl {
     // either if it has been explicitly set via SetStartBitrate/SetEstimate, or if
     // we have measured a throughput.
     pub fn ValidEstimate(&self) -> bool {
-        return self.bitrate_is_initialized;
+        self.bitrate_is_initialized
     }
     pub fn SetStartBitrate(&mut self, start_bitrate: DataRate) {
         self.current_bitrate = start_bitrate;
@@ -118,7 +118,7 @@ impl AimdRateControl {
         let interval: TimeDelta = RtcpSize / rtcp_bitrate;
         const MinFeedbackInterval: TimeDelta = TimeDelta::Millis(200);
         const MaxFeedbackInterval: TimeDelta = TimeDelta::Millis(1000);
-        return interval.Clamped(MinFeedbackInterval, MaxFeedbackInterval);
+        interval.Clamped(MinFeedbackInterval, MaxFeedbackInterval)
     }
 
     // Returns true if the bitrate estimate hasn't been changed for more than
@@ -133,26 +133,26 @@ impl AimdRateControl {
         let bitrate_reduction_interval: TimeDelta = self
             .rtt
             .Clamped(TimeDelta::Millis(10), TimeDelta::Millis(200));
-        if (at_time - self.time_last_bitrate_change >= bitrate_reduction_interval) {
+        if at_time - self.time_last_bitrate_change >= bitrate_reduction_interval {
             return true;
         }
-        if (self.ValidEstimate()) {
+        if self.ValidEstimate() {
             // TODO(terelius/holmer): Investigate consequences of increasing
             // the threshold to 0.95 * LatestEstimate().
             let threshold: DataRate = 0.5 * self.LatestEstimate();
             return estimated_throughput < threshold;
         }
-        return false;
+        false
     }
     // As above. To be used if overusing before we have measured a throughput.
     pub fn InitialTimeToReduceFurther(&mut self, at_time: Timestamp) -> bool {
-        return self.ValidEstimate()
+        self.ValidEstimate()
             && self
-                .TimeToReduceFurther(at_time, self.LatestEstimate() / 2 - DataRate::BitsPerSec(1));
+                .TimeToReduceFurther(at_time, self.LatestEstimate() / 2 - DataRate::BitsPerSec(1))
     }
 
     pub fn LatestEstimate(&self) -> DataRate {
-        return self.current_bitrate;
+        self.current_bitrate
     }
     pub fn SetRtt(&mut self, rtt: TimeDelta) {
         self.rtt = rtt;
@@ -161,14 +161,14 @@ impl AimdRateControl {
         // Set the initial bit rate value to what we're receiving the first half
         // second.
         // TODO(bugs.webrtc.org/9379): The comment above doesn't match to the code.
-        if (!self.bitrate_is_initialized) {
+        if !self.bitrate_is_initialized {
             const InitializationTime: TimeDelta = TimeDelta::Seconds(5);
             assert!(BitrateWindow <= InitializationTime);
 
             if let Some(estimated_throughput) = input.estimated_throughput {
-                if (self.time_first_throughput_estimate.IsInfinite()) {
+                if self.time_first_throughput_estimate.IsInfinite() {
                     self.time_first_throughput_estimate = at_time;
-                } else if (at_time - self.time_first_throughput_estimate > InitializationTime) {
+                } else if at_time - self.time_first_throughput_estimate > InitializationTime {
                     self.current_bitrate = estimated_throughput;
                     self.bitrate_is_initialized = true;
                 }
@@ -176,7 +176,7 @@ impl AimdRateControl {
         }
 
         self.ChangeBitrate(input, at_time);
-        return self.current_bitrate;
+        self.current_bitrate
     }
 
     pub fn SetInApplicationLimitedRegion(&mut self, in_alr: bool) {
@@ -187,7 +187,7 @@ impl AimdRateControl {
         let prev_bitrate: DataRate = self.current_bitrate;
         self.current_bitrate = self.ClampBitrate(bitrate);
         self.time_last_bitrate_change = at_time;
-        if (self.current_bitrate < prev_bitrate) {
+        if self.current_bitrate < prev_bitrate {
             self.time_last_bitrate_decrease = at_time;
         }
     }
@@ -210,7 +210,7 @@ impl AimdRateControl {
         response_time = response_time * 2;
         let increase_rate_bps_per_second: f64 = (avg_packet_size / response_time).bps_float();
         const MinIncreaseRateBpsPerSecond: f64 = 4000.0;
-        return increase_rate_bps_per_second.max(MinIncreaseRateBpsPerSecond);
+        increase_rate_bps_per_second.max(MinIncreaseRateBpsPerSecond)
     }
     // Returns the expected time between overuse signals (assuming steady state).
     pub fn GetExpectedBandwidthPeriod(&self) -> TimeDelta {
@@ -223,9 +223,9 @@ impl AimdRateControl {
             let time_to_recover_decrease_seconds: f64 =
                 last_decrease.bps_float() / increase_rate_bps_per_second;
             let period: TimeDelta = TimeDelta::SecondsFloat(time_to_recover_decrease_seconds);
-            return period.Clamped(MinPeriod, MaxPeriod);
+            period.Clamped(MinPeriod, MaxPeriod)
         } else {
-            return DefaultPeriod;
+            DefaultPeriod
         }
     }
 
@@ -248,7 +248,7 @@ impl AimdRateControl {
         // An over-use should always trigger us to reduce the bitrate, even though
         // we have not yet established our first estimate. By acting on the over-use,
         // we will end up with a valid estimate.
-        if (!self.bitrate_is_initialized && input.bw_state != BandwidthUsage::Overusing) {
+        if !self.bitrate_is_initialized && input.bw_state != BandwidthUsage::Overusing {
             return;
         }
 
@@ -257,7 +257,7 @@ impl AimdRateControl {
         match self.rate_control_state {
             RateControlState::Hold => (),
             RateControlState::Increase => {
-                if (estimated_throughput > self.link_capacity.UpperBound()) {
+                if estimated_throughput > self.link_capacity.UpperBound() {
                     self.link_capacity.Reset();
                 }
 
@@ -266,7 +266,7 @@ impl AimdRateControl {
                 // easily get stuck if the encoder produces uneven outputs.
                 let mut increase_limit: DataRate =
                     1.5 * estimated_throughput + DataRate::KilobitsPerSec(10);
-                if (self.send_side && self.in_alr && self.no_bitrate_increase_in_alr) {
+                if self.send_side && self.in_alr && self.no_bitrate_increase_in_alr {
                     // Do not increase the delay based estimate in alr since the estimator
                     // will not be able to get transport feedback necessary to detect if
                     // the new estimate is correct.
@@ -275,16 +275,15 @@ impl AimdRateControl {
                     increase_limit = self.current_bitrate;
                 }
 
-                if (self.current_bitrate < increase_limit) {
-                    let mut increased_bitrate: DataRate = DataRate::MinusInfinity();
-                    if (self.link_capacity.has_estimate()) {
+                if self.current_bitrate < increase_limit {
+                    let increased_bitrate: DataRate = if self.link_capacity.has_estimate() {
                         // The link_capacity estimate is reset if the measured throughput
                         // is too far from the estimate. We can therefore assume that our
                         // target rate is reasonably close to link capacity and use additive
                         // increase.
                         let additive_increase: DataRate =
                             self.AdditiveRateIncrease(at_time, self.time_last_bitrate_change);
-                        increased_bitrate = self.current_bitrate + additive_increase;
+                        self.current_bitrate + additive_increase
                     } else {
                         // If we don't have an estimate of the link capacity, use faster ramp
                         // up to discover the capacity.
@@ -293,43 +292,41 @@ impl AimdRateControl {
                             self.time_last_bitrate_change,
                             self.current_bitrate,
                         );
-                        increased_bitrate = self.current_bitrate + multiplicative_increase;
-                    }
+                        self.current_bitrate + multiplicative_increase
+                    };
                     new_bitrate = Some(increased_bitrate.min(increase_limit));
                 }
                 self.time_last_bitrate_change = at_time;
             }
             RateControlState::Decrease => {
-                let mut decreased_bitrate: DataRate = DataRate::PlusInfinity();
-
                 // Set bit rate to something slightly lower than the measured throughput
                 // to get rid of any self-induced delay.
-                decreased_bitrate = estimated_throughput * self.beta;
-                if (decreased_bitrate > DataRate::KilobitsPerSec(5)) {
+                let mut decreased_bitrate: DataRate = estimated_throughput * self.beta;
+                if decreased_bitrate > DataRate::KilobitsPerSec(5) {
                     decreased_bitrate -= DataRate::KilobitsPerSec(5);
                 }
 
-                if (decreased_bitrate > self.current_bitrate) {
+                if decreased_bitrate > self.current_bitrate {
                     // TODO(terelius): The link_capacity estimate may be based on old
                     // throughput measurements. Relying on them may lead to unnecessary
                     // BWE drops.
-                    if (self.link_capacity.has_estimate()) {
+                    if self.link_capacity.has_estimate() {
                         decreased_bitrate = self.beta * self.link_capacity.estimate();
                     }
                 }
                 // Avoid increasing the rate when over-using.
-                if (decreased_bitrate < self.current_bitrate) {
+                if decreased_bitrate < self.current_bitrate {
                     new_bitrate = Some(decreased_bitrate);
                 }
 
-                if (self.bitrate_is_initialized && estimated_throughput < self.current_bitrate) {
+                if self.bitrate_is_initialized && estimated_throughput < self.current_bitrate {
                     if let Some(new_bitrate) = new_bitrate {
                         self.last_decrease = Some(self.current_bitrate - new_bitrate);
                     } else {
                         self.last_decrease = Some(DataRate::Zero());
                     }
                 }
-                if (estimated_throughput < self.link_capacity.LowerBound()) {
+                if estimated_throughput < self.link_capacity.LowerBound() {
                     // The current throughput is far from the estimated link capacity. Clear
                     // the estimate to allow an immediate update in OnOveruseDetected.
                     self.link_capacity.Reset();
@@ -342,7 +339,6 @@ impl AimdRateControl {
                 self.time_last_bitrate_change = at_time;
                 self.time_last_bitrate_decrease = at_time;
             }
-            _ => unreachable!(),
         };
 
         self.current_bitrate = self.ClampBitrate(new_bitrate.unwrap_or(self.current_bitrate));
@@ -350,8 +346,8 @@ impl AimdRateControl {
 
     fn ClampBitrate(&self, mut new_bitrate: DataRate) -> DataRate {
         if let Some(network_estimate) = self.network_estimate.as_ref() {
-            if (!self.disable_estimate_bounded_increase
-                && network_estimate.link_capacity_upper.IsFinite())
+            if !self.disable_estimate_bounded_increase
+                && network_estimate.link_capacity_upper.IsFinite()
             {
                 let upper_bound: DataRate = if self.use_current_estimate_as_min_upper_bound {
                     network_estimate
@@ -362,8 +358,8 @@ impl AimdRateControl {
                 };
                 new_bitrate = upper_bound.min(new_bitrate);
             }
-            if (network_estimate.link_capacity_lower.IsFinite()
-                && new_bitrate < self.current_bitrate)
+            if network_estimate.link_capacity_lower.IsFinite()
+                && new_bitrate < self.current_bitrate
             {
                 new_bitrate = self
                     .current_bitrate
@@ -371,7 +367,7 @@ impl AimdRateControl {
             }
         }
         new_bitrate = new_bitrate.max(self.min_configured_bitrate);
-        return new_bitrate;
+        new_bitrate
     }
 
     fn MultiplicativeRateIncrease(
@@ -381,40 +377,36 @@ impl AimdRateControl {
         current_bitrate: DataRate,
     ) -> DataRate {
         let mut alpha: f64 = 1.08;
-        if (last_time.IsFinite()) {
+        if last_time.IsFinite() {
             let time_since_last_update = at_time - last_time;
             alpha = alpha.powf(time_since_last_update.seconds_float().min(1.0));
         }
         let multiplicative_increase: DataRate =
             (current_bitrate * (alpha - 1.0)).max(DataRate::BitsPerSec(1000));
-        return multiplicative_increase;
+        multiplicative_increase
     }
     fn AdditiveRateIncrease(&self, at_time: Timestamp, last_time: Timestamp) -> DataRate {
         let time_period_seconds: f64 = (at_time - last_time).seconds_float();
         let data_rate_increase_bps: f64 =
             self.GetNearMaxIncreaseRateBpsPerSecond() * time_period_seconds;
-        return DataRate::BitsPerSecFloat(data_rate_increase_bps);
-    }
-    fn UpdateChangePeriod(&mut self, at_time: Timestamp) {
-        unreachable!("not used?");
+        DataRate::BitsPerSecFloat(data_rate_increase_bps)
     }
     fn ChangeState(&mut self, input: RateControlInput, at_time: Timestamp) {
-        match (input.bw_state) {
+        match input.bw_state {
             BandwidthUsage::Normal => {
-                if (self.rate_control_state == RateControlState::Hold) {
+                if self.rate_control_state == RateControlState::Hold {
                     self.time_last_bitrate_change = at_time;
                     self.rate_control_state = RateControlState::Increase;
                 }
             }
             BandwidthUsage::Overusing => {
-                if (self.rate_control_state != RateControlState::Decrease) {
+                if self.rate_control_state != RateControlState::Decrease {
                     self.rate_control_state = RateControlState::Decrease;
                 }
             }
             BandwidthUsage::Underusing => {
                 self.rate_control_state = RateControlState::Hold;
             }
-            _ => unreachable!(),
         }
     }
 }
@@ -487,7 +479,7 @@ mod test {
         const AckedBitrate: DataRate = DataRate::BitsPerSec(10_000);
         let mut now: Timestamp = InitialTime;
         aimd_rate_control.SetEstimate(AckedBitrate, now);
-        while (now - InitialTime < TimeDelta::Seconds(20)) {
+        while now - InitialTime < TimeDelta::Seconds(20) {
             aimd_rate_control.Update(
                 RateControlInput::new(BandwidthUsage::Normal, Some(AckedBitrate)),
                 now,
@@ -507,7 +499,7 @@ mod test {
         const AckedBitrate: DataRate = DataRate::BitsPerSec(10_000);
         let mut now: Timestamp = InitialTime;
         aimd_rate_control.SetEstimate(AckedBitrate, now);
-        while (now - InitialTime < TimeDelta::Seconds(20)) {
+        while now - InitialTime < TimeDelta::Seconds(20) {
             aimd_rate_control.Update(
                 RateControlInput::new(BandwidthUsage::Normal, Some(AckedBitrate)),
                 now,
@@ -629,7 +621,7 @@ mod test {
         // TODO(bugs.webrtc.org/9379): The comment in the AimdRateControl does not
         // match the constant.
         const InitializationTime: TimeDelta = TimeDelta::Seconds(5);
-        now += (InitializationTime + TimeDelta::Millis(1));
+        now += InitializationTime + TimeDelta::Millis(1);
         aimd_rate_control.Update(
             RateControlInput::new(BandwidthUsage::Normal, Some(InitialBitrate)),
             now,
@@ -649,6 +641,7 @@ mod test {
         // When alr is detected, the delay based estimator is not allowed to increase
         // bwe since there will be no feedback from the network if the new estimate
         // is correct.
+        // WebRTC-DontIncreaseDelayBasedBweInAlr/Enabled/
         let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
         aimd_rate_control.no_bitrate_increase_in_alr = true;
         let mut now: Timestamp = InitialTime;
@@ -670,8 +663,10 @@ mod test {
 
     #[test]
     fn SetEstimateIncreaseBweInAlr() {
+        // "WebRTC-DontIncreaseDelayBasedBweInAlr/Enabled/"
         let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
         aimd_rate_control.no_bitrate_increase_in_alr = true;
+
         const InitialBitrate: DataRate = DataRate::BitsPerSec(123_000);
         aimd_rate_control.SetEstimate(InitialBitrate, InitialTime);
         aimd_rate_control.SetInApplicationLimitedRegion(true);
@@ -715,8 +710,9 @@ mod test {
 
     #[test]
     fn SetEstimateNotUpperLimitedByCurrentBitrateIfNetworkEstimateIsLowIf() {
+        // WebRTC-Bwe-EstimateBoundedIncrease/c_upper:false/
         let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
-        aimd_rate_control.use_current_estimate_as_min_upper_bound = true;
+        aimd_rate_control.use_current_estimate_as_min_upper_bound = false;
 
         aimd_rate_control.SetEstimate(DataRate::BitsPerSec(500_000), InitialTime);
         assert_eq!(
@@ -766,6 +762,7 @@ mod test {
     fn EstimateIncreaseWhileNotInAlr() {
         // Allow the estimate to increase as long as alr is not detected to ensure
         // tha BWE can not get stuck at a certain bitrate.
+        // WebRTC-DontIncreaseDelayBasedBweInAlr/Enabled/
         let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
         aimd_rate_control.no_bitrate_increase_in_alr = true;
         let mut now: Timestamp = InitialTime;
@@ -785,15 +782,17 @@ mod test {
 
     #[test]
     fn EstimateNotLimitedByNetworkEstimateIfDisabled() {
+        // WebRTC-Bwe-EstimateBoundedIncrease/Disabled/
         let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
         aimd_rate_control.disable_estimate_bounded_increase = true;
+
         let mut now: Timestamp = InitialTime;
         const InitialBitrate: DataRate = DataRate::BitsPerSec(123_000);
         aimd_rate_control.SetEstimate(InitialBitrate, now);
         aimd_rate_control.SetInApplicationLimitedRegion(false);
         let mut network_estimate = NetworkStateEstimate::default();
         network_estimate.link_capacity_upper = DataRate::KilobitsPerSec(150);
-        aimd_rate_control.SetNetworkStateEstimate(Some(network_estimate.clone()));
+        aimd_rate_control.SetNetworkStateEstimate(Some(network_estimate));
 
         for i in 0..100 {
             aimd_rate_control.Update(RateControlInput::new(BandwidthUsage::Normal, None), now);

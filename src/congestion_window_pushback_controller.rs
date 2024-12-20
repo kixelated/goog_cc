@@ -51,15 +51,15 @@ impl CongestionWindowPushbackController {
             _ => return bitrate_bps,
         };
         let mut total_bytes: i64 = self.outstanding_bytes;
-        if (self.add_pacing) {
+        if self.add_pacing {
             total_bytes += self.pacing_bytes;
         }
         let fill_ratio: f64 = total_bytes as f64 / (data_window.bytes() as f64);
-        if (fill_ratio > 1.5) {
+        if fill_ratio > 1.5 {
             self.encoding_rate_ratio *= 0.9;
-        } else if (fill_ratio > 1.0) {
+        } else if fill_ratio > 1.0 {
             self.encoding_rate_ratio *= 0.95;
-        } else if (fill_ratio < 0.1) {
+        } else if fill_ratio < 0.1 {
             self.encoding_rate_ratio = 1.0;
         } else {
             self.encoding_rate_ratio *= 1.05;
@@ -75,7 +75,7 @@ impl CongestionWindowPushbackController {
         } else {
             adjusted_target_bitrate_bps
         };
-        return bitrate_bps;
+        bitrate_bps
     }
 
     pub fn SetDataWindow(&mut self, data_window: DataSize) {

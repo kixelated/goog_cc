@@ -183,9 +183,9 @@ impl Default for SentPacket {
 }
 
 pub struct ReceivedPacket {
-    send_time: Timestamp,
-    receive_time: Timestamp,
-    size: DataSize,
+    pub send_time: Timestamp,
+    pub receive_time: Timestamp,
+    pub size: DataSize,
 }
 
 impl Default for ReceivedPacket {
@@ -201,8 +201,8 @@ impl Default for ReceivedPacket {
 // Transport level feedback
 
 pub struct RemoteBitrateReport {
-    receive_time: Timestamp,
-    bandwidth: DataRate,
+    pub receive_time: Timestamp,
+    pub bandwidth: DataRate,
 }
 
 impl Default for RemoteBitrateReport {
@@ -215,9 +215,9 @@ impl Default for RemoteBitrateReport {
 }
 
 pub struct RoundTripTimeUpdate {
-    receive_time: Timestamp,
-    round_trip_time: TimeDelta,
-    smoothed: bool,
+    pub receive_time: Timestamp,
+    pub round_trip_time: TimeDelta,
+    pub smoothed: bool,
 }
 
 impl Default for RoundTripTimeUpdate {
@@ -231,11 +231,11 @@ impl Default for RoundTripTimeUpdate {
 }
 
 pub struct TransportLossReport {
-    receive_time: Timestamp,
-    start_time: Timestamp,
-    end_time: Timestamp,
-    packets_lost_delta: u64,
-    packets_received_delta: u64,
+    pub receive_time: Timestamp,
+    pub start_time: Timestamp,
+    pub end_time: Timestamp,
+    pub packets_lost_delta: u64,
+    pub packets_received_delta: u64,
 }
 
 impl Default for TransportLossReport {
@@ -384,10 +384,10 @@ impl Default for PacerConfig {
 
 impl PacerConfig {
     pub fn data_rate(&self) -> DataRate {
-        return self.data_window / self.time_window;
+        self.data_window / self.time_window
     }
     pub fn pad_rate(&self) -> DataRate {
-        return self.pad_window / self.time_window;
+        self.pad_window / self.time_window
     }
 }
 
@@ -448,10 +448,10 @@ pub struct NetworkControlUpdate {
 
 impl NetworkControlUpdate {
     pub fn has_updates(&self) -> bool {
-        return self.congestion_window.is_some()
+        self.congestion_window.is_some()
             || self.pacer_config.is_some()
             || !self.probe_cluster_configs.is_empty()
-            || self.target_rate.is_some();
+            || self.target_rate.is_some()
     }
 }
 

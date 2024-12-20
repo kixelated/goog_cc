@@ -125,6 +125,8 @@ impl fmt::Debug for TimeDelta {
 
 #[cfg(test)]
 mod test {
+    use approx::assert_relative_eq;
+
     use super::*;
 
     #[test]
@@ -278,7 +280,7 @@ mod test {
         assert_eq!(TimeDelta::Micros(Micros).us_float(), MicrosDouble);
         assert_eq!(TimeDelta::MicrosFloat(MicrosDouble).us(), Micros);
 
-        assert!((TimeDelta::Micros(Micros).ns_float() - NanosDouble).abs() <= 1.0);
+        assert_relative_eq!(TimeDelta::Micros(Micros).ns_float(), NanosDouble, epsilon = 1.0);
 
         const PlusInfinity: f64 = f64::INFINITY;
         const MinusInfinity: f64 = -PlusInfinity;
@@ -339,7 +341,7 @@ mod test {
         assert_eq!((Value * UnsignedInt).us(), Value.us() * UnsignedInt as i64);
         assert_eq!(Value * UnsignedInt, UnsignedInt * Value);
 
-        assert!((((Value * Float).us() as f64) - (Value.us_float() * Float)).abs() <= 0.1);
+        assert_relative_eq!((Value * Float).us_float(), Value.us_float() * Float, epsilon = 0.1);
         assert_eq!(Value * Float, Float * Value);
     }
 

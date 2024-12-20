@@ -19,7 +19,7 @@ struct TimestampGroup {
 }
 impl TimestampGroup {
     pub fn IsFirstPacket(&self) -> bool {
-        return self.complete_time_ms == -1;
+        self.complete_time_ms == -1
     }
 }
 
@@ -53,7 +53,7 @@ impl InterArrival {
     pub const ReorderedResetThreshold: usize = 3;
     pub const ArrivalTimeOffsetThresholdMs: i64 = 3000;
 
-    const BurstDeltaThresholdMs: u64 = 5;
+    const BurstDeltaThresholdMs: i64 = 5;
     const MaxBurstDurationMs: i64 = 100;
 
     // A timestamp group is defined as all packets with a timestamp which are at
@@ -64,7 +64,7 @@ impl InterArrival {
             timestamp_group_length_ticks,
             current_timestamp_group: TimestampGroup::default(),
             prev_timestamp_group: TimestampGroup::default(),
-            timestamp_to_ms_coeff: timestamp_to_ms_coeff,
+            timestamp_to_ms_coeff,
             num_consecutive_reordered_packets: 0,
         }
     }
@@ -88,17 +88,17 @@ impl InterArrival {
         packet_size_delta: &mut i64,
     ) -> bool {
         let mut calculated_deltas = false;
-        if (self.current_timestamp_group.IsFirstPacket()) {
+        if self.current_timestamp_group.IsFirstPacket() {
             // We don't have enough data to update the filter, so we store it until we
             // have two frames of data to process.
             self.current_timestamp_group.timestamp = timestamp;
             self.current_timestamp_group.first_timestamp = timestamp;
             self.current_timestamp_group.first_arrival_ms = arrival_time_ms;
-        } else if (!self.PacketInOrder(timestamp)) {
+        } else if !self.PacketInOrder(timestamp) {
             return false;
-        } else if (self.NewTimestampGroup(arrival_time_ms, timestamp)) {
+        } else if self.NewTimestampGroup(arrival_time_ms, timestamp) {
             // First packet of a later frame, the previous frame sample is ready.
-            if (self.prev_timestamp_group.complete_time_ms >= 0) {
+            if self.prev_timestamp_group.complete_time_ms >= 0 {
                 *timestamp_delta =
                     self.current_timestamp_group.timestamp - self.prev_timestamp_group.timestamp;
                 *arrival_time_delta_ms = self.current_timestamp_group.complete_time_ms
@@ -107,8 +107,8 @@ impl InterArrival {
                 // in arrival time. In that case reset the inter-arrival computations.
                 let system_time_delta_ms: i64 = self.current_timestamp_group.last_system_time_ms
                     - self.prev_timestamp_group.last_system_time_ms;
-                if (*arrival_time_delta_ms - system_time_delta_ms
-                    >= Self::ArrivalTimeOffsetThresholdMs)
+                if *arrival_time_delta_ms - system_time_delta_ms
+                    >= Self::ArrivalTimeOffsetThresholdMs
                 {
                     tracing::warn!(
                         "The arrival time clock offset has changed (diff = {} ms), resetting.",
@@ -117,11 +117,11 @@ impl InterArrival {
                     self.Reset();
                     return false;
                 }
-                if (*arrival_time_delta_ms < 0) {
+                if *arrival_time_delta_ms < 0 {
                     // The group of packets has been reordered since receiving its local
                     // arrival timestamp.
                     self.num_consecutive_reordered_packets += 1;
-                    if (self.num_consecutive_reordered_packets >= Self::ReorderedResetThreshold) {
+                    if self.num_consecutive_reordered_packets >= Self::ReorderedResetThreshold {
                         tracing::warn!(
                             "Packets are being reordered on the path from the
                  socket to the bandwidth estimator. Ignoring this
@@ -153,28 +153,28 @@ impl InterArrival {
         self.current_timestamp_group.complete_time_ms = arrival_time_ms;
         self.current_timestamp_group.last_system_time_ms = system_time_ms;
 
-        return calculated_deltas;
+        calculated_deltas
     }
 
     // Returns true if the packet with timestamp `timestamp` arrived in order.
     fn PacketInOrder(&self, timestamp: u32) -> bool {
-        if (self.current_timestamp_group.IsFirstPacket()) {
-            return true;
+        if self.current_timestamp_group.IsFirstPacket() {
+            true
         } else {
             // Assume that a diff which is bigger than half the timestamp interval
             // (32 bits) must be due to reordering. This code is almost identical to
             // that in IsNewerTimestamp() in module_common_types.h.
-            let timestamp_diff: u32 = timestamp - self.current_timestamp_group.first_timestamp;
-            return timestamp_diff < 0x80000000;
+            let timestamp_diff: u32 = timestamp.wrapping_sub(self.current_timestamp_group.first_timestamp);
+            timestamp_diff < 0x80000000
         }
     }
 
     // Returns true if the last packet was the end of the current batch and the
     // packet with `timestamp` is the first of a new batch.
     fn NewTimestampGroup(&self, arrival_time_ms: i64, timestamp: u32) -> bool {
-        if (self.current_timestamp_group.IsFirstPacket()) {
-            return false;
-        } else if (self.BelongsToBurst(arrival_time_ms, timestamp)) {
+        if self.current_timestamp_group.IsFirstPacket() {
+            false
+        } else if self.BelongsToBurst(arrival_time_ms, timestamp) {
             return false;
         } else {
             let timestamp_diff: u32 = timestamp - self.current_timestamp_group.first_timestamp;
@@ -184,22 +184,22 @@ impl InterArrival {
 
     fn BelongsToBurst(&self, arrival_time_ms: i64, timestamp: u32) -> bool {
         assert!(self.current_timestamp_group.complete_time_ms >= 0);
-        let arrival_time_delta_ms: u64 =
-            (arrival_time_ms - self.current_timestamp_group.complete_time_ms) as u64;
-        let timestamp_diff: u32 = timestamp - self.current_timestamp_group.timestamp;
-        let ts_delta_ms: u64 = (self.timestamp_to_ms_coeff * (timestamp_diff as f64) + 0.5) as u64;
-        if (ts_delta_ms == 0) {
+        let arrival_time_delta_ms: i64 =
+            arrival_time_ms - self.current_timestamp_group.complete_time_ms;
+        let timestamp_diff: u32 = timestamp.wrapping_sub(self.current_timestamp_group.timestamp);
+        let ts_delta_ms: i64 = (self.timestamp_to_ms_coeff * (timestamp_diff as f64) + 0.5) as i64;
+        if ts_delta_ms == 0 {
             return true;
         }
-        let propagation_delta_ms: u64 = arrival_time_delta_ms - ts_delta_ms;
-        if (propagation_delta_ms < 0
+        let propagation_delta_ms: i64 = arrival_time_delta_ms - ts_delta_ms;
+        if propagation_delta_ms < 0
             && arrival_time_delta_ms <= Self::BurstDeltaThresholdMs
             && arrival_time_ms - self.current_timestamp_group.first_arrival_ms
-                < Self::MaxBurstDurationMs)
+                < Self::MaxBurstDurationMs
         {
             return true;
         }
-        return false;
+        false
     }
 
     fn Reset(&mut self) {
@@ -211,6 +211,8 @@ impl InterArrival {
 
 #[cfg(test)]
 mod test {
+    use approx::{assert_relative_eq};
+
     use super::*;
 
     const TimestampGroupLengthUs: i64 = 5000;
@@ -353,7 +355,7 @@ mod test {
             for i in 0..10 {
                 // Slowly step across the wrap point.
                 arrival_time += BurstThresholdMs + 1;
-                if (unorderly_within_group) {
+                if unorderly_within_group {
                     // These packets arrive with timestamps in decreasing order but are
                     // nevertheless accumulated to group because their timestamps are higher
                     // than the initial timestamp of the group.
@@ -400,13 +402,13 @@ mod test {
         }
 
         fn MakeRtpTimestamp(us: i64) -> u32 {
-            return ((us * 90 + 500) as u64 / 1000) as u32;
+            ((us * 90 + 500) as u64 / 1000) as u32
         }
 
         fn MakeAbsSendTime(us: i64) -> u32 {
             let absolute_send_time: u32 =
                 ((((us as u64) << 18) + 500000) / 1000000) as u32 & 0x00FFFFFF;
-            return absolute_send_time << 8;
+            absolute_send_time << 8
         }
 
         fn InternalExpectFalse(
@@ -427,7 +429,7 @@ mod test {
                 &mut dummy_arrival_time_ms,
                 &mut dummy_packet_size,
             );
-            assert_eq!(computed, false);
+            assert!(!computed);
             assert_eq!(101, dummy_timestamp);
             assert_eq!(303, dummy_arrival_time_ms);
             assert_eq!(909, dummy_packet_size);
@@ -455,10 +457,9 @@ mod test {
                 &mut delta_arrival_time_ms,
                 &mut delta_packet_size,
             );
-            assert_eq!(true, computed);
-            assert!(
-                (expected_timestamp_delta as i64 - delta_timestamp as i64).abs() as u32
-                    <= timestamp_near
+            assert!(computed);
+            assert_relative_eq!(
+                expected_timestamp_delta as f64, delta_timestamp as f64, epsilon = timestamp_near as f64
             );
             assert_eq!(expected_arrival_time_delta_ms, delta_arrival_time_ms);
             assert_eq!(expected_packet_size_delta, delta_packet_size);
@@ -711,7 +712,7 @@ mod test {
             TriggerNewGroupUs + 30000,
             arrival_time + BurstThresholdMs + 1,
             100,
-            timestamp - 0,
+            timestamp,
             arrival_time - 17,
             2 - 1, // Delta G2-G1
             0,
