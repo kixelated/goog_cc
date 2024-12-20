@@ -8,6 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+use crate::api::units::LatestTimestamp;
+
 #[derive(Clone, Copy, Debug)]
 struct TimestampGroup {
     pub size: usize,
@@ -99,8 +101,10 @@ impl InterArrival {
         } else if self.NewTimestampGroup(arrival_time_ms, timestamp) {
             // First packet of a later frame, the previous frame sample is ready.
             if self.prev_timestamp_group.complete_time_ms >= 0 {
-                *timestamp_delta =
-                    self.current_timestamp_group.timestamp - self.prev_timestamp_group.timestamp;
+                *timestamp_delta = self
+                    .current_timestamp_group
+                    .timestamp
+                    .wrapping_sub(self.prev_timestamp_group.timestamp);
                 *arrival_time_delta_ms = self.current_timestamp_group.complete_time_ms
                     - self.prev_timestamp_group.complete_time_ms;
                 // Check system time differences to see if we have an unproportional jump
@@ -146,7 +150,7 @@ impl InterArrival {
             self.current_timestamp_group.size = 0;
         } else {
             self.current_timestamp_group.timestamp =
-                self.current_timestamp_group.timestamp.min(timestamp);
+                LatestTimestamp(self.current_timestamp_group.timestamp, timestamp);
         }
         // Accumulate the frame size.
         self.current_timestamp_group.size += packet_size;
@@ -164,7 +168,8 @@ impl InterArrival {
             // Assume that a diff which is bigger than half the timestamp interval
             // (32 bits) must be due to reordering. This code is almost identical to
             // that in IsNewerTimestamp() in module_common_types.h.
-            let timestamp_diff: u32 = timestamp.wrapping_sub(self.current_timestamp_group.first_timestamp);
+            let timestamp_diff: u32 =
+                timestamp.wrapping_sub(self.current_timestamp_group.first_timestamp);
             timestamp_diff < 0x80000000
         }
     }
@@ -177,7 +182,8 @@ impl InterArrival {
         } else if self.BelongsToBurst(arrival_time_ms, timestamp) {
             return false;
         } else {
-            let timestamp_diff: u32 = timestamp - self.current_timestamp_group.first_timestamp;
+            let timestamp_diff: u32 =
+                timestamp.wrapping_sub(self.current_timestamp_group.first_timestamp);
             return timestamp_diff > self.timestamp_group_length_ticks;
         }
     }
@@ -211,7 +217,7 @@ impl InterArrival {
 
 #[cfg(test)]
 mod test {
-    use approx::{assert_relative_eq};
+    use approx::assert_relative_eq;
 
     use super::*;
 
@@ -373,6 +379,7 @@ mod test {
             // G6
             arrival_time += BurstThresholdMs + 1;
             let g6_arrival_time: i64 = arrival_time;
+
             self.ExpectTrue(
                 wrap_start_us + TriggerNewGroupUs,
                 arrival_time,
@@ -459,7 +466,9 @@ mod test {
             );
             assert!(computed);
             assert_relative_eq!(
-                expected_timestamp_delta as f64, delta_timestamp as f64, epsilon = timestamp_near as f64
+                expected_timestamp_delta as f64,
+                delta_timestamp as f64,
+                epsilon = timestamp_near as f64
             );
             assert_eq!(expected_arrival_time_delta_ms, delta_arrival_time_ms);
             assert_eq!(expected_packet_size_delta, delta_packet_size);
@@ -901,7 +910,7 @@ mod test {
         // Three out of order will fail, after that we will be reset and two more will
         // fail before we get our first valid delta after the reset.
         arrival_time_ms -= 1000;
-        for i in [0..InterArrival::ReorderedResetThreshold + 3] {
+        for i in 0..InterArrival::ReorderedResetThreshold + 3 {
             send_time_ms += TimeDeltaMs as u32;
             arrival_time_ms += TimeDeltaMs;
             system_time_ms += TimeDeltaMs;

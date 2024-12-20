@@ -147,11 +147,12 @@ impl InterArrivalDelta {
     // Returns true if the last packet was the end of the current batch and the
     // packet with `send_time` is the first of a new batch.
     fn NewTimestampGroup(&self, arrival_time: Timestamp, send_time: Timestamp) -> bool {
-        if self.current_timestamp_group.IsFirstPacket() || self.BelongsToBurst(arrival_time, send_time) {
+        if self.current_timestamp_group.IsFirstPacket()
+            || self.BelongsToBurst(arrival_time, send_time)
+        {
             false
         } else {
-            send_time - self.current_timestamp_group.first_send_time
-                > self.send_time_group_length
+            send_time - self.current_timestamp_group.first_send_time > self.send_time_group_length
         }
     }
 

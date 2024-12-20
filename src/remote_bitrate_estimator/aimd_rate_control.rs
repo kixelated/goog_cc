@@ -358,8 +358,7 @@ impl AimdRateControl {
                 };
                 new_bitrate = upper_bound.min(new_bitrate);
             }
-            if network_estimate.link_capacity_lower.IsFinite()
-                && new_bitrate < self.current_bitrate
+            if network_estimate.link_capacity_lower.IsFinite() && new_bitrate < self.current_bitrate
             {
                 new_bitrate = self
                     .current_bitrate
