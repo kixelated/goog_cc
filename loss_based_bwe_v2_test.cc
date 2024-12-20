@@ -31,8 +31,8 @@ using ::webrtc::test::ExplicitKeyValueConfig;
 
 const ObservationDurationLowerBound: TimeDelta = TimeDelta::Millis(250);
 const DelayedIncreaseWindow: TimeDelta = TimeDelta::Millis(300);
-const kMaxIncreaseFactor: f64 = 1.5;
-const PacketSize: isize = 15'000;
+const MaxIncreaseFactor: f64 = 1.5;
+const PacketSize: isize = 15_000;
 
 class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
  protected:
@@ -67,10 +67,10 @@ fn Config(bool enabled, bool valid) -> std::string {
 
     config_string.AppendFormat(
         ",ObservationDurationLowerBound:%dms",
-        (kObservationDurationLowerBound.ms() as isize));
-    config_string.AppendFormat(",MaxIncreaseFactor:%f", kMaxIncreaseFactor);
+        (ObservationDurationLowerBound.ms() as isize));
+    config_string.AppendFormat(",MaxIncreaseFactor:%f", MaxIncreaseFactor);
     config_string.AppendFormat(",DelayedIncreaseWindow:%dms",
-                               (kDelayedIncreaseWindow.ms() as isize));
+                               (DelayedIncreaseWindow.ms() as isize));
 
     config_string << "/";
 
@@ -96,32 +96,32 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
         self.transport_sequence_number += 1;
     enough_feedback[1].sent_packet.sequence_number =
         self.transport_sequence_number += 1;
-    enough_feedback[0].sent_packet.size = DataSize::Bytes(kPacketSize);
-    enough_feedback[1].sent_packet.size = DataSize::Bytes(kPacketSize);
+    enough_feedback[0].sent_packet.size = DataSize::Bytes(PacketSize);
+    enough_feedback[1].sent_packet.size = DataSize::Bytes(PacketSize);
     enough_feedback[0].sent_packet.send_time = first_packet_timestamp;
     enough_feedback[1].sent_packet.send_time =
-        first_packet_timestamp + kObservationDurationLowerBound;
+        first_packet_timestamp + ObservationDurationLowerBound;
     enough_feedback[0].receive_time =
-        first_packet_timestamp + kObservationDurationLowerBound;
+        first_packet_timestamp + ObservationDurationLowerBound;
     enough_feedback[1].receive_time =
-        first_packet_timestamp + 2 * kObservationDurationLowerBound;
+        first_packet_timestamp + 2 * ObservationDurationLowerBound;
     return enough_feedback;
   }
 
   Vec<PacketResult> CreatePacketResultsWith10pPacketLossRate(
       Timestamp first_packet_timestamp,
-      let lost_packet_size: DataSize = DataSize::Bytes(kPacketSize)) {
+      let lost_packet_size: DataSize = DataSize::Bytes(PacketSize)) {
     let enough_feedback= vec![PacketResult::default(); 10];
     for (unsigned i = 0; i < enough_feedback.len()i += 1) {
       enough_feedback[i].sent_packet.sequence_number =
           self.transport_sequence_number += 1;
-      enough_feedback[i].sent_packet.size = DataSize::Bytes(kPacketSize);
+      enough_feedback[i].sent_packet.size = DataSize::Bytes(PacketSize);
       enough_feedback[i].sent_packet.send_time =
           first_packet_timestamp +
-          (i) as isize * kObservationDurationLowerBound;
+          (i) as isize * ObservationDurationLowerBound;
       enough_feedback[i].receive_time =
           first_packet_timestamp +
-          (i + 1) as isize * kObservationDurationLowerBound;
+          (i + 1) as isize * ObservationDurationLowerBound;
     }
     enough_feedback[9].receive_time = Timestamp::PlusInfinity();
     enough_feedback[9].sent_packet.size = lost_packet_size;
@@ -135,13 +135,13 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
         self.transport_sequence_number += 1;
     enough_feedback[1].sent_packet.sequence_number =
         self.transport_sequence_number += 1;
-    enough_feedback[0].sent_packet.size = DataSize::Bytes(kPacketSize);
-    enough_feedback[1].sent_packet.size = DataSize::Bytes(kPacketSize);
+    enough_feedback[0].sent_packet.size = DataSize::Bytes(PacketSize);
+    enough_feedback[1].sent_packet.size = DataSize::Bytes(PacketSize);
     enough_feedback[0].sent_packet.send_time = first_packet_timestamp;
     enough_feedback[1].sent_packet.send_time =
-        first_packet_timestamp + kObservationDurationLowerBound;
+        first_packet_timestamp + ObservationDurationLowerBound;
     enough_feedback[0].receive_time =
-        first_packet_timestamp + kObservationDurationLowerBound;
+        first_packet_timestamp + ObservationDurationLowerBound;
     enough_feedback[1].receive_time = Timestamp::PlusInfinity();
     return enough_feedback;
   }
@@ -152,7 +152,7 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
     for (unsigned i = 0; i < num_packets - 1i += 1) {
       enough_feedback[i].sent_packet.sequence_number =
           self.transport_sequence_number += 1;
-      enough_feedback[i].sent_packet.size = DataSize::Bytes(kPacketSize);
+      enough_feedback[i].sent_packet.size = DataSize::Bytes(PacketSize);
       enough_feedback[i].sent_packet.send_time =
           first_packet_timestamp + TimeDelta::Millis(i * 10);
       enough_feedback[i].receive_time = Timestamp::PlusInfinity();
@@ -160,9 +160,9 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
     enough_feedback[num_packets - 1].sent_packet.sequence_number =
         self.transport_sequence_number += 1;
     enough_feedback[num_packets - 1].sent_packet.size =
-        DataSize::Bytes(kPacketSize);
+        DataSize::Bytes(PacketSize);
     enough_feedback[num_packets - 1].sent_packet.send_time =
-        first_packet_timestamp + kObservationDurationLowerBound;
+        first_packet_timestamp + ObservationDurationLowerBound;
     enough_feedback[num_packets - 1].receive_time = Timestamp::PlusInfinity();
     return enough_feedback;
   }
@@ -299,15 +299,15 @@ fn NoBandwidthEstimateGivenNotEnoughFeedback() {
   // Create packet results where the observation duration is less than the lower
   // bound.
   PacketResult not_enough_feedback[2];
-  not_enough_feedback[0].sent_packet.size = DataSize::Bytes(15'000);
-  not_enough_feedback[1].sent_packet.size = DataSize::Bytes(15'000);
+  not_enough_feedback[0].sent_packet.size = DataSize::Bytes(15_000);
+  not_enough_feedback[1].sent_packet.size = DataSize::Bytes(15_000);
   not_enough_feedback[0].sent_packet.send_time = Timestamp::Zero();
   not_enough_feedback[1].sent_packet.send_time =
-      Timestamp::Zero() + kObservationDurationLowerBound / 2;
+      Timestamp::Zero() + ObservationDurationLowerBound / 2;
   not_enough_feedback[0].receive_time =
-      Timestamp::Zero() + kObservationDurationLowerBound / 2;
+      Timestamp::Zero() + ObservationDurationLowerBound / 2;
   not_enough_feedback[1].receive_time =
-      Timestamp::Zero() + kObservationDurationLowerBound;
+      Timestamp::Zero() + ObservationDurationLowerBound;
 
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
@@ -338,7 +338,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          2 * kObservationDurationLowerBound);
+          2 * ObservationDurationLowerBound);
 
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
@@ -380,7 +380,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          2 * kObservationDurationLowerBound);
+          2 * ObservationDurationLowerBound);
 
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
@@ -459,7 +459,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          2 * kObservationDurationLowerBound);
+          2 * ObservationDurationLowerBound);
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -498,7 +498,7 @@ fn UseAckedBitrateForEmegencyBackOff() {
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          2 * kObservationDurationLowerBound);
+          2 * ObservationDurationLowerBound);
 
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
@@ -566,7 +566,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound - TimeDelta::Millis(1));
+          ObservationDurationLowerBound - TimeDelta::Millis(1));
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -599,7 +599,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound - TimeDelta::Millis(1));
+          ObservationDurationLowerBound - TimeDelta::Millis(1));
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -628,7 +628,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          2 * kObservationDurationLowerBound);
+          2 * ObservationDurationLowerBound);
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -679,7 +679,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound);
+          ObservationDurationLowerBound);
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(600));
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_2,
@@ -713,14 +713,14 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_1,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
 
   // Network recovers after loss.
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound);
+          ObservationDurationLowerBound);
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(600));
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_2,
@@ -733,7 +733,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_3 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound * 2);
+          ObservationDurationLowerBound * 2);
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(600));
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_3,
@@ -761,14 +761,14 @@ TEST_F(LossBasedBweV2Test,
       enough_feedback_1,
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
 
   // Network recovers after loss.
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound);
+          ObservationDurationLowerBound);
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
       DataRate::KilobitsPerSec(600));
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -801,7 +801,7 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_1,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   LossBasedBweV2::Result result =
       loss_based_bandwidth_estimator.GetLossBasedResult();
@@ -815,12 +815,12 @@ TEST_F(LossBasedBweV2Test,
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            feedback_count++ * kObservationDurationLowerBound),
+            feedback_count++ * ObservationDurationLowerBound),
         delay_based_estimate,
         /*in_alr=*/false);
     result = loss_based_bandwidth_estimator.GetLossBasedResult();
   }
-  ASSERT_EQ(result.state, LossBasedState::kIncreasing);
+  assert_eq!(result.state, LossBasedState::kIncreasing);
 
   // The estimate is capped by acked_bitrate * BwRampupUpperBoundFactor.
   assert_eq!(result.bandwidth_estimate, estimate_1 * 0.9 * 1.2);
@@ -831,7 +831,7 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          feedback_count++ * kObservationDurationLowerBound),
+          feedback_count++ * ObservationDurationLowerBound),
       delay_based_estimate,
       /*in_alr=*/false);
   assert_eq!(
@@ -839,7 +839,7 @@ TEST_F(LossBasedBweV2Test,
       result.bandwidth_estimate);
 }
 
-// Ensure that the state can switch to kIncrease even when the bandwidth is
+// Ensure that the state can switch to Increase even when the bandwidth is
 // bounded by acked bitrate.
 #[test]
 fn EnsureIncreaseEvenIfAckedBitrateBound() {
@@ -861,7 +861,7 @@ fn EnsureIncreaseEvenIfAckedBitrateBound() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(enough_feedback_1,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   LossBasedBweV2::Result result =
       loss_based_bandwidth_estimator.GetLossBasedResult();
@@ -876,13 +876,13 @@ fn EnsureIncreaseEvenIfAckedBitrateBound() {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            feedback_count++ * kObservationDurationLowerBound),
+            feedback_count++ * ObservationDurationLowerBound),
         delay_based_estimate,
         /*in_alr=*/false);
     result = loss_based_bandwidth_estimator.GetLossBasedResult();
   }
 
-  ASSERT_EQ(result.state, LossBasedState::kIncreasing);
+  assert_eq!(result.state, LossBasedState::kIncreasing);
   // The estimate increases by 1kbps.
   assert_eq!(result.bandwidth_estimate, estimate_1 + DataRate::BitsPerSec(1));
 }
@@ -897,11 +897,11 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kDelayedIncreaseWindow - TimeDelta::Millis(2));
+          DelayedIncreaseWindow - TimeDelta::Millis(2));
   Vec<PacketResult> enough_feedback_3 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kDelayedIncreaseWindow - TimeDelta::Millis(1));
+          DelayedIncreaseWindow - TimeDelta::Millis(1));
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -922,7 +922,7 @@ TEST_F(LossBasedBweV2Test,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
 
-  // The estimate is capped by current_estimate * kMaxIncreaseFactor because
+  // The estimate is capped by current_estimate * MaxIncreaseFactor because
   // it recently backed off.
   let estimate_2: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
@@ -946,11 +946,11 @@ fn KeepIncreasingEstimateAfterDelayedIncreaseWindow() {
   Vec<PacketResult> enough_feedback_2 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kDelayedIncreaseWindow - TimeDelta::Millis(1));
+          DelayedIncreaseWindow - TimeDelta::Millis(1));
   Vec<PacketResult> enough_feedback_3 =
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kDelayedIncreaseWindow + TimeDelta::Millis(1));
+          DelayedIncreaseWindow + TimeDelta::Millis(1));
   ExplicitKeyValueConfig key_value_config(
       Config(/*enabled=*/true, /*valid=*/true));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
@@ -971,7 +971,7 @@ fn KeepIncreasingEstimateAfterDelayedIncreaseWindow() {
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
 
-  // The estimate is capped by current_estimate * kMaxIncreaseFactor because it
+  // The estimate is capped by current_estimate * MaxIncreaseFactor because it
   // recently backed off.
   let estimate_2: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
@@ -1006,7 +1006,7 @@ fn NotIncreaseIfInherentLossLessThanAverageLoss() {
   Vec<PacketResult> enough_feedback_10p_loss_2 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound);
+          ObservationDurationLowerBound);
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       enough_feedback_10p_loss_2,
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
@@ -1040,7 +1040,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_10p_loss_2 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound);
+          ObservationDurationLowerBound);
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       enough_feedback_10p_loss_2, delay_based_estimate,
 
@@ -1074,7 +1074,7 @@ TEST_F(LossBasedBweV2Test,
   Vec<PacketResult> enough_feedback_10p_loss_2 =
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound);
+          ObservationDurationLowerBound);
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       enough_feedback_10p_loss_2, delay_based_estimate,
 
@@ -1268,7 +1268,7 @@ fn HasDecreaseStateBecauseOfUpperBound() {
       /*in_alr=*/false);
 
   // Verify that the instant upper bound decreases the estimate, and state is
-  // updated to kDecreasing.
+  // updated to Decreasing.
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(200));
@@ -1298,7 +1298,7 @@ fn HasIncreaseStateBecauseOfLowerBound() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
 
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
 
   // Network still has a high loss, but better acked rate.
@@ -1307,14 +1307,14 @@ fn HasIncreaseStateBecauseOfLowerBound() {
   Vec<PacketResult> enough_feedback_50p_loss_2 =
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound);
+          ObservationDurationLowerBound);
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       enough_feedback_50p_loss_2,
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
 
   // Verify that the instant lower bound increases the estimate, and state is
-  // updated to kIncreasing.
+  // updated to Increasing.
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(200) * 10);
@@ -1338,13 +1338,13 @@ TEST_F(LossBasedBweV2Test,
       /*in_alr=*/true);
   LossBasedBweV2::Result result_after_loss =
       loss_based_bandwidth_estimator.GetLossBasedResult();
-  ASSERT_EQ(result_after_loss.state, LossBasedState::kDecreasing);
+  assert_eq!(result_after_loss.state, LossBasedState::kDecreasing);
 
   for (isize feedback_count = 1; feedback_count <= 3feedback_count += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            feedback_count * kObservationDurationLowerBound),
+            feedback_count * ObservationDurationLowerBound),
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/true);
   }
@@ -1376,12 +1376,12 @@ fn HasDelayBasedStateIfLossBasedBweIsMax() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       /*feedback=*/CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::KilobitsPerSec(2000),
       /*in_alr=*/false);
   LossBasedBweV2::Result result =
       loss_based_bandwidth_estimator.GetLossBasedResult();
-  ASSERT_EQ(result.state, LossBasedState::kDecreasing);
+  assert_eq!(result.state, LossBasedState::kDecreasing);
   ASSERT_LT(result.bandwidth_estimate, DataRate::KilobitsPerSec(1000));
 
   // Eventually  the estimator recovers to delay based state.
@@ -1391,7 +1391,7 @@ fn HasDelayBasedStateIfLossBasedBweIsMax() {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         /*feedback = */ CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            feedback_count++ * kObservationDurationLowerBound),
+            feedback_count++ * ObservationDurationLowerBound),
         /*delay_based_estimate=*/DataRate::KilobitsPerSec(2000),
         /*in_alr=*/false);
     result = loss_based_bandwidth_estimator.GetLossBasedResult();
@@ -1414,13 +1414,13 @@ fn IncreaseUsingPaddingStateIfFieldTrial() {
           /*first_packet_timestamp=*/Timestamp::Zero()),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
 
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1441,18 +1441,18 @@ fn BestCandidateResetsToUpperBoundInFieldTrial() {
       /*in_alr=*/true);
   LossBasedBweV2::Result result_after_loss =
       loss_based_bandwidth_estimator.GetLossBasedResult();
-  ASSERT_EQ(result_after_loss.state, LossBasedState::kDecreasing);
+  assert_eq!(result_after_loss.state, LossBasedState::kDecreasing);
 
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/true);
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          2 * kObservationDurationLowerBound),
+          2 * ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/true);
   // After a BWE decrease due to large loss, BWE is expected to ramp up slowly
@@ -1479,7 +1479,7 @@ fn DecreaseToAckedCandidateIfPaddingInAlr() {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWith100pLossRate(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            kObservationDurationLowerBound * feedback_id),
+            ObservationDurationLowerBound * feedback_id),
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/true);
     feedback_id++;
@@ -1490,7 +1490,7 @@ fn DecreaseToAckedCandidateIfPaddingInAlr() {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            kObservationDurationLowerBound * feedback_id),
+            ObservationDurationLowerBound * feedback_id),
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/true);
     feedback_id++;
@@ -1505,7 +1505,7 @@ fn DecreaseToAckedCandidateIfPaddingInAlr() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound * feedback_id),
+          ObservationDurationLowerBound * feedback_id),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/true);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1529,9 +1529,9 @@ fn DecreaseAfterPadding() {
           /*first_packet_timestamp=*/Timestamp::Zero()),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
-  ASSERT_EQ(
+  assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       acknowledged_bitrate);
 
@@ -1543,22 +1543,22 @@ fn DecreaseAfterPadding() {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            kObservationDurationLowerBound * feedback_id),
+            ObservationDurationLowerBound * feedback_id),
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/false);
     feedback_id++;
   }
 
   const estimate_increased: Timestamp
-      Timestamp::Zero() + kObservationDurationLowerBound * feedback_id;
-  // The state is kIncreaseUsingPadding for a while without changing the
+      Timestamp::Zero() + ObservationDurationLowerBound * feedback_id;
+  // The state is IncreaseUsingPadding for a while without changing the
   // estimate, which is limited by 2 * acked rate.
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state ==
          LossBasedState::kIncreaseUsingPadding) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            kObservationDurationLowerBound * feedback_id),
+            ObservationDurationLowerBound * feedback_id),
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/false);
     feedback_id++;
@@ -1567,8 +1567,8 @@ fn DecreaseAfterPadding() {
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   const start_decreasing: Timestamp
-      Timestamp::Zero() + kObservationDurationLowerBound * (feedback_id - 1);
-  assert_eq!(start_decreasing - estimate_increased, Duration::from_secs(1));
+      Timestamp::Zero() + ObservationDurationLowerBound * (feedback_id - 1);
+  assert_eq!(start_decreasing - estimate_increased, TimeDelta::Seconds(1));
 }
 
 #[test]
@@ -1583,7 +1583,7 @@ fn IncreaseEstimateIfNotHold() {
           /*first_packet_timestamp=*/Timestamp::Zero()),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   let estimate: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
@@ -1591,7 +1591,7 @@ fn IncreaseEstimateIfNotHold() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1613,7 +1613,7 @@ fn IncreaseEstimateAfterHoldDuration() {
           /*first_packet_timestamp=*/Timestamp::Zero()),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   let estimate: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
@@ -1622,7 +1622,7 @@ fn IncreaseEstimateAfterHoldDuration() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1635,7 +1635,7 @@ fn IncreaseEstimateAfterHoldDuration() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound * 2),
+          ObservationDurationLowerBound * 2),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1648,7 +1648,7 @@ fn IncreaseEstimateAfterHoldDuration() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound * 3),
+          ObservationDurationLowerBound * 3),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1662,7 +1662,7 @@ fn IncreaseEstimateAfterHoldDuration() {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWith100pLossRate(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            kObservationDurationLowerBound * i),
+            ObservationDurationLowerBound * i),
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/false);
     assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1678,7 +1678,7 @@ fn IncreaseEstimateAfterHoldDuration() {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            kObservationDurationLowerBound * feedback_id),
+            ObservationDurationLowerBound * feedback_id),
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/false);
     if (loss_based_bandwidth_estimator.GetLossBasedResult().state ==
@@ -1711,7 +1711,7 @@ fn HoldRateNotLowerThanAckedRate() {
           /*first_packet_timestamp=*/Timestamp::Zero()),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
 
   // During the hold duration, hold rate is not lower than the acked rate.
@@ -1720,7 +1720,7 @@ fn HoldRateNotLowerThanAckedRate() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith50pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1751,7 +1751,7 @@ fn EstimateNotLowerThanAckedRate() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(
@@ -1761,13 +1761,13 @@ fn EstimateNotLowerThanAckedRate() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound * 2),
+          ObservationDurationLowerBound * 2),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound * 3),
+          ObservationDurationLowerBound * 3),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
 
@@ -1789,7 +1789,7 @@ fn EndHoldDurationIfDelayBasedEstimateWorks() {
           /*first_packet_timestamp=*/Timestamp::Zero()),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
-  ASSERT_EQ(loss_based_bandwidth_estimator.GetLossBasedResult().state,
+  assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   let estimate: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
@@ -1797,7 +1797,7 @@ fn EndHoldDurationIfDelayBasedEstimateWorks() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/estimate + DataRate::KilobitsPerSec(10),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1818,7 +1818,7 @@ fn UseByteLossRate() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith10pPacketLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero(),
-          /*lost_packet_size=*/DataSize::Bytes(kPacketSize * 20)),
+          /*lost_packet_size=*/DataSize::Bytes(PacketSize * 20)),
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1836,47 +1836,47 @@ fn UseByteLossRateIgnoreLossSpike() {
       "UseByteLossRate:true,ObservationWindowSize:5/");
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
   const DelayBasedEstimate: DataRate = DataRate::KilobitsPerSec(500);
-  loss_based_bandwidth_estimator.SetBandwidthEstimate(kDelayBasedEstimate);
+  loss_based_bandwidth_estimator.SetBandwidthEstimate(DelayBasedEstimate);
 
   // Fill the observation window.
   for (isize i = 0; i < 5i += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            i * kObservationDurationLowerBound),
-        kDelayBasedEstimate,
+            i * ObservationDurationLowerBound),
+        DelayBasedEstimate,
         /*in_alr=*/false);
   }
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          5 * kObservationDurationLowerBound),
-      kDelayBasedEstimate,
+          5 * ObservationDurationLowerBound),
+      DelayBasedEstimate,
       /*in_alr=*/false);
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          6 * kObservationDurationLowerBound),
-      kDelayBasedEstimate,
+          6 * ObservationDurationLowerBound),
+      DelayBasedEstimate,
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDelayBasedEstimate);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
-      kDelayBasedEstimate);
+      DelayBasedEstimate);
 
   // But if more loss happen in a new observation, BWE back down.
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          7 * kObservationDurationLowerBound),
-      kDelayBasedEstimate,
+          7 * ObservationDurationLowerBound),
+      DelayBasedEstimate,
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   EXPECT_LT(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
-      kDelayBasedEstimate);
+      DelayBasedEstimate);
 }
 
 #[test]
@@ -1886,15 +1886,15 @@ fn UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst() {
       "UseByteLossRate:true,ObservationWindowSize:5/");
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
   const DelayBasedEstimate: DataRate = DataRate::KilobitsPerSec(500);
-  loss_based_bandwidth_estimator.SetBandwidthEstimate(kDelayBasedEstimate);
+  loss_based_bandwidth_estimator.SetBandwidthEstimate(DelayBasedEstimate);
 
   // Fill the observation window.
   for (isize i = 0; i < 5i += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
-            i * kObservationDurationLowerBound),
-        kDelayBasedEstimate,
+            i * ObservationDurationLowerBound),
+        DelayBasedEstimate,
         /*in_alr=*/false);
   }
 
@@ -1903,15 +1903,15 @@ fn UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-              5 * kObservationDurationLowerBound,
+              5 * ObservationDurationLowerBound,
           /*num_packets=*/5),
-      kDelayBasedEstimate,
+      DelayBasedEstimate,
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
             LossBasedState::kDecreasing);
   EXPECT_LE(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
-      kDelayBasedEstimate);
+      DelayBasedEstimate);
 }
 
 #[test]
@@ -1933,7 +1933,7 @@ fn PaceAtLossBasedEstimate() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWith100pLossRate(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound),
+          ObservationDurationLowerBound),
       /*delay_based_estimate=*/DataRate::KilobitsPerSec(1000),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1943,7 +1943,7 @@ fn PaceAtLossBasedEstimate() {
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
           /*first_packet_timestamp=*/Timestamp::Zero() +
-          kObservationDurationLowerBound * 2),
+          ObservationDurationLowerBound * 2),
       /*delay_based_estimate=*/DataRate::KilobitsPerSec(1000),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
@@ -1956,40 +1956,40 @@ TEST_F(LossBasedBweV2Test,
   ExplicitKeyValueConfig key_value_config(ShortObservationConfig(""));
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
   const StartBitrate: DataRate = DataRate::KilobitsPerSec(2500);
-  loss_based_bandwidth_estimator.SetBandwidthEstimate(kStartBitrate);
+  loss_based_bandwidth_estimator.SetBandwidthEstimate(StartBitrate);
 
   let feedback_1= vec![PacketResult::default(); 3];
   feedback_1[0].sent_packet.sequence_number = 1;
-  feedback_1[0].sent_packet.size = DataSize::Bytes(kPacketSize);
+  feedback_1[0].sent_packet.size = DataSize::Bytes(PacketSize);
   feedback_1[0].sent_packet.send_time = Timestamp::Zero();
   feedback_1[0].receive_time =
       feedback_1[0].sent_packet.send_time + TimeDelta::Millis(10);
   feedback_1[1].sent_packet.sequence_number = 2;
-  feedback_1[1].sent_packet.size = DataSize::Bytes(kPacketSize);
+  feedback_1[1].sent_packet.size = DataSize::Bytes(PacketSize);
   feedback_1[1].sent_packet.send_time = Timestamp::Zero();
   // Lost or reordered
   feedback_1[1].receive_time = Timestamp::PlusInfinity();
 
   feedback_1[2].sent_packet.sequence_number = 3;
-  feedback_1[2].sent_packet.size = DataSize::Bytes(kPacketSize);
+  feedback_1[2].sent_packet.size = DataSize::Bytes(PacketSize);
   feedback_1[2].sent_packet.send_time = Timestamp::Zero();
   feedback_1[2].receive_time =
       feedback_1[2].sent_packet.send_time + TimeDelta::Millis(10);
 
   let feedback_2= vec![PacketResult::default(); 3];
   feedback_2[0].sent_packet.sequence_number = 2;
-  feedback_2[0].sent_packet.size = DataSize::Bytes(kPacketSize);
+  feedback_2[0].sent_packet.size = DataSize::Bytes(PacketSize);
   feedback_2[0].sent_packet.send_time = Timestamp::Zero();
   feedback_2[0].receive_time =
       feedback_1[0].sent_packet.send_time + TimeDelta::Millis(10);
   feedback_2[1].sent_packet.sequence_number = 4;
-  feedback_2[1].sent_packet.size = DataSize::Bytes(kPacketSize);
+  feedback_2[1].sent_packet.size = DataSize::Bytes(PacketSize);
   feedback_2[1].sent_packet.send_time =
-      Timestamp::Zero() + kObservationDurationLowerBound;
+      Timestamp::Zero() + ObservationDurationLowerBound;
   feedback_2[1].receive_time =
       feedback_2[1].sent_packet.send_time + TimeDelta::Millis(10);
   feedback_2[2].sent_packet.sequence_number = 5;
-  feedback_2[2].sent_packet.size = DataSize::Bytes(kPacketSize);
+  feedback_2[2].sent_packet.size = DataSize::Bytes(PacketSize);
   feedback_2[2].sent_packet.send_time = Timestamp::Zero();
   feedback_2[2].receive_time =
       feedback_2[2].sent_packet.send_time + TimeDelta::Millis(10);
@@ -2004,7 +2004,7 @@ TEST_F(LossBasedBweV2Test,
       /*in_alr=*/false);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
-      kStartBitrate);
+      StartBitrate);
 }
 
 }  // namespace

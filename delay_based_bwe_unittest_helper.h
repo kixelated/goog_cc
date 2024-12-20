@@ -52,7 +52,7 @@ fn Reset() { self.updated = false; }
 
 pub struct RtpStream {
  public:
-  enum { kSendSideOffsetUs = 1000000 };
+  enum { SendSideOffsetUs = 1000000 };
 
   RtpStream(isize fps, isize bitrate_bps);
 
@@ -67,13 +67,13 @@ pub struct RtpStream {
                         Vec<PacketResult>* packets);
 
   // The send-side time when the next frame can be generated.
-  i64 next_rtp_time() const;
+  fn next_rtp_time(&self) -> i64;
 
   fn set_bitrate_bps(isize bitrate_bps) {
   todo!();
 }
 
-  isize bitrate_bps() const;
+  fn bitrate_bps(&self) -> isize;
 
   static bool Compare(const std::unique_ptr<RtpStream>& lhs,
                       const std::unique_ptr<RtpStream>& rhs);
@@ -135,7 +135,7 @@ class DelayBasedBweTest : public ::testing::Test {
   ~DelayBasedBweTest() override;
 
  protected:
-  void AddDefaultStream();
+  fn AddDefaultStream(&mut self) { todo!(); }
 
   // Helpers to insert a single packet into the delay-based BWE.
   void IncomingFeedback(i64 arrival_time_ms,
@@ -169,7 +169,7 @@ class DelayBasedBweTest : public ::testing::Test {
                           u32 max_bitrate,
                           u32 target_bitrate);
 
-  void TestTimestampGroupingTestHelper();
+  fn TestTimestampGroupingTestHelper(&mut self) { todo!(); }
 
   fn TestWrappingHelper(isize silence_time_s) {
   todo!();
@@ -189,7 +189,7 @@ class DelayBasedBweTest : public ::testing::Test {
                               u32 expected_bitrate_drop_delta,
                               i64 receiver_clock_offset_change_ms);
 
-  static const u32 kDefaultSsrc;
+  static const u32 DefaultSsrc;
   field_trial_config: FieldTrialBasedConfig,
 
   std::unique_ptr<test::ScopedFieldTrials>

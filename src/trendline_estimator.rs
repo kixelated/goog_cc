@@ -10,472 +10,495 @@
 
 use std::collections::VecDeque;
 
-use crate::{api::{transport::BandwidthUsage, NetworkStatePredictor}, DelayIncreaseDetectorInterface};
+use crate::{api::transport::BandwidthUsage, DelayIncreaseDetectorInterface};
 
 #[derive(Debug)]
-struct TrendlineEstimatorSettings {
-  // Sort the packets in the window. Should be redundant,
-  // but then almost no cost.
-  pub enable_sort: bool,
+pub struct TrendlineEstimatorSettings {
+    // Sort the packets in the window. Should be redundant,
+    // but then almost no cost.
+    pub enable_sort: bool,
 
-  // Cap the trendline slope based on the minimum delay seen
-  // in the beginning_packets and end_packets respectively.
-  pub enable_cap: bool,
-  pub beginning_packets: usize,
-  pub end_packets: usize,
-  pub cap_uncertainty: f64,
+    // Cap the trendline slope based on the minimum delay seen
+    // in the beginning_packets and end_packets respectively.
+    pub enable_cap: bool,
+    pub beginning_packets: usize,
+    pub end_packets: usize,
+    pub cap_uncertainty: f64,
 
-  // Size (in packets) of the window.
-  pub window_size: usize,
+    // Size (in packets) of the window.
+    pub window_size: usize,
 }
 
 impl Default for TrendlineEstimatorSettings {
-  fn default() -> Self {
-      Self {
-        enable_sort: false,
-        enable_cap: false,
-        beginning_packets: 7,
-        end_packets: 7,
-        cap_uncertainty: 0.0,
-        window_size: 20,
-      }
-  }
+    fn default() -> Self {
+        Self {
+            enable_sort: false,
+            enable_cap: false,
+            beginning_packets: 7,
+            end_packets: 7,
+            cap_uncertainty: 0.0,
+            window_size: 20,
+        }
+    }
 }
 
-
 pub struct TrendlineEstimator {
-  // Parameters.
-  settings: TrendlineEstimatorSettings,
-  smoothing_coef: f64,
-  threshold_gain: f64,
-  // Used by the existing threshold.
-  num_of_deltas: isize,
-  // Keep the arrival times small by using the change from the first packet.
-  first_arrival_time_ms: i64,
-  // Exponential backoff filtering.
-  accumulated_delay: f64,
-  smoothed_delay: f64,
-  // Linear least squares regression.
-  delay_hist: VecDeque<PacketTiming>,
+    // Parameters.
+    settings: TrendlineEstimatorSettings,
+    smoothing_coef: f64,
+    threshold_gain: f64,
+    // Used by the existing threshold.
+    num_of_deltas: isize,
+    // Keep the arrival times small by using the change from the first packet.
+    first_arrival_time_ms: i64,
+    // Exponential backoff filtering.
+    accumulated_delay: f64,
+    smoothed_delay: f64,
+    // Linear least squares regression.
+    delay_hist: VecDeque<PacketTiming>,
 
-  k_up: f64,
-  k_down: f64,
-  overusing_time_threshold: f64,
-  threshold: f64,
-  prev_modified_trend: f64,
-  last_update_ms: i64,
-  prev_trend: f64,
-  time_over_using: f64,
-  overuse_counter: isize,
-  hypothesis: BandwidthUsage,
-  hypothesis_predicted: BandwidthUsage,
-  network_state_predictor: Option<Box<dyn NetworkStatePredictor>>,
+    k_up: f64,
+    k_down: f64,
+    overusing_time_threshold: f64,
+    threshold: f64,
+    prev_modified_trend: f64,
+    last_update_ms: i64,
+    prev_trend: f64,
+    time_over_using: f64,
+    overuse_counter: isize,
+    hypothesis: BandwidthUsage,
 }
 
 struct PacketTiming {
-  pub arrival_time_ms: f64,
-  pub smoothed_delay_ms: f64,
-  pub raw_delay_ms: f64,
+    pub arrival_time_ms: f64,
+    pub smoothed_delay_ms: f64,
+    pub raw_delay_ms: f64,
+}
+
+impl Default for TrendlineEstimator {
+    fn default() -> Self {
+        Self::new(TrendlineEstimatorSettings::default())
+    }
 }
 
 impl DelayIncreaseDetectorInterface for TrendlineEstimator {
-
-  fn update(&mut self, recv_delta_ms: f64,
-                        send_delta_ms: f64,
-                        send_time_ms: i64,
-                        arrival_time_ms: i64,
-                        packet_size: usize,
-                        calculated_deltas: bool) {
-  if calculated_deltas {
-    self.UpdateTrendline(recv_delta_ms, send_delta_ms, send_time_ms, arrival_time_ms,
-                    packet_size);
-  }
-  if let Some(network_state_predictor) = self.network_state_predictor.as_mut() {
-    self.hypothesis_predicted = network_state_predictor.Update(
-        send_time_ms, arrival_time_ms, self.hypothesis);
-  }
-}
-  fn state(&self) -> BandwidthUsage {
-    if self.network_state_predictor.is_some() {
-      self.hypothesis_predicted
-    } else {
-      self.hypothesis
+    fn update(
+        &mut self,
+        recv_delta_ms: f64,
+        send_delta_ms: f64,
+        send_time_ms: i64,
+        arrival_time_ms: i64,
+        packet_size: usize,
+        calculated_deltas: bool,
+    ) {
+        if calculated_deltas {
+            self.UpdateTrendline(
+                recv_delta_ms,
+                send_delta_ms,
+                send_time_ms,
+                arrival_time_ms,
+                packet_size,
+            );
+        }
     }
-  }
+    fn state(&self) -> BandwidthUsage {
+        self.hypothesis
+    }
 }
 
-fn LinearFitSlope(
-    packets: &VecDeque<PacketTiming>) -> Option<f64> {
-  assert!(packets.len() >= 2);
-  // Compute the "center of mass".
-  let mut sum_x: f64 = 0.0;
-  let mut sum_y : f64= 0.0;
-  for packet in packets {
-    sum_x += packet.arrival_time_ms;
-    sum_y += packet.smoothed_delay_ms;
-  }
-  let x_avg: f64 = sum_x / packets.len() as f64;
-  let y_avg: f64 = sum_y / packets.len() as f64;
-  // Compute the slope k = \sum (x_i-x_avg)(y_i-y_avg) / \sum (x_i-x_avg)^2
-  let mut numerator: f64 = 0.0;
-  let mut denominator: f64 = 0.0;
-  for packet in packets.iter() {
-    let x: f64 = packet.arrival_time_ms;
-    let y: f64 = packet.smoothed_delay_ms;
-    numerator += (x - x_avg) * (y - y_avg);
-    denominator += (x - x_avg) * (x - x_avg);
-  }
-  if denominator == 0.0 {
-    return None
-  }
-  Some(numerator / denominator)
+fn LinearFitSlope(packets: &VecDeque<PacketTiming>) -> Option<f64> {
+    assert!(packets.len() >= 2);
+    // Compute the "center of mass".
+    let mut sum_x: f64 = 0.0;
+    let mut sum_y: f64 = 0.0;
+    for packet in packets {
+        sum_x += packet.arrival_time_ms;
+        sum_y += packet.smoothed_delay_ms;
+    }
+    let x_avg: f64 = sum_x / packets.len() as f64;
+    let y_avg: f64 = sum_y / packets.len() as f64;
+    // Compute the slope k = \sum (x_i-x_avg)(y_i-y_avg) / \sum (x_i-x_avg)^2
+    let mut numerator: f64 = 0.0;
+    let mut denominator: f64 = 0.0;
+    for packet in packets.iter() {
+        let x: f64 = packet.arrival_time_ms;
+        let y: f64 = packet.smoothed_delay_ms;
+        numerator += (x - x_avg) * (y - y_avg);
+        denominator += (x - x_avg) * (x - x_avg);
+    }
+    if denominator == 0.0 {
+        return None;
+    }
+    Some(numerator / denominator)
 }
 
 fn ComputeSlopeCap(
     packets: &VecDeque<PacketTiming>,
-    settings: &TrendlineEstimatorSettings) -> Option<f64> {
-  assert!(1 <= settings.beginning_packets &&
-             settings.beginning_packets < packets.len());
-  assert!(1 <= settings.end_packets &&
-             settings.end_packets < packets.len());
-  assert!(settings.beginning_packets + settings.end_packets <=
-             packets.len());
-  let mut early = &packets[0];
-  for i in 1..settings.beginning_packets {
-    if packets[i].raw_delay_ms < early.raw_delay_ms {
-      early = &packets[i];
+    settings: &TrendlineEstimatorSettings,
+) -> Option<f64> {
+    assert!(1 <= settings.beginning_packets && settings.beginning_packets < packets.len());
+    assert!(1 <= settings.end_packets && settings.end_packets < packets.len());
+    assert!(settings.beginning_packets + settings.end_packets <= packets.len());
+    let mut early = &packets[0];
+    for i in 1..settings.beginning_packets {
+        if packets[i].raw_delay_ms < early.raw_delay_ms {
+            early = &packets[i];
+        }
     }
-  }
-  let late_start: usize = packets.len() - settings.end_packets;
-  let mut late = &packets[late_start];
-  for i in (late_start + 1)..packets.len() {
-    if packets[i].raw_delay_ms < late.raw_delay_ms {
-      late = &packets[i];
+    let late_start: usize = packets.len() - settings.end_packets;
+    let mut late = &packets[late_start];
+    for i in (late_start + 1)..packets.len() {
+        if packets[i].raw_delay_ms < late.raw_delay_ms {
+            late = &packets[i];
+        }
     }
-  }
-  if late.arrival_time_ms - early.arrival_time_ms < 1.0 {
-    return None;
-  }
-  Some((late.raw_delay_ms - early.raw_delay_ms) /
-             (late.arrival_time_ms - early.arrival_time_ms) +
-         settings.cap_uncertainty)
+    if late.arrival_time_ms - early.arrival_time_ms < 1.0 {
+        return None;
+    }
+    Some(
+        (late.raw_delay_ms - early.raw_delay_ms) / (late.arrival_time_ms - early.arrival_time_ms)
+            + settings.cap_uncertainty,
+    )
 }
 
 impl TrendlineEstimator {
-const DefaultTrendlineSmoothingCoeff: f64 = 0.9;
-const DefaultTrendlineThresholdGain: f64 = 4.0;
-const MaxAdaptOffsetMs: f64 = 15.0;
-const OverUsingTimeThreshold: f64 = 10.0;
-const MinNumDeltas: isize = 60;
-const DeltaCounterMax: isize = 1000;
+    const DefaultTrendlineSmoothingCoeff: f64 = 0.9;
+    const DefaultTrendlineThresholdGain: f64 = 4.0;
+    const MaxAdaptOffsetMs: f64 = 15.0;
+    const OverUsingTimeThreshold: f64 = 10.0;
+    const MinNumDeltas: isize = 60;
+    const DeltaCounterMax: isize = 1000;
 
-fn new(settings: TrendlineEstimatorSettings,
-    network_state_predictor: Option<Box<dyn NetworkStatePredictor>>) -> Self {
-      let net_state = match network_state_predictor {
-        Some(_) => "injected",
-        None => "no",
-      };
-    tracing::info!("Using Trendline filter for delay change estimation with settings {:?} and {} network state predictor", settings, net_state);
-      Self {
-        settings,
-        smoothing_coef: Self::DefaultTrendlineSmoothingCoeff,
-        threshold_gain: Self::DefaultTrendlineThresholdGain,
-        num_of_deltas: 0,
-        first_arrival_time_ms: -1,
-        accumulated_delay: 0.0,
-        smoothed_delay: 0.0,
-        delay_hist: VecDeque::new(),
-        k_up: 0.0087,
-        k_down: 0.039,
-        overusing_time_threshold: Self::OverUsingTimeThreshold,
-        threshold: 12.5,
-        prev_modified_trend: f64::NAN,
-        last_update_ms: -1,
-        prev_trend: 0.0,
-        time_over_using: -1.0,
-        overuse_counter: 0,
-        hypothesis: BandwidthUsage::Normal,
-        hypothesis_predicted: BandwidthUsage::Normal,
-        network_state_predictor,
-      }
-}
-
-fn UpdateTrendline(&mut self, recv_delta_ms: f64,
-                                         send_delta_ms: f64,
-                                         send_time_ms: i64,
-                                         arrival_time_ms: i64,
-                                         packet_size: usize) {
-  let delta_ms: f64 = recv_delta_ms - send_delta_ms;
-  self.num_of_deltas += 1;
-  self.num_of_deltas = self.num_of_deltas.min(Self::DeltaCounterMax);
-  if self.first_arrival_time_ms == -1 {
-    self.first_arrival_time_ms = arrival_time_ms;
-  }
-
-  // Exponential backoff filter.
-  self.accumulated_delay += delta_ms;
-  self.smoothed_delay = self.smoothing_coef * self.smoothed_delay +
-                    (1.0 - self.smoothing_coef) * self.accumulated_delay;
-
-  // Maintain packet window
-  self.delay_hist.push_back(PacketTiming {
-    arrival_time_ms: (arrival_time_ms - self.first_arrival_time_ms) as f64,
-    smoothed_delay_ms: self.smoothed_delay,
-    raw_delay_ms: self.accumulated_delay,
-  });
-  if self.settings.enable_sort {
-    let mut i= self.delay_hist.len() - 1;
-    while
-         i > 0 &&
-         self.delay_hist[i].arrival_time_ms < self.delay_hist[i - 1].arrival_time_ms {
-        self.delay_hist.swap(i, i - 1);
-         i -= 1;
+    pub fn new(settings: TrendlineEstimatorSettings) -> Self {
+        tracing::info!("Using Trendline filter for delay change estimation with settings {:?} and no network state predictor", settings);
+        Self {
+            settings,
+            smoothing_coef: Self::DefaultTrendlineSmoothingCoeff,
+            threshold_gain: Self::DefaultTrendlineThresholdGain,
+            num_of_deltas: 0,
+            first_arrival_time_ms: -1,
+            accumulated_delay: 0.0,
+            smoothed_delay: 0.0,
+            delay_hist: VecDeque::new(),
+            k_up: 0.0087,
+            k_down: 0.039,
+            overusing_time_threshold: Self::OverUsingTimeThreshold,
+            threshold: 12.5,
+            prev_modified_trend: f64::NAN,
+            last_update_ms: -1,
+            prev_trend: 0.0,
+            time_over_using: -1.0,
+            overuse_counter: 0,
+            hypothesis: BandwidthUsage::Normal,
         }
     }
-  if self.delay_hist.len() > self.settings.window_size {
-    self.delay_hist.pop_front();
-  }
 
-  // Simple linear regression.
-  let mut trend: f64 = self.prev_trend;
-  if self.delay_hist.len() == self.settings.window_size {
-    // Update trend_ if it is possible to fit a line to the data. The delay
-    // trend can be seen as an estimate of (send_rate - capacity)/capacity.
-    // 0 < trend < 1   ->  the delay increases, queues are filling up
-    //   trend == 0    ->  the delay does not change
-    //   trend < 0     ->  the delay decreases, queues are being emptied
-    trend = LinearFitSlope(&self.delay_hist).unwrap_or(trend);
-    if self.settings.enable_cap {
-      let cap= ComputeSlopeCap(&self.delay_hist, &self.settings);
-      // We only use the cap to filter out overuse detections, not
-      // to detect additional underuses.
-      if let Some(cap) = cap {
-        if trend >= 0.0 && trend > cap {
-          trend = cap;
+    fn UpdateTrendline(
+        &mut self,
+        recv_delta_ms: f64,
+        send_delta_ms: f64,
+        send_time_ms: i64,
+        arrival_time_ms: i64,
+        packet_size: usize,
+    ) {
+        let delta_ms: f64 = recv_delta_ms - send_delta_ms;
+        self.num_of_deltas += 1;
+        self.num_of_deltas = self.num_of_deltas.min(Self::DeltaCounterMax);
+        if self.first_arrival_time_ms == -1 {
+            self.first_arrival_time_ms = arrival_time_ms;
         }
-      }
+
+        // Exponential backoff filter.
+        self.accumulated_delay += delta_ms;
+        self.smoothed_delay = self.smoothing_coef * self.smoothed_delay
+            + (1.0 - self.smoothing_coef) * self.accumulated_delay;
+
+        // Maintain packet window
+        self.delay_hist.push_back(PacketTiming {
+            arrival_time_ms: (arrival_time_ms - self.first_arrival_time_ms) as f64,
+            smoothed_delay_ms: self.smoothed_delay,
+            raw_delay_ms: self.accumulated_delay,
+        });
+        if self.settings.enable_sort {
+            let mut i = self.delay_hist.len() - 1;
+            while i > 0
+                && self.delay_hist[i].arrival_time_ms < self.delay_hist[i - 1].arrival_time_ms
+            {
+                self.delay_hist.swap(i, i - 1);
+                i -= 1;
+            }
+        }
+        if self.delay_hist.len() > self.settings.window_size {
+            self.delay_hist.pop_front();
+        }
+
+        // Simple linear regression.
+        let mut trend: f64 = self.prev_trend;
+        if self.delay_hist.len() == self.settings.window_size {
+            // Update self.trend if it is possible to fit a line to the data. The delay
+            // trend can be seen as an estimate of (send_rate - capacity)/capacity.
+            // 0 < trend < 1   .  the delay increases, queues are filling up
+            //   trend == 0    .  the delay does not change
+            //   trend < 0     .  the delay decreases, queues are being emptied
+            trend = LinearFitSlope(&self.delay_hist).unwrap_or(trend);
+            if self.settings.enable_cap {
+                let cap = ComputeSlopeCap(&self.delay_hist, &self.settings);
+                // We only use the cap to filter out overuse detections, not
+                // to detect additional underuses.
+                if let Some(cap) = cap {
+                    if trend >= 0.0 && trend > cap {
+                        trend = cap;
+                    }
+                }
+            }
+        }
+        self.Detect(trend, send_delta_ms, arrival_time_ms);
     }
-  }
-  self.Detect(trend, send_delta_ms, arrival_time_ms);
-}
 
-fn Update(&mut self /* TrendlineEstimator */,recv_delta_ms: f64,
-                                send_delta_ms: f64,
-                                send_time_ms: i64,
-                                arrival_time_ms: i64,
-                                packet_size: usize,
-                                calculated_deltas: bool) {
-                                  if calculated_deltas {
-                                    self.UpdateTrendline(recv_delta_ms, send_delta_ms, send_time_ms, arrival_time_ms,
-                                                    packet_size);
-                                  }
-                                  if let Some(network_state_predictor) = self.network_state_predictor.as_mut() {
-                                    self.hypothesis_predicted = network_state_predictor.Update(
-                                        send_time_ms, arrival_time_ms, self.hypothesis);
-                                  }
-}
-
-
-fn Detect(&mut self /* TrendlineEstimator */,trend: f64, ts_delta: f64, now_ms: i64) {
-  if self.num_of_deltas < 2 {
-    self.hypothesis = BandwidthUsage::Normal;
-    return;
-  }
-  let modified_trend: f64 =
-      self.num_of_deltas.min(Self::MinNumDeltas) as f64 * trend * self.threshold_gain;
-  self.prev_modified_trend = modified_trend;
-  if modified_trend > self.threshold {
-    if self.time_over_using == -1.0 {
-      // Initialize the timer. Assume that we've been
-      // over-using half of the time since the previous
-      // sample.
-      self.time_over_using = ts_delta / 2.0;
-    } else {
-      // Increment timer
-      self.time_over_using += ts_delta;
+    fn Update(
+        &mut self, /* TrendlineEstimator */
+        recv_delta_ms: f64,
+        send_delta_ms: f64,
+        send_time_ms: i64,
+        arrival_time_ms: i64,
+        packet_size: usize,
+        calculated_deltas: bool,
+    ) {
+        if calculated_deltas {
+            self.UpdateTrendline(
+                recv_delta_ms,
+                send_delta_ms,
+                send_time_ms,
+                arrival_time_ms,
+                packet_size,
+            );
+        }
     }
-    self.overuse_counter += 1;
-    if self.time_over_using > self.overusing_time_threshold && self.overuse_counter > 1 && trend >= self.prev_trend {
-      self.time_over_using = 0.0;
-      self.overuse_counter = 0;
-      self.hypothesis = BandwidthUsage::Overusing;
+
+    fn Detect(&mut self /* TrendlineEstimator */, trend: f64, ts_delta: f64, now_ms: i64) {
+        if self.num_of_deltas < 2 {
+            self.hypothesis = BandwidthUsage::Normal;
+            return;
+        }
+        let modified_trend: f64 =
+            self.num_of_deltas.min(Self::MinNumDeltas) as f64 * trend * self.threshold_gain;
+        self.prev_modified_trend = modified_trend;
+        if modified_trend > self.threshold {
+            if self.time_over_using == -1.0 {
+                // Initialize the timer. Assume that we've been
+                // over-using half of the time since the previous
+                // sample.
+                self.time_over_using = ts_delta / 2.0;
+            } else {
+                // Increment timer
+                self.time_over_using += ts_delta;
+            }
+            self.overuse_counter += 1;
+            if self.time_over_using > self.overusing_time_threshold
+                && self.overuse_counter > 1
+                && trend >= self.prev_trend
+            {
+                self.time_over_using = 0.0;
+                self.overuse_counter = 0;
+                self.hypothesis = BandwidthUsage::Overusing;
+            }
+        } else if modified_trend < -self.threshold {
+            self.time_over_using = -1.0;
+            self.overuse_counter = 0;
+            self.hypothesis = BandwidthUsage::Underusing;
+        } else {
+            self.time_over_using = -1.0;
+            self.overuse_counter = 0;
+            self.hypothesis = BandwidthUsage::Normal;
+        }
+        self.prev_trend = trend;
+        self.UpdateThreshold(modified_trend, now_ms);
     }
-  } else if modified_trend < -self.threshold {
-    self.time_over_using = -1.0;
-    self.overuse_counter = 0;
-    self.hypothesis = BandwidthUsage::Underusing;
-  } else {
-    self.time_over_using = -1.0;
-    self.overuse_counter = 0;
-    self.hypothesis = BandwidthUsage::Normal;
-  }
-  self.prev_trend = trend;
-  self.UpdateThreshold(modified_trend, now_ms);
+
+    fn UpdateThreshold(&mut self /* TrendlineEstimator */, modified_trend: f64, now_ms: i64) {
+        if self.last_update_ms == -1 {
+            self.last_update_ms = now_ms;
+        }
+
+        if modified_trend.abs() > self.threshold + Self::MaxAdaptOffsetMs {
+            // Avoid adapting the threshold to big latency spikes, caused e.g.,
+            // by a sudden capacity drop.
+            self.last_update_ms = now_ms;
+            return;
+        }
+
+        let k: f64 = match modified_trend.abs() < self.threshold {
+            true => self.k_down,
+            false => self.k_up,
+        };
+        const MaxTimeDeltaMs: i64 = 100;
+        let time_delta_ms: i64 = std::cmp::min(now_ms - self.last_update_ms, MaxTimeDeltaMs);
+        self.threshold += k * (modified_trend.abs() - self.threshold) * time_delta_ms as f64;
+        self.threshold = self.threshold.clamp(6.0, 600.0);
+        self.last_update_ms = now_ms;
+    }
 }
-
-fn UpdateThreshold(&mut self /* TrendlineEstimator */,modified_trend: f64,
-                                         now_ms: i64) {
-  if self.last_update_ms == -1 {
-    self.last_update_ms = now_ms;
-  }
-
-  if modified_trend.abs() > self.threshold + Self::MaxAdaptOffsetMs {
-    // Avoid adapting the threshold to big latency spikes, caused e.g.,
-    // by a sudden capacity drop.
-    self.last_update_ms = now_ms;
-    return;
-  }
-
-  let k: f64 = match modified_trend.abs() < self.threshold {
-    true => self.k_down,
-    false => self.k_up,
-  };
-  const MaxTimeDeltaMs: i64 = 100;
-  let time_delta_ms: i64 = std::cmp::min(now_ms - self.last_update_ms, MaxTimeDeltaMs);
-  self.threshold += k * (modified_trend.abs() - self.threshold) * time_delta_ms as f64;
-  self.threshold = self.threshold.clamp(6.0, 600.0);
-  self.last_update_ms = now_ms;
-}
-
-}
-
 
 #[cfg(test)]
 mod test {
-  use super::*;
+    use super::*;
 
-struct PacketTimeGenerator {
-  initial_clock: i64,
-  time_between_packets: f64,
-  packets: usize,
-}
-
-impl PacketTimeGenerator {
-  pub fn new(initial_clock: i64, time_between_packets: f64) -> Self {
-    Self {
-      initial_clock,
-      time_between_packets,
-      packets: 0,
+    struct PacketTimeGenerator {
+        initial_clock: i64,
+        time_between_packets: f64,
+        packets: usize,
     }
-  }
-}
 
-impl Iterator for PacketTimeGenerator {
-  type Item = i64;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    let value = self.initial_clock + (self.time_between_packets * self.packets as f64) as i64;
-    self.packets += 1;
-    Some(value)
-  }
-}
-
-struct TrendlineEstimatorTest {
-  send_times: Vec<i64>,
-  recv_times: Vec<i64>,
-  packet_sizes: Vec<usize>,
-  estimator: TrendlineEstimator,
-  count: usize,
-}
-
-impl TrendlineEstimatorTest {
-  const PacketCount: usize = 25;
-  const PacketSizeBytes: usize = 1200;
-
-  pub fn new(send_times: PacketTimeGenerator, recv_times: PacketTimeGenerator) -> Self {
-    Self {
-      send_times: send_times.take(Self::PacketCount).collect(),
-      recv_times: recv_times.take(Self::PacketCount).collect(),
-      packet_sizes: vec![Self::PacketSizeBytes; Self::PacketCount],
-      estimator: TrendlineEstimator::new(TrendlineEstimatorSettings::default(), None),
-      count: 1,
+    impl PacketTimeGenerator {
+        pub fn new(initial_clock: i64, time_between_packets: f64) -> Self {
+            Self {
+                initial_clock,
+                time_between_packets,
+                packets: 0,
+            }
+        }
     }
-  }
 
-  fn RunTestUntilStateChange(&mut self) {
-    assert_eq!(self.send_times.len(), Self::PacketCount);
-    assert_eq!(self.recv_times.len(), Self::PacketCount);
-    assert_eq!(self.packet_sizes.len(), Self::PacketCount);
-    assert!(self.count >= 1);
-    assert!(self.count < Self::PacketCount);
+    impl Iterator for PacketTimeGenerator {
+        type Item = i64;
 
-let initial_state = self.estimator.state();
-    while self.count < Self::PacketCount {
-      let recv_delta: f64 = (self.recv_times[self.count] - self.recv_times[self.count - 1]) as f64;
-      let send_delta: f64 = (self.send_times[self.count] - self.send_times[self.count - 1]) as f64;
-      self.estimator.Update(recv_delta, send_delta, self.send_times[self.count],
-                       self.recv_times[self.count], self.packet_sizes[self.count], true);
-      if self.estimator.state() != initial_state {
-        return;
-      }
-
-      self.count += 1;
+        fn next(&mut self) -> Option<Self::Item> {
+            let value =
+                self.initial_clock + (self.time_between_packets * self.packets as f64) as i64;
+            self.packets += 1;
+            Some(value)
+        }
     }
-  }
-}
 
-#[test]
-fn Normal() {
-  let send_time_generator = PacketTimeGenerator::new(123456789 /*initial clock*/,
-                                          20.0 /*20 ms between sent packets*/);
-  let recv_time_generator = PacketTimeGenerator::new(987654321 /*initial clock*/,
-                                          20.0 /*delivered at the same pace*/);
+    struct TrendlineEstimatorTest {
+        send_times: Vec<i64>,
+        recv_times: Vec<i64>,
+        packet_sizes: Vec<usize>,
+        estimator: TrendlineEstimator,
+        count: usize,
+    }
 
-  let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
+    impl TrendlineEstimatorTest {
+        const PacketCount: usize = 25;
+        const PacketSizeBytes: usize = 1200;
 
-  assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
-  test.RunTestUntilStateChange();
-  assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
-  assert_eq!(test.count, TrendlineEstimatorTest::PacketCount);  // All packets processed
-}
+        pub fn new(send_times: PacketTimeGenerator, recv_times: PacketTimeGenerator) -> Self {
+            Self {
+                send_times: send_times.take(Self::PacketCount).collect(),
+                recv_times: recv_times.take(Self::PacketCount).collect(),
+                packet_sizes: vec![Self::PacketSizeBytes; Self::PacketCount],
+                estimator: TrendlineEstimator::default(),
+                count: 1,
+            }
+        }
 
-#[test]
-fn Overusing() {
-  let send_time_generator = PacketTimeGenerator::new(123456789 /*initial clock*/,
-                                          20.0 /*20 ms between sent packets*/);
-  let recv_time_generator = PacketTimeGenerator::new(987654321 /*initial clock*/,
-                                          1.1 * 20.0 /*10% slower delivery*/);
-  let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
+        fn RunTestUntilStateChange(&mut self) {
+            assert_eq!(self.send_times.len(), Self::PacketCount);
+            assert_eq!(self.recv_times.len(), Self::PacketCount);
+            assert_eq!(self.packet_sizes.len(), Self::PacketCount);
+            assert!(self.count >= 1);
+            assert!(self.count < Self::PacketCount);
 
-  assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
-  test.RunTestUntilStateChange();
-  assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
-  test.RunTestUntilStateChange();
-  assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
-  assert_eq!(test.count, TrendlineEstimatorTest::PacketCount);  // All packets processed
-}
+            let initial_state = self.estimator.state();
+            while self.count < Self::PacketCount {
+                let recv_delta: f64 =
+                    (self.recv_times[self.count] - self.recv_times[self.count - 1]) as f64;
+                let send_delta: f64 =
+                    (self.send_times[self.count] - self.send_times[self.count - 1]) as f64;
+                self.estimator.Update(
+                    recv_delta,
+                    send_delta,
+                    self.send_times[self.count],
+                    self.recv_times[self.count],
+                    self.packet_sizes[self.count],
+                    true,
+                );
+                if self.estimator.state() != initial_state {
+                    return;
+                }
 
-#[test]
-fn Underusing() {
-  let send_time_generator = PacketTimeGenerator::new(123456789 /*initial clock*/,
-                                          20.0 /*20 ms between sent packets*/);
-  let recv_time_generator = PacketTimeGenerator::new(987654321 /*initial clock*/,
-                                          0.85 * 20.0 /*15% faster delivery*/);
-  let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
+                self.count += 1;
+            }
+        }
+    }
 
-  assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
-  test.RunTestUntilStateChange();
-  assert_eq!(test.estimator.state(), BandwidthUsage::Underusing);
-  test.RunTestUntilStateChange();
-  assert_eq!(test.estimator.state(), BandwidthUsage::Underusing);
-  assert_eq!(test.count, TrendlineEstimatorTest::PacketCount);  // All packets processed
-}
+    #[test]
+    fn Normal() {
+        let send_time_generator = PacketTimeGenerator::new(
+            123456789, /*initial clock*/
+            20.0,      /*20 ms between sent packets*/
+        );
+        let recv_time_generator = PacketTimeGenerator::new(
+            987654321, /*initial clock*/
+            20.0,      /*delivered at the same pace*/
+        );
 
-#[test]
-fn IncludesSmallPacketsByDefault() {
-  let send_time_generator = PacketTimeGenerator::new(123456789 /*initial clock*/,
-                                          20.0 /*20 ms between sent packets*/);
-  let recv_time_generator = PacketTimeGenerator::new(987654321 /*initial clock*/,
-                                          1.1 * 20.0 /*10% slower delivery*/);
-  let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
-  test.packet_sizes = vec![100; TrendlineEstimatorTest::PacketCount];
+        let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
 
-  assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
-  test.RunTestUntilStateChange();
-  assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
-  test.RunTestUntilStateChange();
-  assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
-  assert_eq!(test.count, TrendlineEstimatorTest::PacketCount);  // All packets processed
-}
+        assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
+        test.RunTestUntilStateChange();
+        assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
+        assert_eq!(test.count, TrendlineEstimatorTest::PacketCount); // All packets processed
+    }
 
-}  // namespace webrtc
+    #[test]
+    fn Overusing() {
+        let send_time_generator = PacketTimeGenerator::new(
+            123456789, /*initial clock*/
+            20.0,      /*20 ms between sent packets*/
+        );
+        let recv_time_generator = PacketTimeGenerator::new(
+            987654321,  /*initial clock*/
+            1.1 * 20.0, /*10% slower delivery*/
+        );
+        let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
+
+        assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
+        test.RunTestUntilStateChange();
+        assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
+        test.RunTestUntilStateChange();
+        assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
+        assert_eq!(test.count, TrendlineEstimatorTest::PacketCount); // All packets processed
+    }
+
+    #[test]
+    fn Underusing() {
+        let send_time_generator = PacketTimeGenerator::new(
+            123456789, /*initial clock*/
+            20.0,      /*20 ms between sent packets*/
+        );
+        let recv_time_generator = PacketTimeGenerator::new(
+            987654321,   /*initial clock*/
+            0.85 * 20.0, /*15% faster delivery*/
+        );
+        let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
+
+        assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
+        test.RunTestUntilStateChange();
+        assert_eq!(test.estimator.state(), BandwidthUsage::Underusing);
+        test.RunTestUntilStateChange();
+        assert_eq!(test.estimator.state(), BandwidthUsage::Underusing);
+        assert_eq!(test.count, TrendlineEstimatorTest::PacketCount); // All packets processed
+    }
+
+    #[test]
+    fn IncludesSmallPacketsByDefault() {
+        let send_time_generator = PacketTimeGenerator::new(
+            123456789, /*initial clock*/
+            20.0,      /*20 ms between sent packets*/
+        );
+        let recv_time_generator = PacketTimeGenerator::new(
+            987654321,  /*initial clock*/
+            1.1 * 20.0, /*10% slower delivery*/
+        );
+        let mut test = TrendlineEstimatorTest::new(send_time_generator, recv_time_generator);
+        test.packet_sizes = vec![100; TrendlineEstimatorTest::PacketCount];
+
+        assert_eq!(test.estimator.state(), BandwidthUsage::Normal);
+        test.RunTestUntilStateChange();
+        assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
+        test.RunTestUntilStateChange();
+        assert_eq!(test.estimator.state(), BandwidthUsage::Overusing);
+        assert_eq!(test.count, TrendlineEstimatorTest::PacketCount); // All packets processed
+    }
+} // namespace webrtc

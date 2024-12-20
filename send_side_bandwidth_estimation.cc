@@ -57,17 +57,17 @@ struct UmaRampUpMetric {
   isize bitrate_kbps;
 };
 
-const UmaRampUpMetric kUmaRampupMetrics[] = {
+const UmaRampUpMetric UmaRampupMetrics[] = {
     {"WebRTC.BWE.RampUpTimeTo500kbpsInMs", 500},
     {"WebRTC.BWE.RampUpTimeTo1000kbpsInMs", 1000},
     {"WebRTC.BWE.RampUpTimeTo2000kbpsInMs", 2000}};
 const NumUmaRampupMetrics: usize =
-    sizeof(kUmaRampupMetrics) / sizeof(kUmaRampupMetrics[0]);
+    sizeof(UmaRampupMetrics) / sizeof(UmaRampupMetrics[0]);
 
-const kBweLosExperiment: &'static str = "WebRTC-BweLossExperiment";
+const BweLosExperiment: &'static str = "WebRTC-BweLossExperiment";
 
 fn BweLossExperimentIsEnabled(const FieldTrialsView& field_trials) -> bool {
-  return field_trials.IsEnabled(kBweLosExperiment);
+  return field_trials.IsEnabled(BweLosExperiment);
 }
 
 bool ReadBweLossExperimentParameters(const FieldTrialsView& field_trials,
@@ -77,7 +77,7 @@ bool ReadBweLossExperimentParameters(const FieldTrialsView& field_trials,
   assert!(low_loss_threshold);
   assert!(high_loss_threshold);
   assert!(bitrate_threshold_kbps);
-  std::string experiment_string = field_trials.Lookup(kBweLosExperiment);
+  std::string experiment_string = field_trials.Lookup(BweLosExperiment);
   let parsed_values: isize =
       sscanf(experiment_string.c_str(), "Enabled-%f,%f,%u", low_loss_threshold,
              high_loss_threshold, bitrate_threshold_kbps);
@@ -100,11 +100,11 @@ bool ReadBweLossExperimentParameters(const FieldTrialsView& field_trials,
         << "Bitrate must be smaller enough to avoid overflows.";
     return true;
   }
-  RTC_LOG(LS_WARNING) << "Failed to parse parameters for BweLossExperiment "
+  tracing::warn!( << "Failed to parse parameters for BweLossExperiment "
                          "experiment from field trial string. Using default.";
-  *low_loss_threshold = kDefaultLowLossThreshold;
-  *high_loss_threshold = kDefaultHighLossThreshold;
-  *bitrate_threshold_kbps = kDefaultBitrateThreshold.kbps();
+  *low_loss_threshold = DefaultLowLossThreshold;
+  *high_loss_threshold = DefaultHighLossThreshold;
+  *bitrate_threshold_kbps = DefaultBitrateThreshold.kbps();
   return false;
 }
 }  // namespace
@@ -134,7 +134,7 @@ fn OnRateUpdate(&self /* LinkCapacityTracker */,Option<DataRate> acknowledged,
   if (acknowledged_target.bps() > self.capacity_estimate_bps) {
     let delta: TimeDelta = at_time - self.last_link_capacity_update;
     let alpha: f64 =
-        delta.IsFinite() ? exp(-(delta / Duration::from_secs(10))) : 0;
+        delta.IsFinite() ? exp(-(delta / TimeDelta::Seconds(10))) : 0;
     self.capacity_estimate_bps = alpha * self.capacity_estimate_bps +
                              (1 - alpha) * acknowledged_target.bps<f64>();
   }
@@ -154,9 +154,9 @@ DataRate estimate(&self /* LinkCapacityTracker */) {
 
 RttBasedBackoff::RttBasedBackoff(const FieldTrialsView* key_value_config)
     : disabled_("Disabled"),
-      configured_limit_("limit", Duration::from_secs(3)),
+      configured_limit_("limit", TimeDelta::Seconds(3)),
       drop_fraction_("fraction", 0.8),
-      drop_interval_("interval", Duration::from_secs(1)),
+      drop_interval_("interval", TimeDelta::Seconds(1)),
       bandwidth_floor_("floor", DataRate::KilobitsPerSec(5)),
       rtt_limit_(TimeDelta::PlusInfinity()),
       // By initializing this to plus infinity, we make sure that we never
@@ -166,7 +166,7 @@ RttBasedBackoff::RttBasedBackoff(const FieldTrialsView* key_value_config)
       last_packet_sent_(Timestamp::MinusInfinity()) {
   ParseFieldTrial({&self.disabled, &self.configured_limit, &self.drop_fraction,
                    &self.drop_interval, &bandwidth_floor_},
-                  key_value_config->Lookup("WebRTC-Bwe-MaxRttLimit"));
+                  key_value_config.Lookup("WebRTC-Bwe-MaxRttLimit"));
   if (!self.disabled) {
     self.rtt_limit = self.configured_limit.Get();
   }
@@ -199,8 +199,8 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
       expected_packets_since_last_loss_update_(0),
       current_target_(DataRate::Zero()),
       last_logged_target_(DataRate::Zero()),
-      min_bitrate_configured_(kCongestionControllerMinBitrate),
-      max_bitrate_configured_(kDefaultMaxBitrate),
+      min_bitrate_configured_(CongestionControllerMinBitrate),
+      max_bitrate_configured_(DefaultMaxBitrate),
       last_low_bitrate_log_(Timestamp::MinusInfinity()),
       has_decreased_since_last_fraction_loss_(false),
       last_loss_feedback_(Timestamp::MinusInfinity()),
@@ -214,14 +214,14 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
       first_report_time_(Timestamp::MinusInfinity()),
       initially_lost_packets_(0),
       bitrate_at_2_seconds_(DataRate::Zero()),
-      uma_update_state_(kNoUpdate),
-      uma_rtt_state_(kNoUpdate),
-      rampup_uma_stats_updated_(kNumUmaRampupMetrics, false),
+      uma_update_state_(NoUpdate),
+      uma_rtt_state_(NoUpdate),
+      rampup_uma_stats_updated_(NumUmaRampupMetrics, false),
       event_log_(event_log),
       last_rtc_event_log_(Timestamp::MinusInfinity()),
-      low_loss_threshold_(kDefaultLowLossThreshold),
-      high_loss_threshold_(kDefaultHighLossThreshold),
-      bitrate_threshold_(kDefaultBitrateThreshold),
+      low_loss_threshold_(DefaultLowLossThreshold),
+      high_loss_threshold_(DefaultHighLossThreshold),
+      bitrate_threshold_(DefaultBitrateThreshold),
       loss_based_bandwidth_estimator_v1_(key_value_config),
       loss_based_bandwidth_estimator_v2_(new LossBasedBweV2(key_value_config)),
       loss_based_state_(LossBasedState::kDelayBasedEstimate),
@@ -239,7 +239,7 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
     }
   }
   ParseFieldTrial({&disable_receiver_limit_caps_only_},
-                  key_value_config->Lookup("WebRTC-Bwe-ReceiverLimitCapsOnly"));
+                  key_value_config.Lookup("WebRTC-Bwe-ReceiverLimitCapsOnly"));
   if (LossBasedBandwidthEstimatorV2Enabled()) {
     self.loss_based_bandwidth_estimator_v2.SetMinMaxBitrate(
         self.min_bitrate_configured, self.max_bitrate_configured);
@@ -252,8 +252,8 @@ fn OnRouteChange(&self /* SendSideBandwidthEstimation */) {
   self.lost_packets_since_last_loss_update = 0;
   self.expected_packets_since_last_loss_update = 0;
   self.current_target = DataRate::Zero();
-  self.min_bitrate_configured = kCongestionControllerMinBitrate;
-  self.max_bitrate_configured = kDefaultMaxBitrate;
+  self.min_bitrate_configured = CongestionControllerMinBitrate;
+  self.max_bitrate_configured = DefaultMaxBitrate;
   self.last_low_bitrate_log = Timestamp::MinusInfinity();
   self.has_decreased_since_last_fraction_loss = false;
   self.last_loss_feedback = Timestamp::MinusInfinity();
@@ -267,8 +267,8 @@ fn OnRouteChange(&self /* SendSideBandwidthEstimation */) {
   self.first_report_time = Timestamp::MinusInfinity();
   self.initially_lost_packets = 0;
   self.bitrate_at_2_seconds = DataRate::Zero();
-  self.uma_update_state = kNoUpdate;
-  self.uma_rtt_state = kNoUpdate;
+  self.uma_update_state = NoUpdate;
+  self.uma_rtt_state = NoUpdate;
   self.last_rtc_event_log = Timestamp::MinusInfinity();
   if (LossBasedBandwidthEstimatorV2Enabled() &&
       self.loss_based_bandwidth_estimator_v2.UseInStartPhase()) {
@@ -303,11 +303,11 @@ fn SetSendBitrate(&self /* SendSideBandwidthEstimation */,DataRate bitrate,
 fn SetMinMaxBitrate(&self /* SendSideBandwidthEstimation */,DataRate min_bitrate,
                                                    DataRate max_bitrate) {
   self.min_bitrate_configured =
-      std::cmp::max(min_bitrate, kCongestionControllerMinBitrate);
+      std::cmp::max(min_bitrate, CongestionControllerMinBitrate);
   if (max_bitrate > DataRate::Zero() && max_bitrate.IsFinite()) {
     self.max_bitrate_configured = std::cmp::max(self.min_bitrate_configured, max_bitrate);
   } else {
-    self.max_bitrate_configured = kDefaultMaxBitrate;
+    self.max_bitrate_configured = DefaultMaxBitrate;
   }
   self.loss_based_bandwidth_estimator_v2.SetMinMaxBitrate(self.min_bitrate_configured,
                                                        self.max_bitrate_configured);
@@ -325,7 +325,7 @@ DataRate target_rate(&self /* SendSideBandwidthEstimation */) {
 }
 
 LossBasedState loss_based_state(&self /* SendSideBandwidthEstimation */) {
-  loss_based_state: return,
+  return loss_based_state;
 }
 
 bool IsRttAboveLimit(&self /* SendSideBandwidthEstimation */) {
@@ -399,7 +399,7 @@ fn UpdatePacketsLost(&self /* SendSideBandwidthEstimation */,i64 packets_lost,
         self.expected_packets_since_last_loss_update + number_of_packets;
 
     // Don't generate a loss rate until it can be based on enough packets.
-    if (expected < kLimitNumPackets) {
+    if (expected < LimitNumPackets) {
       // Accumulate reports.
       self.expected_packets_since_last_loss_update = expected;
       self.lost_packets_since_last_loss_update += packets_lost;
@@ -427,26 +427,26 @@ fn UpdateUmaStatsPacketsLost(&self /* SendSideBandwidthEstimation */,Timestamp a
                                                             isize packets_lost) {
   let bitrate_kbps: DataRate =
       DataRate::KilobitsPerSec((self.current_target.bps() + 500) / 1000);
-  let i: for = 0; i < kNumUmaRampupMetricsi += 1) {
+  let i: for = 0; i < NumUmaRampupMetricsi += 1) {
     if (!self.rampup_uma_stats_updated[i] &&
-        bitrate_kbps.kbps() >= kUmaRampupMetrics[i].bitrate_kbps) {
-      RTC_HISTOGRAMS_COUNTS_100000(i, kUmaRampupMetrics[i].metric_name,
+        bitrate_kbps.kbps() >= UmaRampupMetrics[i].bitrate_kbps) {
+      RTC_HISTOGRAMS_COUNTS_100000(i, UmaRampupMetrics[i].metric_name,
                                    (at_time - self.first_report_time).ms());
       self.rampup_uma_stats_updated[i] = true;
     }
   }
   if (IsInStartPhase(at_time)) {
     self.initially_lost_packets += packets_lost;
-  } else if (self.uma_update_state == kNoUpdate) {
-    self.uma_update_state = kFirstDone;
+  } else if (self.uma_update_state == NoUpdate) {
+    self.uma_update_state = FirstDone;
     self.bitrate_at_2_seconds = bitrate_kbps;
     RTC_HISTOGRAM_COUNTS("WebRTC.BWE.InitiallyLostPackets",
                          self.initially_lost_packets, 0, 100, 50);
     RTC_HISTOGRAM_COUNTS("WebRTC.BWE.InitialBandwidthEstimate",
                          self.bitrate_at_2_seconds.kbps(), 0, 2000, 50);
-  } else if (self.uma_update_state == kFirstDone &&
-             at_time - self.first_report_time >= kBweConverganceTime) {
-    self.uma_update_state = kDone;
+  } else if (self.uma_update_state == FirstDone &&
+             at_time - self.first_report_time >= BweConverganceTime) {
+    self.uma_update_state = Done;
     let bitrate_diff_kbps: isize = std::cmp::max(
         self.bitrate_at_2_seconds.kbps<isize>() - bitrate_kbps.kbps<isize>(), 0);
     RTC_HISTOGRAM_COUNTS("WebRTC.BWE.InitialVsConvergedDiff", bitrate_diff_kbps,
@@ -460,8 +460,8 @@ fn UpdateRtt(&self /* SendSideBandwidthEstimation */,TimeDelta rtt, Timestamp at
   if (rtt > TimeDelta::Zero())
     self.last_round_trip_time = rtt;
 
-  if (!IsInStartPhase(at_time) && self.uma_rtt_state == kNoUpdate) {
-    self.uma_rtt_state = kDone;
+  if (!IsInStartPhase(at_time) && self.uma_rtt_state == NoUpdate) {
+    self.uma_rtt_state = Done;
     RTC_HISTOGRAM_COUNTS("WebRTC.BWE.InitialRtt", rtt.ms<isize>(), 0, 2000, 50);
   }
 }
@@ -535,7 +535,7 @@ fn UpdateEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
   }
 
   let time_since_loss_packet_report: TimeDelta = at_time - self.last_loss_packet_report;
-  if (time_since_loss_packet_report < 1.2 * kMaxRtcpFeedbackInterval) {
+  if (time_since_loss_packet_report < 1.2 * MaxRtcpFeedbackInterval) {
     // We only care about loss above a given bitrate threshold.
     let loss: f32 = self.last_fraction_loss / 256.0;
     // We only make decisions based on loss when the bitrate is above a
@@ -543,7 +543,7 @@ fn UpdateEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
     // to congestion.
     if (self.current_target < self.bitrate_threshold || loss <= self.low_loss_threshold) {
       // Loss < 2%: Increase rate by 8% of the min bitrate in the last
-      // kBweIncreaseInterval.
+      // BweIncreaseInterval.
       // Note that by remembering the bitrate over the last second one can
       // rampup up one second faster than if only allowed to start ramping
       // at 8% per second rate now. E.g.:
@@ -565,11 +565,11 @@ fn UpdateEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
       if (loss <= self.high_loss_threshold) {
         // Loss between 2% - 10%: Do nothing.
       } else {
-        // Loss > 10%: Limit the rate decreases to once a kBweDecreaseInterval
+        // Loss > 10%: Limit the rate decreases to once a BweDecreaseInterval
         // + rtt.
         if (!self.has_decreased_since_last_fraction_loss &&
             (at_time - self.time_last_decrease) >=
-                (kBweDecreaseInterval + self.last_round_trip_time)) {
+                (BweDecreaseInterval + self.last_round_trip_time)) {
           self.time_last_decrease = at_time;
 
           // Reduce rate:
@@ -603,7 +603,7 @@ fn OnSentPacket(&self /* SendSideBandwidthEstimation */,const SentPacket& sent_p
 
 bool IsInStartPhase(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
   return self.first_report_time.IsInfinite() ||
-         at_time - self.first_report_time < kStartPhase;
+         at_time - self.first_report_time < StartPhase;
 }
 
 fn UpdateMinHistory(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
@@ -612,7 +612,7 @@ fn UpdateMinHistory(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
   // bitrate if it is off by as little as 0.5ms.
   while (!self.min_bitrate_history.empty() &&
          at_time - self.min_bitrate_history.front().first + TimeDelta::Millis(1) >
-             kBweIncreaseInterval) {
+             BweIncreaseInterval) {
     self.min_bitrate_history.pop_front();
   }
 
@@ -635,8 +635,8 @@ DataRate GetUpperLimit(&self /* SendSideBandwidthEstimation */) {
 
 fn MaybeLogLowBitrateWarning(&self /* SendSideBandwidthEstimation */,DataRate bitrate,
                                                             Timestamp at_time) {
-  if (at_time - self.last_low_bitrate_log > kLowBitrateLogPeriod) {
-    RTC_LOG(LS_WARNING) << "Estimated available bandwidth " << ToString(bitrate)
+  if (at_time - self.last_low_bitrate_log > LowBitrateLogPeriod) {
+    tracing::warn!( << "Estimated available bandwidth " << ToString(bitrate)
                         << " is below configured min bitrate "
                         << ToString(self.min_bitrate_configured) << ".";
     self.last_low_bitrate_log = at_time;
@@ -644,9 +644,9 @@ fn MaybeLogLowBitrateWarning(&self /* SendSideBandwidthEstimation */,DataRate bi
 }
 
 fn MaybeLogLossBasedEvent(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
-  if (current_target_ != self.last_logged_target ||
-      last_fraction_loss_ != self.last_logged_fraction_loss ||
-      at_time - self.last_rtc_event_log > kRtcEventLogPeriod) {
+  if (self.current_target != self.last_logged_target ||
+      self.last_fraction_loss != self.last_logged_fraction_loss ||
+      at_time - self.last_rtc_event_log > RtcEventLogPeriod) {
     self.event_log.Log(std::make_unique<RtcEventBweUpdateLossBased>(
         self.current_target.bps(), self.last_fraction_loss,
         self.expected_packets_since_last_loss_update));

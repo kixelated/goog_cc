@@ -78,11 +78,11 @@ pub struct LossBasedBandwidthEstimation {
   fn Reset(DataRate bitrate) {
   todo!();
 }
-  f64 loss_increase_threshold() const;
-  f64 loss_decrease_threshold() const;
-  f64 loss_reset_threshold() const;
+  fn loss_increase_threshold(&self) -> f64;
+  fn loss_decrease_threshold(&self) -> f64;
+  fn loss_reset_threshold(&self) -> f64;
 
-  DataRate decreased_bitrate() const;
+  fn decreased_bitrate(&self) -> DataRate;
 
   const LossBasedControlConfig self.config;
   average_loss: f64,

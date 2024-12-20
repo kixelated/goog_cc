@@ -142,7 +142,7 @@ let throughput = throughput_estimator.bitrate();
                                                 send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
-    ASSERT_TRUE(throughput.is_some());
+    assert!(throughput.is_some());
     EXPECT_GE(throughput.value(), DataRate::BytesPerSec(100000));
     EXPECT_LE(throughput.value(), send_rate);
   }
@@ -166,7 +166,7 @@ let throughput = throughput_estimator.bitrate();
                                                 send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
-    ASSERT_TRUE(throughput.is_some());
+    assert!(throughput.is_some());
     EXPECT_LE(throughput.value(), DataRate::BytesPerSec(200000));
     EXPECT_GE(throughput.value(), send_rate);
   }
@@ -199,7 +199,7 @@ fn CappedByReceiveRate() {
                                               send_rate, recv_rate);
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
-  ASSERT_TRUE(throughput.is_some());
+  assert!(throughput.is_some());
   EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
               recv_rate.bytes_per_sec<f64>(),
               0.05 * recv_rate.bytes_per_sec<f64>());  // Allow 5% error
@@ -220,7 +220,7 @@ fn CappedBySendRate() {
                                               send_rate, recv_rate);
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
-  ASSERT_TRUE(throughput.is_some());
+  assert!(throughput.is_some());
   EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
               send_rate.bytes_per_sec<f64>(),
               0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
@@ -258,7 +258,7 @@ let throughput = throughput_estimator.bitrate();
         1, DataSize::Bytes(1000), send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
     throughput = throughput_estimator.bitrate();
-    ASSERT_TRUE(throughput.is_some());
+    assert!(throughput.is_some());
     EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
                 send_rate.bytes_per_sec<f64>(),
                 0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
@@ -273,7 +273,7 @@ let throughput = throughput_estimator.bitrate();
         5, DataSize::Bytes(1000), send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
     throughput = throughput_estimator.bitrate();
-    ASSERT_TRUE(throughput.is_some());
+    assert!(throughput.is_some());
     EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
                 send_rate.bytes_per_sec<f64>(),
                 0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
@@ -305,7 +305,7 @@ fn HighLoss() {
             PacketResult::ReceiveTimeOrder());
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
-  ASSERT_TRUE(throughput.is_some());
+  assert!(throughput.is_some());
   EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
               send_rate.bytes_per_sec<f64>() / 2,
               0.05 * send_rate.bytes_per_sec<f64>() / 2);  // Allow 5% error
@@ -338,7 +338,7 @@ let throughput = throughput_estimator.bitrate();
   // estimate will drop.
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
   throughput = throughput_estimator.bitrate();
-  ASSERT_TRUE(throughput.is_some());
+  assert!(throughput.is_some());
   EXPECT_LT(throughput.value(), send_rate);
 
   // But it should completely recover as soon as we get the feedback.
@@ -389,7 +389,7 @@ let throughput = throughput_estimator.bitrate();
       feedback_generator.CurrentReceiveClock();
   throughput_estimator.IncomingPacketFeedbackVector(delayed_packets);
 let throughput = throughput_estimator.bitrate();
-  ASSERT_TRUE(throughput.is_some());
+  assert!(throughput.is_some());
   EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
               send_rate.bytes_per_sec<f64>(),
               0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
@@ -401,7 +401,7 @@ let throughput = throughput_estimator.bitrate();
                                                 send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
-    ASSERT_TRUE(throughput.is_some());
+    assert!(throughput.is_some());
     EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
                 send_rate.bytes_per_sec<f64>(),
                 0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
@@ -423,7 +423,7 @@ fn ResetsIfReceiveClockChangeBackwards() {
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
   assert_eq!(throughput_estimator.bitrate(), send_rate);
 
-  feedback_generator.AdvanceReceiveClock(Duration::from_secs(-2));
+  feedback_generator.AdvanceReceiveClock(TimeDelta::Seconds(-2));
   send_rate = DataRate::BytesPerSec(200000);
   recv_rate = DataRate::BytesPerSec(200000);
   packet_feedback = feedback_generator.CreateFeedbackVector(
@@ -454,8 +454,8 @@ let throughput = throughput_estimator.bitrate();
               0.05 * expected_bytes_per_sec);  // Allow 5% error
 
   // No packets sent or feedback received for 60s.
-  feedback_generator.AdvanceSendClock(Duration::from_secs(60));
-  feedback_generator.AdvanceReceiveClock(Duration::from_secs(60));
+  feedback_generator.AdvanceSendClock(TimeDelta::Seconds(60));
+  feedback_generator.AdvanceReceiveClock(TimeDelta::Seconds(60));
 
   // Resume sending packets at the same rate as before. The estimate
   // will initially be invalid, due to lack of recent data.

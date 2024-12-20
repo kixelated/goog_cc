@@ -29,13 +29,13 @@
 // State of the loss based estimate, which can be either increasing/decreasing
 // when network is loss limited, or equal to the delay based estimate.
 pub enum LossBasedState {
-  kIncreasing = 0,
+  Increasing = 0,
   // TODO(bugs.webrtc.org/12707): Remove one of the increasing states once we
   // have decided if padding is usefull for ramping up when BWE is loss
   // limited.
-  kIncreaseUsingPadding = 1,
-  kDecreasing = 2,
-  kDelayBasedEstimate = 3
+  IncreaseUsingPadding = 1,
+  Decreasing = 2,
+  DelayBasedEstimate = 3
 };
 
 pub struct LossBasedBweV2 {
@@ -44,7 +44,7 @@ pub struct LossBasedBweV2 {
     ~Result() = default;
     let bandwidth_estimate: DataRate = DataRate::Zero();
     // State is used by goog_cc, which later sends probe requests to probe
-    // controller if state is kIncreasing.
+    // controller if state is Increasing.
     let state: LossBasedState = LossBasedState::kDelayBasedEstimate;
   };
   // Creates a disabled `LossBasedBweV2` if the
@@ -56,19 +56,19 @@ pub struct LossBasedBweV2 {
 
   ~LossBasedBweV2() = default;
 
-  bool IsEnabled() const;
+  fn IsEnabled(&self) -> bool;
   // Returns true iff a BWE can be calculated, i.e., the estimator has been
   // initialized with a BWE and then has received enough `PacketResult`s.
-  bool IsReady() const;
+  fn IsReady(&self) -> bool;
 
   // Returns true if loss based BWE is ready to be used in the start phase.
-  bool ReadyToUseInStartPhase() const;
+  fn ReadyToUseInStartPhase(&self) -> bool;
 
   // Returns true if loss based BWE can be used in the start phase.
-  bool UseInStartPhase() const;
+  fn UseInStartPhase(&self) -> bool;
 
   // Returns `DataRate::PlusInfinity` if no BWE can be calculated.
-  Result GetLossBasedResult() const;
+  fn GetLossBasedResult(&self) -> Result;
 
   fn SetAcknowledgedBitrate(DataRate acknowledged_bitrate) {
   todo!();
@@ -80,7 +80,7 @@ pub struct LossBasedBweV2 {
       rtc::ArrayView<const PacketResult> packet_results,
       DataRate delay_based_estimate,
       bool in_alr);
-  bool PaceAtLossBasedEstimate() const;
+  fn PaceAtLossBasedEstimate(&self) -> bool;
 
   // For unit testing only.
   fn SetBandwidthEstimate(DataRate bandwidth_estimate) {
@@ -173,40 +173,40 @@ pub struct LossBasedBweV2 {
 
   static Option<Config> CreateConfig(
       const FieldTrialsView* key_value_config);
-  bool IsConfigValid() const;
+  fn IsConfigValid(&self) -> bool;
 
   // Returns `0.0` if not enough loss statistics have been received.
-  void UpdateAverageReportedLossRatio();
-  f64 CalculateAverageReportedPacketLossRatio() const;
+  fn UpdateAverageReportedLossRatio(&mut self) { todo!(); }
+  fn CalculateAverageReportedPacketLossRatio(&self) -> f64;
   // Calculates the average loss ratio over the last `observation_window_size`
   // observations but skips the observation with min and max loss ratio in order
   // to filter out loss spikes.
-  f64 CalculateAverageReportedByteLossRatio() const;
+  fn CalculateAverageReportedByteLossRatio(&self) -> f64;
   Vec<ChannelParameters> GetCandidates(bool in_alr) const;
-  DataRate GetCandidateBandwidthUpperBound() const;
-  Derivatives GetDerivatives(const ChannelParameters& channel_parameters) const;
+  fn GetCandidateBandwidthUpperBound(&self) -> DataRate;
+  fn GetDerivatives(&self, ChannelParameters: const& channel_parameters) -> Derivatives;
   f64 GetFeasibleInherentLoss(
       const ChannelParameters& channel_parameters) const;
-  f64 GetInherentLossUpperBound(DataRate bandwidth) const;
-  f64 AdjustBiasFactor(f64 loss_rate, f64 bias_factor) const;
-  f64 GetHighBandwidthBias(DataRate bandwidth) const;
-  f64 GetObjective(const ChannelParameters& channel_parameters) const;
-  DataRate GetSendingRate(DataRate instantaneous_sending_rate) const;
-  DataRate GetInstantUpperBound() const;
-  void CalculateInstantUpperBound();
-  DataRate GetInstantLowerBound() const;
-  void CalculateInstantLowerBound();
+  fn GetInherentLossUpperBound(&self, bandwidth: DataRate) -> f64;
+  fn AdjustBiasFactor(&self, f64: loss_rate, f64: bias_factor) -> f64;
+  fn GetHighBandwidthBias(&self, bandwidth: DataRate) -> f64;
+  fn GetObjective(&self, ChannelParameters: const& channel_parameters) -> f64;
+  fn GetSendingRate(&self, instantaneous_sending_rate: DataRate) -> DataRate;
+  fn GetInstantUpperBound(&self) -> DataRate;
+  fn CalculateInstantUpperBound(&mut self) { todo!(); }
+  fn GetInstantLowerBound(&self) -> DataRate;
+  fn CalculateInstantLowerBound(&mut self) { todo!(); }
 
-  void CalculateTemporalWeights();
-  void NewtonsMethodUpdate(ChannelParameters& channel_parameters) const;
+  fn CalculateTemporalWeights(&mut self) { todo!(); }
+  fn NewtonsMethodUpdate(&self, ChannelParameters& channel_parameters) -> void;
 
   // Returns false if no observation was created.
   bool PushBackObservation(rtc::ArrayView<const PacketResult> packet_results);
   bool IsEstimateIncreasingWhenLossLimited(DataRate old_estimate,
                                            DataRate new_estimate);
-  bool IsInLossLimitedState() const;
-  bool CanKeepIncreasingState(DataRate estimate) const;
-  DataRate GetMedianSendingRate() const;
+  fn IsInLossLimitedState(&self) -> bool;
+  fn CanKeepIncreasingState(&self, estimate: DataRate) -> bool;
+  fn GetMedianSendingRate(&self) -> DataRate;
 
   acknowledged_bitrate: Option<DataRate>,
   config: Option<Config>,

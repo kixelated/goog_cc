@@ -40,16 +40,16 @@ class TestProbeBitrateEstimator : public ::testing::Test {
                          usize size_bytes,
                          i64 send_time_ms,
                          i64 arrival_time_ms,
-                         let min_probes: isize = kDefaultMinProbes,
-                         let min_bytes: isize = kDefaultMinBytes) {
+                         let min_probes: isize = DefaultMinProbes,
+                         let min_bytes: isize = DefaultMinBytes) {
     const ReferenceTime: Timestamp = Timestamp::Seconds(1000);
     PacketResult feedback;
     feedback.sent_packet.send_time =
-        kReferenceTime + TimeDelta::Millis(send_time_ms);
+        ReferenceTime + TimeDelta::Millis(send_time_ms);
     feedback.sent_packet.size = DataSize::Bytes(size_bytes);
     feedback.sent_packet.pacing_info =
         PacedPacketInfo(probe_cluster_id, min_probes, min_bytes);
-    feedback.receive_time = kReferenceTime + TimeDelta::Millis(arrival_time_ms);
+    feedback.receive_time = ReferenceTime + TimeDelta::Millis(arrival_time_ms);
     self.measured_data_rate =
         self.probe_bitrate_estimator.HandleProbeAndEstimateBitrate(feedback);
   }
@@ -81,11 +81,11 @@ fn OneClusterTooFewProbes() {
 #[test]
 fn OneClusterTooFewBytes() {
   const MinBytes: isize = 6000;
-  AddPacketFeedback(0, 800, 0, 10, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 800, 10, 20, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 800, 20, 30, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 800, 30, 40, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 800, 40, 50, kDefaultMinProbes, kMinBytes);
+  AddPacketFeedback(0, 800, 0, 10, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 800, 10, 20, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 800, 20, 30, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 800, 30, 40, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 800, 40, 50, DefaultMinProbes, MinBytes);
 
   assert!(!(self.measured_data_rate);
 }
@@ -93,12 +93,12 @@ fn OneClusterTooFewBytes() {
 #[test]
 fn SmallCluster() {
   const MinBytes: isize = 1000;
-  AddPacketFeedback(0, 150, 0, 10, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 150, 10, 20, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 150, 20, 30, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 150, 30, 40, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 150, 40, 50, kDefaultMinProbes, kMinBytes);
-  AddPacketFeedback(0, 150, 50, 60, kDefaultMinProbes, kMinBytes);
+  AddPacketFeedback(0, 150, 0, 10, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 150, 10, 20, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 150, 20, 30, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 150, 30, 40, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 150, 40, 50, DefaultMinProbes, MinBytes);
+  AddPacketFeedback(0, 150, 50, 60, DefaultMinProbes, MinBytes);
   EXPECT_NEAR(self.measured_data_rate.bps(), 120000, 10);
 }
 
@@ -110,7 +110,7 @@ fn LargeCluster() {
   let send_time: i64 = 0;
   let receive_time: i64 = 5;
   for (isize i = 0; i < 25i += 1) {
-    AddPacketFeedback(0, 12500, send_time, receive_time, kMinProbes, kMinBytes);
+    AddPacketFeedback(0, 12500, send_time, receive_time, MinProbes, MinBytes);
     send_time += 1;
     receive_time += 1;
   }
@@ -145,7 +145,7 @@ fn SlowReceive() {
   AddPacketFeedback(0, 1000, 30, 85);
   // Expected send rate = 800 kbps, expected receive rate = 320 kbps.
 
-  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 320000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), TargetUtilizationFraction * 320000,
               10);
 }
 
@@ -166,7 +166,7 @@ fn MultipleClusters() {
   AddPacketFeedback(0, 1000, 20, 30);
   AddPacketFeedback(0, 1000, 40, 60);
   // Expected send rate = 600 kbps, expected receive rate = 480 kbps.
-  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 480000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), TargetUtilizationFraction * 480000,
               10);
 
   AddPacketFeedback(0, 1000, 50, 60);
@@ -179,7 +179,7 @@ fn MultipleClusters() {
   AddPacketFeedback(1, 1000, 75, 90);
   // Expected send rate = 1600 kbps, expected receive rate = 1200 kbps.
 
-  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 1200000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), TargetUtilizationFraction * 1200000,
               10);
 }
 
@@ -195,7 +195,7 @@ fn IgnoreOldClusters() {
   AddPacketFeedback(1, 1000, 75, 90);
   // Expected send rate = 1600 kbps, expected receive rate = 1200 kbps.
 
-  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 1200000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), TargetUtilizationFraction * 1200000,
               10);
 
   // Coming in 6s later
@@ -224,7 +224,7 @@ fn IgnoreSizeFirstReceivePacket() {
   AddPacketFeedback(0, 1000, 30, 40);
   // Expected send rate = 933 kbps, expected receive rate = 800 kbps.
 
-  EXPECT_NEAR(self.measured_data_rate.bps(), kTargetUtilizationFraction * 800000,
+  EXPECT_NEAR(self.measured_data_rate.bps(), TargetUtilizationFraction * 800000,
               10);
 }
 
@@ -243,7 +243,7 @@ fn FetchLastEstimatedBitrateBps() {
 let estimated_bitrate =
       self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate();
   assert!((estimated_bitrate);
-  EXPECT_NEAR(estimated_bitrate->bps(), 800000, 10);
+  EXPECT_NEAR(estimated_bitrate.bps(), 800000, 10);
   assert!(!(self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate());
 }
 

@@ -11,7 +11,7 @@
 // TODO: bugs.webrtc.org/42225697 - L4S support is slowly being developed.
 // Help is appreciated.
 
-// L4S Explicit Congestion Notification (ECN) .
+// L4S Explicit Congestion Notification (ECN) ->
 // https://www.rfc-editor.org/rfc/rfc9331.html ECT stands for ECN-Capable
 // Transport and CE stands for Congestion Experienced.
 
@@ -25,9 +25,10 @@
 //    1     0         ECT(0)
 //    1     1         CE
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcnMarking {
-  NotEct = 0,  // Not ECN-Capable Transport
-  Ect1 = 1,    // ECN-Capable Transport
-  Ect0 = 2,    // Not used by L4s (or webrtc.)
-  Ce = 3,      // Congestion experienced
+    NotEct = 0, // Not ECN-Capable Transport
+    Ect1 = 1,   // ECN-Capable Transport
+    Ect0 = 2,   // Not used by L4s (or webrtc.)
+    Ce = 3,     // Congestion experienced
 }

@@ -36,7 +36,7 @@ namespace {
 const FirstArrivalTimeMs: i64 = 10;
 const FirstSendTimeMs: i64 = 10;
 const SequenceNumber: uint16_t = 1;
-const PayloadSize: size_t = 10;
+const PayloadSize: usize = 10;
 
 class MockBitrateEstimator : public BitrateEstimator {
  public:
@@ -57,7 +57,7 @@ struct AcknowledgedBitrateEstimatorTestStates {
 
 AcknowledgedBitrateEstimatorTestStates CreateTestStates() {
   AcknowledgedBitrateEstimatorTestStates states;
-  let mock_bitrate_estimator: auto =
+  let mock_bitrate_estimator =
       std::make_unique<MockBitrateEstimator>(&states.field_trial_config);
   states.mock_bitrate_estimator = mock_bitrate_estimator.get();
   states.acknowledged_bitrate_estimator =
@@ -69,18 +69,18 @@ AcknowledgedBitrateEstimatorTestStates CreateTestStates() {
 std::vector<PacketResult> CreateFeedbackVector() {
   std::vector<PacketResult> packet_feedback_vector(2);
   packet_feedback_vector[0].receive_time =
-      Timestamp::Millis(kFirstArrivalTimeMs);
+      Timestamp::Millis(FirstArrivalTimeMs);
   packet_feedback_vector[0].sent_packet.send_time =
-      Timestamp::Millis(kFirstSendTimeMs);
-  packet_feedback_vector[0].sent_packet.sequence_number = kSequenceNumber;
-  packet_feedback_vector[0].sent_packet.size = DataSize::Bytes(kPayloadSize);
+      Timestamp::Millis(FirstSendTimeMs);
+  packet_feedback_vector[0].sent_packet.sequence_number = SequenceNumber;
+  packet_feedback_vector[0].sent_packet.size = DataSize::Bytes(PayloadSize);
   packet_feedback_vector[1].receive_time =
-      Timestamp::Millis(kFirstArrivalTimeMs + 10);
+      Timestamp::Millis(FirstArrivalTimeMs + 10);
   packet_feedback_vector[1].sent_packet.send_time =
-      Timestamp::Millis(kFirstSendTimeMs + 10);
-  packet_feedback_vector[1].sent_packet.sequence_number = kSequenceNumber;
+      Timestamp::Millis(FirstSendTimeMs + 10);
+  packet_feedback_vector[1].sent_packet.sequence_number = SequenceNumber;
   packet_feedback_vector[1].sent_packet.size =
-      DataSize::Bytes(kPayloadSize + 10);
+      DataSize::Bytes(PayloadSize + 10);
   return packet_feedback_vector;
 }
 
@@ -103,7 +103,7 @@ fn UpdateBandwidth() {
                        /*in_alr*/ false))
         .Times(1);
   }
-  states.acknowledged_bitrate_estimator->IncomingPacketFeedbackVector(
+  states.acknowledged_bitrate_estimator.IncomingPacketFeedbackVector(
       packet_feedback_vector);
 }
 
@@ -126,9 +126,9 @@ fn ExpectFastRateChangeWhenLeftAlr() {
                        /*in_alr*/ false))
         .Times(1);
   }
-  states.acknowledged_bitrate_estimator->SetAlrEndedTime(
-      Timestamp::Millis(kFirstArrivalTimeMs + 1));
-  states.acknowledged_bitrate_estimator->IncomingPacketFeedbackVector(
+  states.acknowledged_bitrate_estimator.SetAlrEndedTime(
+      Timestamp::Millis(FirstArrivalTimeMs + 1));
+  states.acknowledged_bitrate_estimator.IncomingPacketFeedbackVector(
       packet_feedback_vector);
 }
 
@@ -139,7 +139,7 @@ fn ReturnBitrate() {
   EXPECT_CALL(*states.mock_bitrate_estimator, bitrate())
       .Times(1)
       .WillOnce(Return(return_value));
-  assert_eq!(return_value, states.acknowledged_bitrate_estimator->bitrate());
+  assert_eq!(return_value, states.acknowledged_bitrate_estimator.bitrate());
 }
 
 }  // namespace webrtc*/

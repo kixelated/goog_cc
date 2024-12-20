@@ -51,7 +51,7 @@ pub struct LinkCapacityTracker {
   fn OnRttBackoff(DataRate backoff_rate, Timestamp at_time) {
   todo!();
 }
-  DataRate estimate() const;
+  fn estimate(&self) -> DataRate;
 
  private:
   let capacity_estimate_bps_: f64 = 0.0;
@@ -66,7 +66,7 @@ pub struct RttBasedBackoff {
   fn UpdatePropagationRtt(Timestamp at_time, TimeDelta propagation_rtt) {
   todo!();
 }
-  bool IsRttAboveLimit() const;
+  fn IsRttAboveLimit(&self) -> bool;
 
   disabled: FieldTrialFlag,
   configured_limit: FieldTrialParameter<TimeDelta>,
@@ -81,7 +81,7 @@ pub struct RttBasedBackoff {
   last_packet_sent: Timestamp,
 
  private:
-  TimeDelta CorrectedRtt() const;
+  fn CorrectedRtt(&self) -> TimeDelta;
 };
 
 pub struct SendSideBandwidthEstimation {
@@ -91,17 +91,17 @@ pub struct SendSideBandwidthEstimation {
                               RtcEventLog* event_log);
   ~SendSideBandwidthEstimation();
 
-  void OnRouteChange();
+  fn OnRouteChange(&mut self) { todo!(); }
 
-  DataRate target_rate() const;
-  LossBasedState loss_based_state() const;
+  fn target_rate(&self) -> DataRate;
+  fn loss_based_state(&self) -> LossBasedState;
   // Return whether the current rtt is higher than the rtt limited configured in
   // RttBasedBackoff.
-  bool IsRttAboveLimit() const;
+  fn IsRttAboveLimit(&self) -> bool;
   uint8_t fraction_loss() { return self.last_fraction_loss; }
   TimeDelta round_trip_time() { return self.last_round_trip_time; }
 
-  DataRate GetEstimatedLinkCapacity() const;
+  fn GetEstimatedLinkCapacity(&self) -> DataRate;
   // Call periodically to update estimate.
   fn UpdateEstimate(Timestamp at_time) {
   todo!();
@@ -143,21 +143,21 @@ pub struct SendSideBandwidthEstimation {
   fn SetMinMaxBitrate(DataRate min_bitrate, DataRate max_bitrate) {
   todo!();
 }
-  isize GetMinBitrate() const;
+  fn GetMinBitrate(&self) -> isize;
   void SetAcknowledgedRate(Option<DataRate> acknowledged_rate,
                            Timestamp at_time);
   void UpdateLossBasedEstimator(const TransportPacketsFeedback& report,
                                 BandwidthUsage delay_detector_state,
                                 Option<DataRate> probe_bitrate,
                                 bool in_alr);
-  bool PaceAtLossBasedEstimate() const;
+  fn PaceAtLossBasedEstimate(&self) -> bool;
 
  private:
   friend class GoogCcStatePrinter;
 
-  enum UmaState { kNoUpdate, kFirstDone, kDone };
+  enum UmaState { NoUpdate, FirstDone, Done };
 
-  bool IsInStartPhase(Timestamp at_time) const;
+  fn IsInStartPhase(&self, at_time: Timestamp) -> bool;
 
   fn UpdateUmaStatsPacketsLost(Timestamp at_time, isize packets_lost) {
   todo!();
@@ -165,14 +165,14 @@ pub struct SendSideBandwidthEstimation {
 
   // Updates history of min bitrates.
   // After this method returns self.min_bitrate_history.front().second contains the
-  // min bitrate used during last kBweIncreaseIntervalMs.
+  // min bitrate used during last BweIncreaseIntervalMs.
   fn UpdateMinHistory(Timestamp at_time) {
   todo!();
 }
 
   // Gets the upper limit for the target bitrate. This is the minimum of the
   // delay based limit, the receiver limit and the loss based controller limit.
-  DataRate GetUpperLimit() const;
+  fn GetUpperLimit(&self) -> DataRate;
   // Prints a warning if `bitrate` if sufficiently long time has past since last
   // warning.
   fn MaybeLogLowBitrateWarning(DataRate bitrate, Timestamp at_time) {
@@ -196,11 +196,11 @@ pub struct SendSideBandwidthEstimation {
   todo!();
 }
 
-  bool LossBasedBandwidthEstimatorV1Enabled() const;
-  bool LossBasedBandwidthEstimatorV2Enabled() const;
+  fn LossBasedBandwidthEstimatorV1Enabled(&self) -> bool;
+  fn LossBasedBandwidthEstimatorV2Enabled(&self) -> bool;
 
-  bool LossBasedBandwidthEstimatorV1ReadyForUse() const;
-  bool LossBasedBandwidthEstimatorV2ReadyForUse() const;
+  fn LossBasedBandwidthEstimatorV1ReadyForUse(&self) -> bool;
+  fn LossBasedBandwidthEstimatorV2ReadyForUse(&self) -> bool;
 
   const FieldTrialsView* self.key_value_config;
   rtt_backoff: RttBasedBackoff,

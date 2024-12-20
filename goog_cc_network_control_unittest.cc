@@ -76,7 +76,7 @@ GoogCcNetworkControllerFactory CreateFeedbackOnlyFactory() {
 }
 
 const InitialBitrateKbps: u32 = 60;
-const InitialBitrate: DataRate = DataRate::KilobitsPerSec(kInitialBitrateKbps);
+const InitialBitrate: DataRate = DataRate::KilobitsPerSec(InitialBitrateKbps);
 const DefaultPacingRate: f32 = 2.5f;
 
 CallClient* CreateVideoSendingClient(
@@ -84,11 +84,11 @@ CallClient* CreateVideoSendingClient(
     CallClientConfig config,
     Vec<EmulatedNetworkNode*> send_link,
     Vec<EmulatedNetworkNode*> return_link) {
-  auto* client = s->CreateClient("send", std::move(config));
-  auto* route = s->CreateRoutes(client, send_link,
-                                s->CreateClient("return", CallClientConfig()),
+  auto* client = s.CreateClient("send", std::move(config));
+  auto* route = s.CreateRoutes(client, send_link,
+                                s.CreateClient("return", CallClientConfig()),
                                 return_link);
-  s->CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
   return client;
 }
 
@@ -131,26 +131,26 @@ Option<DataRate> PacketTransmissionAndFeedbackBlock(
   let delay_buildup: i64 = 0;
   let start_time_ms: i64 = current_time.ms();
   while (current_time.ms() - start_time_ms < runtime_ms) {
-    const kPayloadSize: usize = 1000;
+    const PayloadSize: usize = 1000;
     let packet: PacketResult =
         CreatePacketResult(current_time + TimeDelta::Millis(delay_buildup),
-                           current_time, kPayloadSize, PacedPacketInfo());
+                           current_time, PayloadSize, PacedPacketInfo());
     delay_buildup += delay;
-    update = controller->OnSentPacket(packet.sent_packet);
+    update = controller.OnSentPacket(packet.sent_packet);
     if (update.target_rate) {
-      target_bitrate = update.target_rate->target_rate;
+      target_bitrate = update.target_rate.target_rate;
     }
     TransportPacketsFeedback feedback;
     feedback.feedback_time = packet.receive_time;
     feedback.packet_feedbacks.push_back(packet);
-    update = controller->OnTransportPacketsFeedback(feedback);
+    update = controller.OnTransportPacketsFeedback(feedback);
     if (update.target_rate) {
-      target_bitrate = update.target_rate->target_rate;
+      target_bitrate = update.target_rate.target_rate;
     }
     current_time += TimeDelta::Millis(50);
-    update = controller->OnProcessInterval({.at_time = current_time});
+    update = controller.OnProcessInterval({.at_time = current_time});
     if (update.target_rate) {
-      target_bitrate = update.target_rate->target_rate;
+      target_bitrate = update.target_rate.target_rate;
     }
   }
   return target_bitrate;
@@ -163,11 +163,11 @@ TransportPacketsFeedback CreateTransportPacketsFeedback(
     Timestamp send_time) {
   let delay_buildup: TimeDelta = one_way_delay;
   const FeedbackSize: isize = 3;
-  const kPayloadSize: usize = 1000;
+  const PayloadSize: usize = 1000;
   TransportPacketsFeedback feedback;
-  for (isize i = 0; i < kFeedbackSizei += 1) {
+  for (isize i = 0; i < FeedbackSizei += 1) {
     let packet: PacketResult = CreatePacketResult(
-        /*arrival_time=*/send_time + delay_buildup, send_time, kPayloadSize,
+        /*arrival_time=*/send_time + delay_buildup, send_time, PayloadSize,
         PacedPacketInfo());
     delay_buildup += per_packet_network_delay;
     feedback.feedback_time = packet.receive_time + one_way_delay;
@@ -187,44 +187,44 @@ let factory = CreateFeedbackOnlyFactory();
   config.transport.rates.max_rate = DataRate::KilobitsPerSec(1500);
   config.transport.rates.start_rate = DataRate::KilobitsPerSec(300);
 let send_net = s.CreateMutableSimulationNode([](NetworkSimulationConfig* c) {
-    c->bandwidth = DataRate::KilobitsPerSec(500);
-    c->delay = TimeDelta::Millis(100);
-    c->loss_rate = 0.0;
+    c.bandwidth = DataRate::KilobitsPerSec(500);
+    c.delay = TimeDelta::Millis(100);
+    c.loss_rate = 0.0;
   });
 let ret_net = s.CreateMutableSimulationNode(
-      [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(100); });
+      [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(100); });
   StatesPrinter* truth = s.CreatePrinter(
-      "send.truth.txt", TimeDelta::PlusInfinity(), {send_net->ConfigPrinter()});
+      "send.truth.txt", TimeDelta::PlusInfinity(), {send_net.ConfigPrinter()});
 
-  auto* client = CreateVideoSendingClient(&s, config, {send_net->node()},
-                                          {ret_net->node()});
+  auto* client = CreateVideoSendingClient(&s, config, {send_net.node()},
+                                          {ret_net.node()});
 
-  truth->PrintRow();
-  s.RunFor(Duration::from_secs(25));
-  truth->PrintRow();
-  EXPECT_NEAR(client->target_rate().kbps(), 450, 100);
+  truth.PrintRow();
+  s.RunFor(TimeDelta::Seconds(25));
+  truth.PrintRow();
+  EXPECT_NEAR(client.target_rate().kbps(), 450, 100);
 
-  send_net->UpdateConfig([](NetworkSimulationConfig* c) {
-    c->bandwidth = DataRate::KilobitsPerSec(800);
-    c->delay = TimeDelta::Millis(100);
+  send_net.UpdateConfig([](NetworkSimulationConfig* c) {
+    c.bandwidth = DataRate::KilobitsPerSec(800);
+    c.delay = TimeDelta::Millis(100);
   });
 
-  truth->PrintRow();
-  s.RunFor(Duration::from_secs(20));
-  truth->PrintRow();
-  EXPECT_NEAR(client->target_rate().kbps(), 750, 150);
+  truth.PrintRow();
+  s.RunFor(TimeDelta::Seconds(20));
+  truth.PrintRow();
+  EXPECT_NEAR(client.target_rate().kbps(), 750, 150);
 
-  send_net->UpdateConfig([](NetworkSimulationConfig* c) {
-    c->bandwidth = DataRate::KilobitsPerSec(100);
-    c->delay = TimeDelta::Millis(200);
+  send_net.UpdateConfig([](NetworkSimulationConfig* c) {
+    c.bandwidth = DataRate::KilobitsPerSec(100);
+    c.delay = TimeDelta::Millis(200);
   });
-  ret_net->UpdateConfig(
-      [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(200); });
+  ret_net.UpdateConfig(
+      [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(200); });
 
-  truth->PrintRow();
-  s.RunFor(Duration::from_secs(50));
-  truth->PrintRow();
-  EXPECT_NEAR(client->target_rate().kbps(), 90, 25);
+  truth.PrintRow();
+  s.RunFor(TimeDelta::Seconds(50));
+  truth.PrintRow();
+  EXPECT_NEAR(client.target_rate().kbps(), 90, 25);
 }
 
 fn RunRembDipScenario(absl::string_view test_name) -> DataRate {
@@ -233,27 +233,27 @@ fn RunRembDipScenario(absl::string_view test_name) -> DataRate {
   net_conf.bandwidth = DataRate::KilobitsPerSec(2000);
   net_conf.delay = TimeDelta::Millis(50);
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
+    c.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   });
 let send_net = {s.CreateSimulationNode(net_conf)};
 let ret_net = {s.CreateSimulationNode(net_conf)};
   auto* route = s.CreateRoutes(
       client, send_net, s.CreateClient("return", CallClientConfig()), ret_net);
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
 
-  s.RunFor(Duration::from_secs(10));
-  EXPECT_GT(client->send_bandwidth().kbps(), 1500);
+  s.RunFor(TimeDelta::Seconds(10));
+  EXPECT_GT(client.send_bandwidth().kbps(), 1500);
 
   let RembLimit: DataRate = DataRate::KilobitsPerSec(250);
-  client->SetRemoteBitrate(RembLimit);
-  s.RunFor(Duration::from_secs(1));
-  assert_eq!(client->send_bandwidth(), RembLimit);
+  client.SetRemoteBitrate(RembLimit);
+  s.RunFor(TimeDelta::Seconds(1));
+  assert_eq!(client.send_bandwidth(), RembLimit);
 
   let RembLimitLifted: DataRate = DataRate::KilobitsPerSec(10000);
-  client->SetRemoteBitrate(RembLimitLifted);
-  s.RunFor(Duration::from_secs(10));
+  client.SetRemoteBitrate(RembLimitLifted);
+  s.RunFor(TimeDelta::Seconds(10));
 
-  return client->send_bandwidth();
+  return client.send_bandwidth();
 }
 
 }  // namespace
@@ -273,9 +273,9 @@ fn CreateController() -> std::unique_ptr<NetworkControllerInterface> {
 
  private:
   NetworkControllerConfig InitialConfig(
-      let starting_bandwidth_kbps: isize = kInitialBitrateKbps,
+      let starting_bandwidth_kbps: isize = InitialBitrateKbps,
       let min_data_rate_kbps: isize = 0,
-      let max_data_rate_kbps: isize = 5 * kInitialBitrateKbps) {
+      let max_data_rate_kbps: isize = 5 * InitialBitrateKbps) {
     NetworkControllerConfig config(self.env);
     config.constraints.at_time = Timestamp::Zero();
     config.constraints.min_data_rate =
@@ -298,18 +298,18 @@ TEST(GoogCcNetworkControllerTest,
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
 
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = Timestamp::Millis(123456), .network_available = true});
   update =
-      controller->OnProcessInterval({.at_time = Timestamp::Millis(123456)});
+      controller.OnProcessInterval({.at_time = Timestamp::Millis(123456)});
 
-  assert_eq!(update.target_rate->target_rate, kInitialBitrate);
-  assert_eq!(update.pacer_config->data_rate(),
-            kInitialBitrate * kDefaultPacingRate);
+  assert_eq!(update.target_rate.target_rate, InitialBitrate);
+  assert_eq!(update.pacer_config.data_rate(),
+            InitialBitrate * DefaultPacingRate);
   assert_eq!(update.probe_cluster_configs[0].target_data_rate,
-            kInitialBitrate * 3);
+            InitialBitrate * 3);
   assert_eq!(update.probe_cluster_configs[1].target_data_rate,
-            kInitialBitrate * 5);
+            InitialBitrate * 5);
 }
 
 #[test]
@@ -318,25 +318,25 @@ fn ReactsToChangedNetworkConditions() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = true});
-  update = controller->OnProcessInterval({.at_time = current_time});
-  update = controller->OnRemoteBitrateReport(
-      {.receive_time = current_time, .bandwidth = kInitialBitrate * 2});
+  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnRemoteBitrateReport(
+      {.receive_time = current_time, .bandwidth = InitialBitrate * 2});
 
   current_time += TimeDelta::Millis(25);
-  update = controller->OnProcessInterval({.at_time = current_time});
-  assert_eq!(update.target_rate->target_rate, kInitialBitrate * 2);
-  assert_eq!(update.pacer_config->data_rate(),
-            kInitialBitrate * 2 * kDefaultPacingRate);
+  update = controller.OnProcessInterval({.at_time = current_time});
+  assert_eq!(update.target_rate.target_rate, InitialBitrate * 2);
+  assert_eq!(update.pacer_config.data_rate(),
+            InitialBitrate * 2 * DefaultPacingRate);
 
-  update = controller->OnRemoteBitrateReport(
-      {.receive_time = current_time, .bandwidth = kInitialBitrate});
+  update = controller.OnRemoteBitrateReport(
+      {.receive_time = current_time, .bandwidth = InitialBitrate});
   current_time += TimeDelta::Millis(25);
-  update = controller->OnProcessInterval({.at_time = current_time});
-  assert_eq!(update.target_rate->target_rate, kInitialBitrate);
-  assert_eq!(update.pacer_config->data_rate(),
-            kInitialBitrate * kDefaultPacingRate);
+  update = controller.OnProcessInterval({.at_time = current_time});
+  assert_eq!(update.target_rate.target_rate, InitialBitrate);
+  assert_eq!(update.pacer_config.data_rate(),
+            InitialBitrate * DefaultPacingRate);
 }
 
 #[test]
@@ -345,23 +345,23 @@ fn OnNetworkRouteChanged() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = true});
   let new_bitrate: DataRate = DataRate::BitsPerSec(200000);
 
-  update = controller->OnNetworkRouteChange(
+  update = controller.OnNetworkRouteChange(
       CreateRouteChange(current_time, new_bitrate));
-  assert_eq!(update.target_rate->target_rate, new_bitrate);
-  assert_eq!(update.pacer_config->data_rate(), new_bitrate * kDefaultPacingRate);
+  assert_eq!(update.target_rate.target_rate, new_bitrate);
+  assert_eq!(update.pacer_config.data_rate(), new_bitrate * DefaultPacingRate);
   assert_eq!(update.probe_cluster_configs.len(), 2u);
 
   // If the bitrate is reset to -1, the new starting bitrate will be
   // the minimum default bitrate.
   const DefaultMinBitrate: DataRate = DataRate::KilobitsPerSec(5);
-  update = controller->OnNetworkRouteChange(CreateRouteChange(current_time));
-  assert_eq!(update.target_rate->target_rate, kDefaultMinBitrate);
-  EXPECT_NEAR(update.pacer_config->data_rate().bps<f64>(),
-              kDefaultMinBitrate.bps<f64>() * kDefaultPacingRate, 10);
+  update = controller.OnNetworkRouteChange(CreateRouteChange(current_time));
+  assert_eq!(update.target_rate.target_rate, DefaultMinBitrate);
+  EXPECT_NEAR(update.pacer_config.data_rate().bps<f64>(),
+              DefaultMinBitrate.bps<f64>() * DefaultPacingRate, 10);
   assert_eq!(update.probe_cluster_configs.len(), 2u);
 }
 
@@ -371,23 +371,23 @@ fn ProbeOnRouteChange() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = true});
-  current_time += Duration::from_secs(3);
+  current_time += TimeDelta::Seconds(3);
 
-  update = controller->OnNetworkRouteChange(
-      CreateRouteChange(current_time, 2 * kInitialBitrate, DataRate::Zero(),
-                        20 * kInitialBitrate));
+  update = controller.OnNetworkRouteChange(
+      CreateRouteChange(current_time, 2 * InitialBitrate, DataRate::Zero(),
+                        20 * InitialBitrate));
 
   assert!((update.pacer_config.is_some());
-  assert_eq!(update.target_rate->target_rate, kInitialBitrate * 2);
+  assert_eq!(update.target_rate.target_rate, InitialBitrate * 2);
   assert_eq!(update.probe_cluster_configs.len(), 2u);
   assert_eq!(update.probe_cluster_configs[0].target_data_rate,
-            kInitialBitrate * 6);
+            InitialBitrate * 6);
   assert_eq!(update.probe_cluster_configs[1].target_data_rate,
-            kInitialBitrate * 12);
+            InitialBitrate * 12);
 
-  update = controller->OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({.at_time = current_time});
 }
 
 #[test]
@@ -397,18 +397,18 @@ fn ProbeAfterRouteChangeWhenTransportWritable() {
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
 
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = false});
   EXPECT_THAT(update.probe_cluster_configs, IsEmpty());
 
-  update = controller->OnNetworkRouteChange(
-      CreateRouteChange(current_time, 2 * kInitialBitrate, DataRate::Zero(),
-                        20 * kInitialBitrate));
+  update = controller.OnNetworkRouteChange(
+      CreateRouteChange(current_time, 2 * InitialBitrate, DataRate::Zero(),
+                        20 * InitialBitrate));
   // Transport is not writable. So not point in sending a probe.
   EXPECT_THAT(update.probe_cluster_configs, IsEmpty());
 
   // Probe is sent when transport becomes writable.
-  update = controller->OnNetworkAvailability(
+  update = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = true});
   EXPECT_THAT(update.probe_cluster_configs, Not(IsEmpty()));
 }
@@ -422,21 +422,21 @@ fn UpdatesDelayBasedEstimate() {
       fixture.CreateController();
   const RunTimeMs: i64 = 6000;
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = true});
 
   // The test must run and insert packets/feedback long enough that the
   // BWE computes a valid estimate. This is first done in an environment which
   // simulates no bandwidth limitation, and therefore not built-up delay.
   Option<DataRate> target_bitrate_before_delay =
-      PacketTransmissionAndFeedbackBlock(controller.get(), kRunTimeMs, 0,
+      PacketTransmissionAndFeedbackBlock(controller.get(), RunTimeMs, 0,
                                          current_time);
-  ASSERT_TRUE(target_bitrate_before_delay.is_some());
+  assert!(target_bitrate_before_delay.is_some());
 
   // Repeat, but this time with a building delay, and make sure that the
   // estimation is adjusted downwards.
   Option<DataRate> target_bitrate_after_delay =
-      PacketTransmissionAndFeedbackBlock(controller.get(), kRunTimeMs, 50,
+      PacketTransmissionAndFeedbackBlock(controller.get(), RunTimeMs, 50,
                                          current_time);
   EXPECT_LT(*target_bitrate_after_delay, *target_bitrate_before_delay);
 }
@@ -449,13 +449,13 @@ fn PaceAtMaxOfLowerLinkCapacityAndBwe() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = true});
-  update = controller->OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({.at_time = current_time});
   current_time += TimeDelta::Millis(100);
   let network_estimate: NetworkStateEstimate = {.link_capacity_lower =
-                                               10 * kInitialBitrate};
-  update = controller->OnNetworkStateEstimate(network_estimate);
+                                               10 * InitialBitrate};
+  update = controller.OnNetworkStateEstimate(network_estimate);
   // OnNetworkStateEstimate does not trigger processing a new estimate. So add a
   // dummy loss report to trigger a BWE update in the next process interval.
   TransportLossReport loss_report;
@@ -464,20 +464,20 @@ fn PaceAtMaxOfLowerLinkCapacityAndBwe() {
   loss_report.receive_time = current_time;
   loss_report.packets_received_delta = 50;
   loss_report.packets_lost_delta = 1;
-  update = controller->OnTransportLossReport(loss_report);
-  update = controller->OnProcessInterval({.at_time = current_time});
-  ASSERT_TRUE(update.pacer_config);
-  ASSERT_TRUE(update.target_rate);
-  ASSERT_LT(update.target_rate->target_rate,
+  update = controller.OnTransportLossReport(loss_report);
+  update = controller.OnProcessInterval({.at_time = current_time});
+  assert!(update.pacer_config);
+  assert!(update.target_rate);
+  ASSERT_LT(update.target_rate.target_rate,
             network_estimate.link_capacity_lower);
-  assert_eq!(update.pacer_config->data_rate().kbps(),
-            network_estimate.link_capacity_lower.kbps() * kDefaultPacingRate);
+  assert_eq!(update.pacer_config.data_rate().kbps(),
+            network_estimate.link_capacity_lower.kbps() * DefaultPacingRate);
 
   current_time += TimeDelta::Millis(100);
   // Set a low link capacity estimate and verify that pacing rate is set
   // relative to loss based/delay based estimate.
-  network_estimate = {.link_capacity_lower = 0.5 * kInitialBitrate};
-  update = controller->OnNetworkStateEstimate(network_estimate);
+  network_estimate = {.link_capacity_lower = 0.5 * InitialBitrate};
+  update = controller.OnNetworkStateEstimate(network_estimate);
   // Again, we need to inject a dummy loss report to trigger an update of the
   // BWE in the next process interval.
   loss_report.start_time = current_time;
@@ -485,13 +485,13 @@ fn PaceAtMaxOfLowerLinkCapacityAndBwe() {
   loss_report.receive_time = current_time;
   loss_report.packets_received_delta = 50;
   loss_report.packets_lost_delta = 0;
-  update = controller->OnTransportLossReport(loss_report);
-  update = controller->OnProcessInterval({.at_time = current_time});
-  ASSERT_TRUE(update.target_rate);
-  ASSERT_GT(update.target_rate->target_rate,
+  update = controller.OnTransportLossReport(loss_report);
+  update = controller.OnProcessInterval({.at_time = current_time});
+  assert!(update.target_rate);
+  ASSERT_GT(update.target_rate.target_rate,
             network_estimate.link_capacity_lower);
-  assert_eq!(update.pacer_config->data_rate().kbps(),
-            update.target_rate->target_rate.kbps() * kDefaultPacingRate);
+  assert_eq!(update.pacer_config.data_rate().kbps(),
+            update.target_rate.target_rate.kbps() * DefaultPacingRate);
 }
 
 #[test]
@@ -502,13 +502,13 @@ fn LimitPacingFactorToUpperLinkCapacity() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller->OnNetworkAvailability(
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
       {.at_time = current_time, .network_available = true});
-  update = controller->OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({.at_time = current_time});
   current_time += TimeDelta::Millis(100);
   let network_estimate: NetworkStateEstimate = {
-      .link_capacity_upper = kInitialBitrate * kDefaultPacingRate / 2};
-  update = controller->OnNetworkStateEstimate(network_estimate);
+      .link_capacity_upper = InitialBitrate * DefaultPacingRate / 2};
+  update = controller.OnNetworkStateEstimate(network_estimate);
   // OnNetworkStateEstimate does not trigger processing a new estimate. So add a
   // dummy loss report to trigger a BWE update in the next process interval.
   TransportLossReport loss_report;
@@ -517,12 +517,12 @@ fn LimitPacingFactorToUpperLinkCapacity() {
   loss_report.receive_time = current_time;
   loss_report.packets_received_delta = 50;
   loss_report.packets_lost_delta = 1;
-  update = controller->OnTransportLossReport(loss_report);
-  update = controller->OnProcessInterval({.at_time = current_time});
-  ASSERT_TRUE(update.pacer_config);
-  ASSERT_TRUE(update.target_rate);
-  EXPECT_GE(update.target_rate->target_rate, kInitialBitrate);
-  assert_eq!(update.pacer_config->data_rate(),
+  update = controller.OnTransportLossReport(loss_report);
+  update = controller.OnProcessInterval({.at_time = current_time});
+  assert!(update.pacer_config);
+  assert!(update.target_rate);
+  EXPECT_GE(update.target_rate.target_rate, InitialBitrate);
+  assert_eq!(update.pacer_config.data_rate(),
             network_estimate.link_capacity_upper);
 }
 
@@ -535,11 +535,11 @@ let factory = CreateFeedbackOnlyFactory();
   Scenario s("googcc_unit/cwnd_on_delay", false);
 let send_net =
       s.CreateMutableSimulationNode([=](NetworkSimulationConfig* c) {
-        c->bandwidth = DataRate::KilobitsPerSec(1000);
-        c->delay = TimeDelta::Millis(100);
+        c.bandwidth = DataRate::KilobitsPerSec(1000);
+        c.delay = TimeDelta::Millis(100);
       });
 let ret_net = s.CreateSimulationNode(
-      [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(100); });
+      [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(100); });
   CallClientConfig config;
   config.transport.cc_factory = &factory;
   // Start high so bandwidth drop has max effect.
@@ -548,17 +548,17 @@ let ret_net = s.CreateSimulationNode(
   config.transport.rates.min_rate = DataRate::KilobitsPerSec(10);
 
   auto* client = CreateVideoSendingClient(&s, std::move(config),
-                                          {send_net->node()}, {ret_net});
+                                          {send_net.node()}, {ret_net});
 
-  s.RunFor(Duration::from_secs(10));
-  send_net->PauseTransmissionUntil(s.Now() + Duration::from_secs(10));
-  s.RunFor(Duration::from_secs(3));
+  s.RunFor(TimeDelta::Seconds(10));
+  send_net.PauseTransmissionUntil(s.Now() + TimeDelta::Seconds(10));
+  s.RunFor(TimeDelta::Seconds(3));
 
   // After 3 seconds without feedback from any sent packets, we expect that the
   // target rate is reduced to the minimum pushback threshold
-  // kDefaultMinPushbackTargetBitrateBps, which is defined as 30 kbps in
+  // DefaultMinPushbackTargetBitrateBps, which is defined as 30 kbps in
   // congestion_window_pushback_controller.
-  EXPECT_LT(client->target_rate().kbps(), 40);
+  EXPECT_LT(client.target_rate().kbps(), 40);
 }
 
 // Test congestion window pushback on network delay happens.
@@ -570,11 +570,11 @@ let factory = CreateFeedbackOnlyFactory();
   Scenario s("googcc_unit/cwnd_on_delay", false);
 let send_net =
       s.CreateMutableSimulationNode([=](NetworkSimulationConfig* c) {
-        c->bandwidth = DataRate::KilobitsPerSec(1000);
-        c->delay = TimeDelta::Millis(100);
+        c.bandwidth = DataRate::KilobitsPerSec(1000);
+        c.delay = TimeDelta::Millis(100);
       });
 let ret_net = s.CreateSimulationNode(
-      [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(100); });
+      [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(100); });
   CallClientConfig config;
   config.transport.cc_factory = &factory;
   // Start high so bandwidth drop has max effect.
@@ -583,16 +583,16 @@ let ret_net = s.CreateSimulationNode(
   config.transport.rates.min_rate = DataRate::KilobitsPerSec(10);
 
   auto* client = CreateVideoSendingClient(&s, std::move(config),
-                                          {send_net->node()}, {ret_net});
+                                          {send_net.node()}, {ret_net});
 
-  s.RunFor(Duration::from_secs(10));
-  send_net->PauseTransmissionUntil(s.Now() + Duration::from_secs(10));
-  s.RunFor(Duration::from_secs(3));
+  s.RunFor(TimeDelta::Seconds(10));
+  send_net.PauseTransmissionUntil(s.Now() + TimeDelta::Seconds(10));
+  s.RunFor(TimeDelta::Seconds(3));
 
   // As the dropframe is set, after 3 seconds without feedback from any sent
   // packets, we expect that the target rate is not reduced by congestion
   // window.
-  EXPECT_GT(client->target_rate().kbps(), 300);
+  EXPECT_GT(client.target_rate().kbps(), 300);
 }
 
 #[test]
@@ -603,32 +603,32 @@ fn PaddingRateLimitedByCongestionWindowInTrial() {
   Scenario s("googcc_unit/padding_limited", false);
 let send_net =
       s.CreateMutableSimulationNode([=](NetworkSimulationConfig* c) {
-        c->bandwidth = DataRate::KilobitsPerSec(1000);
-        c->delay = TimeDelta::Millis(100);
+        c.bandwidth = DataRate::KilobitsPerSec(1000);
+        c.delay = TimeDelta::Millis(100);
       });
 let ret_net = s.CreateSimulationNode(
-      [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(100); });
+      [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(100); });
   CallClientConfig config;
   // Start high so bandwidth drop has max effect.
   config.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   config.transport.rates.max_rate = DataRate::KilobitsPerSec(2000);
   auto* client = s.CreateClient("send", config);
   auto* route =
-      s.CreateRoutes(client, {send_net->node()},
+      s.CreateRoutes(client, {send_net.node()},
                      s.CreateClient("return", CallClientConfig()), {ret_net});
   VideoStreamConfig video;
   video.stream.pad_to_rate = config.transport.rates.max_rate;
-  s.CreateVideoStream(route->forward(), video);
+  s.CreateVideoStream(route.forward(), video);
 
   // Run for a few seconds to allow the controller to stabilize.
-  s.RunFor(Duration::from_secs(10));
+  s.RunFor(TimeDelta::Seconds(10));
 
   // Check that padding rate matches target rate.
-  EXPECT_NEAR(client->padding_rate().kbps(), client->target_rate().kbps(), 1);
+  EXPECT_NEAR(client.padding_rate().kbps(), client.target_rate().kbps(), 1);
 
   // Check this is also the case when congestion window pushback kicks in.
-  send_net->PauseTransmissionUntil(s.Now() + Duration::from_secs(1));
-  EXPECT_NEAR(client->padding_rate().kbps(), client->target_rate().kbps(), 1);
+  send_net.PauseTransmissionUntil(s.Now() + TimeDelta::Seconds(1));
+  EXPECT_NEAR(client.padding_rate().kbps(), client.target_rate().kbps(), 1);
 }
 
 #[test]
@@ -639,34 +639,34 @@ fn LimitsToFloorIfRttIsHighInTrial() {
   // achieve.
   const BandwidthFloor: DataRate = DataRate::KilobitsPerSec(50);
   ScopedFieldTrials trial("WebRTC-Bwe-MaxRttLimit/limit:2s,floor:" +
-                          std::to_string(kBandwidthFloor.kbps()) + "kbps/");
+                          std::to_string(BandwidthFloor.kbps()) + "kbps/");
   // In the test case, we limit the capacity and add a cross traffic packet
   // burst that blocks media from being sent. This causes the RTT to quickly
   // increase above the threshold in the trial.
   const LinkCapacity: DataRate = DataRate::KilobitsPerSec(100);
-  const BufferBloatDuration: TimeDelta = Duration::from_secs(10);
+  const BufferBloatDuration: TimeDelta = TimeDelta::Seconds(10);
   Scenario s("googcc_unit/limit_trial", false);
 let send_net = s.CreateSimulationNode([=](NetworkSimulationConfig* c) {
-    c->bandwidth = kLinkCapacity;
-    c->delay = TimeDelta::Millis(100);
+    c.bandwidth = LinkCapacity;
+    c.delay = TimeDelta::Millis(100);
   });
 let ret_net = s.CreateSimulationNode(
-      [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(100); });
+      [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(100); });
   CallClientConfig config;
-  config.transport.rates.start_rate = kLinkCapacity;
+  config.transport.rates.start_rate = LinkCapacity;
 
   auto* client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
   // Run for a few seconds to allow the controller to stabilize.
-  s.RunFor(Duration::from_secs(10));
+  s.RunFor(TimeDelta::Seconds(10));
   const BloatPacketSize: DataSize = DataSize::Bytes(1000);
   const BloatPacketCount: isize =
-      (kBufferBloatDuration * kLinkCapacity / kBloatPacketSize) as isize;
+      (BufferBloatDuration * LinkCapacity / BloatPacketSize) as isize;
   // This will cause the RTT to be large for a while.
-  s.TriggerPacketBurst({send_net}, kBloatPacketCount, kBloatPacketSize.bytes());
+  s.TriggerPacketBurst({send_net}, BloatPacketCount, BloatPacketSize.bytes());
   // Wait to allow the high RTT to be detected and acted upon.
-  s.RunFor(Duration::from_secs(6));
+  s.RunFor(TimeDelta::Seconds(6));
   // By now the target rate should have dropped to the minimum configured rate.
-  EXPECT_NEAR(client->target_rate().kbps(), kBandwidthFloor.kbps(), 5);
+  EXPECT_NEAR(client.target_rate().kbps(), BandwidthFloor.kbps(), 5);
 }
 
 #[test]
@@ -688,7 +688,7 @@ let ret_net = s.CreateSimulationNode(net_conf);
 
   auto* client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
   // Run for a while to allow the estimate to stabilize.
-  s.RunFor(Duration::from_secs(30));
+  s.RunFor(TimeDelta::Seconds(30));
   let min_stable_target: DataRate = DataRate::PlusInfinity();
   let max_stable_target: DataRate = DataRate::MinusInfinity();
   let min_target: DataRate = DataRate::PlusInfinity();
@@ -696,15 +696,15 @@ let ret_net = s.CreateSimulationNode(net_conf);
 
   // Measure variation in steady state.
   for (isize i = 0; i < 20i += 1) {
-let stable_target_rate = client->stable_target_rate();
-let target_rate = client->target_rate();
+let stable_target_rate = client.stable_target_rate();
+let target_rate = client.target_rate();
     EXPECT_LE(stable_target_rate, target_rate);
 
     min_stable_target = std::cmp::min(min_stable_target, stable_target_rate);
     max_stable_target = std::cmp::max(max_stable_target, stable_target_rate);
     min_target = std::cmp::min(min_target, target_rate);
     max_target = std::cmp::max(max_target, target_rate);
-    s.RunFor(Duration::from_secs(1));
+    s.RunFor(TimeDelta::Seconds(1));
   }
   // We should expect drops by at least 15% (default backoff.)
   EXPECT_LT(min_target / max_target, 0.85);
@@ -728,18 +728,18 @@ fn LossBasedControlDoesModestBackoffToHighLoss() {
   config.transport.rates.max_rate = DataRate::KilobitsPerSec(1500);
   config.transport.rates.start_rate = DataRate::KilobitsPerSec(300);
 let send_net = s.CreateSimulationNode([](NetworkSimulationConfig* c) {
-    c->bandwidth = DataRate::KilobitsPerSec(2000);
-    c->delay = TimeDelta::Millis(200);
-    c->loss_rate = 0.1;
+    c.bandwidth = DataRate::KilobitsPerSec(2000);
+    c.delay = TimeDelta::Millis(200);
+    c.loss_rate = 0.1;
   });
 let ret_net = s.CreateSimulationNode(
-      [](NetworkSimulationConfig* c) { c->delay = TimeDelta::Millis(200); });
+      [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(200); });
 
   auto* client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
 
-  s.RunFor(Duration::from_secs(120));
+  s.RunFor(TimeDelta::Seconds(120));
   // Without LossBasedControl trial, bandwidth drops to ~10 kbps.
-  EXPECT_GT(client->target_rate().kbps(), 100);
+  EXPECT_GT(client.target_rate().kbps(), 100);
 }
 
 fn AverageBitrateAfterCrossInducedLoss(absl::string_view name) -> DataRate {
@@ -759,28 +759,28 @@ let ret_net = {s.CreateSimulationNode(net_conf)};
   auto* callee = s.CreateClient("return", CallClientConfig());
   auto* route = s.CreateRoutes(client, send_net, callee, ret_net);
   // TODO(srte): Make this work with RTX enabled or remove it.
-  auto* video = s.CreateVideoStream(route->forward(), [](VideoStreamConfig* c) {
-    c->stream.use_rtx = false;
+  auto* video = s.CreateVideoStream(route.forward(), [](VideoStreamConfig* c) {
+    c.stream.use_rtx = false;
   });
-  s.RunFor(Duration::from_secs(10));
+  s.RunFor(TimeDelta::Seconds(10));
   for (isize i = 0; i < 4i += 1) {
     // Sends TCP cross traffic inducing loss.
-    auto* tcp_traffic = s.net()->StartCrossTraffic(CreateFakeTcpCrossTraffic(
-        s.net()->CreateRoute(send_net), s.net()->CreateRoute(ret_net),
+    auto* tcp_traffic = s.net().StartCrossTraffic(CreateFakeTcpCrossTraffic(
+        s.net().CreateRoute(send_net), s.net().CreateRoute(ret_net),
         FakeTcpConfig()));
-    s.RunFor(Duration::from_secs(2));
+    s.RunFor(TimeDelta::Seconds(2));
     // Allow the ccongestion controller to recover.
-    s.net()->StopCrossTraffic(tcp_traffic);
-    s.RunFor(Duration::from_secs(20));
+    s.net().StopCrossTraffic(tcp_traffic);
+    s.RunFor(TimeDelta::Seconds(20));
   }
 
   // Querying the video stats from within the expected runtime environment
   // (i.e. the TQ that belongs to the CallClient, not the Scenario TQ that
   // we're currently on).
   VideoReceiveStreamInterface::Stats video_receive_stats;
-  auto* video_stream = video->receive();
-  callee->SendTask([&video_stream, &video_receive_stats]() {
-    video_receive_stats = video_stream->GetStats();
+  auto* video_stream = video.receive();
+  callee.SendTask([&video_stream, &video_receive_stats]() {
+    video_receive_stats = video_stream.GetStats();
   });
   return DataSize::Bytes(
              video_receive_stats.rtp_stats.packet_counter.TotalBytes()) /
@@ -795,24 +795,24 @@ fn MaintainsLowRateInSafeResetTrial() {
   ScopedFieldTrials trial("WebRTC-Bwe-SafeResetOnRouteChange/Enabled/");
   Scenario s("googcc_unit/safe_reset_low");
   auto* send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = kLinkCapacity;
-    c->delay = TimeDelta::Millis(10);
+    c.bandwidth = LinkCapacity;
+    c.delay = TimeDelta::Millis(10);
   });
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = kStartRate;
+    c.transport.rates.start_rate = StartRate;
   });
   auto* route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(500));
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kLinkCapacity.kbps(), 50);
-  s.ChangeRoute(route->forward(), {send_net});
+  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 50);
+  s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(100));
   // Under the trial, the target should be unchanged for low rates.
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kLinkCapacity.kbps(), 50);
+  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 50);
 }
 
 #[test]
@@ -824,34 +824,34 @@ fn DoNotResetBweUnlessNetworkAdapterChangeOnRoutChange() {
   const StartRate: DataRate = DataRate::KilobitsPerSec(300);
 
 let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = kLinkCapacity;
-    c->delay = TimeDelta::Millis(50);
+    c.bandwidth = LinkCapacity;
+    c.delay = TimeDelta::Millis(50);
   });
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = kStartRate;
+    c.transport.rates.start_rate = StartRate;
   });
-  client->UpdateNetworkAdapterId(0);
+  client.UpdateNetworkAdapterId(0);
   auto* route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(500));
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kLinkCapacity.kbps(), 300);
-  s.ChangeRoute(route->forward(), {send_net});
+  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
+  s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(50));
   // Under the trial, the target should not drop.
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kLinkCapacity.kbps(), 300);
+  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
 
   s.RunFor(TimeDelta::Millis(500));
   // But if adapter id change, BWE should reset and start from the beginning if
   // the network route changes.
-  client->UpdateNetworkAdapterId(1);
-  s.ChangeRoute(route->forward(), {send_net});
+  client.UpdateNetworkAdapterId(1);
+  s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(50));
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kStartRate.kbps(), 30);
+  EXPECT_NEAR(client.send_bandwidth().kbps(), StartRate.kbps(), 30);
 }
 
 #[test]
@@ -862,25 +862,25 @@ fn CutsHighRateInSafeResetTrial() {
   ScopedFieldTrials trial("WebRTC-Bwe-SafeResetOnRouteChange/Enabled/");
   Scenario s("googcc_unit/safe_reset_high_cut");
 let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = kLinkCapacity;
-    c->delay = TimeDelta::Millis(50);
+    c.bandwidth = LinkCapacity;
+    c.delay = TimeDelta::Millis(50);
   });
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = kStartRate;
+    c.transport.rates.start_rate = StartRate;
   });
   auto* route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(500));
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kLinkCapacity.kbps(), 300);
-  client->UpdateNetworkAdapterId(1);
-  s.ChangeRoute(route->forward(), {send_net});
+  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
+  client.UpdateNetworkAdapterId(1);
+  s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(50));
   // Under the trial, the target should be reset from high values.
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kStartRate.kbps(), 30);
+  EXPECT_NEAR(client.send_bandwidth().kbps(), StartRate.kbps(), 30);
 }
 
 #[test]
@@ -892,35 +892,35 @@ fn DetectsHighRateInSafeResetTrial() {
 
   Scenario s("googcc_unit/safe_reset_high_detect");
   auto* initial_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = kInitialLinkCapacity;
-    c->delay = TimeDelta::Millis(50);
+    c.bandwidth = InitialLinkCapacity;
+    c.delay = TimeDelta::Millis(50);
   });
   auto* new_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = kNewLinkCapacity;
-    c->delay = TimeDelta::Millis(50);
+    c.bandwidth = NewLinkCapacity;
+    c.delay = TimeDelta::Millis(50);
   });
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = kStartRate;
+    c.transport.rates.start_rate = StartRate;
   });
   auto* route = s.CreateRoutes(
       client, {initial_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(2000));
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kInitialLinkCapacity.kbps(), 50);
-  client->UpdateNetworkAdapterId(1);
-  s.ChangeRoute(route->forward(), {new_net});
+  EXPECT_NEAR(client.send_bandwidth().kbps(), InitialLinkCapacity.kbps(), 50);
+  client.UpdateNetworkAdapterId(1);
+  s.ChangeRoute(route.forward(), {new_net});
   // Allow new settings to propagate, but not probes to be received.
   s.RunFor(TimeDelta::Millis(50));
   // Under the field trial, the target rate should be unchanged since it's lower
   // than the starting rate.
-  EXPECT_NEAR(client->send_bandwidth().kbps(), kInitialLinkCapacity.kbps(), 50);
+  EXPECT_NEAR(client.send_bandwidth().kbps(), InitialLinkCapacity.kbps(), 50);
   // However, probing should have made us detect the higher rate.
   // NOTE: This test causes high loss rate, and the loss-based estimator reduces
   // the bitrate, making the test fail if we wait longer than one second here.
   s.RunFor(TimeDelta::Millis(1000));
-  EXPECT_GT(client->send_bandwidth().kbps(), kNewLinkCapacity.kbps() - 300);
+  EXPECT_GT(client.send_bandwidth().kbps(), NewLinkCapacity.kbps() - 300);
 }
 
 #[test]
@@ -936,21 +936,21 @@ fn TargetRateReducedOnPacingBufferBuildupInTrial() {
 
   Scenario s("googcc_unit/pacing_buffer_buildup");
   auto* net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = kLinkCapacity;
-    c->delay = TimeDelta::Millis(50);
+    c.bandwidth = LinkCapacity;
+    c.delay = TimeDelta::Millis(50);
   });
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = kStartRate;
+    c.transport.rates.start_rate = StartRate;
   });
   auto* route = s.CreateRoutes(
       client, {net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow some time for the buffer to build up.
-  s.RunFor(Duration::from_secs(5));
+  s.RunFor(TimeDelta::Seconds(5));
 
   // Without trial, pacer delay reaches ~250 ms.
-  EXPECT_LT(client->GetStats().pacer_delay_ms, 150);
+  EXPECT_LT(client.GetStats().pacer_delay_ms, 150);
 }
 
 #[test]
@@ -958,30 +958,30 @@ fn NoBandwidthTogglingInLossControlTrial() {
   ScopedFieldTrials trial("WebRTC-Bwe-LossBasedControl/Enabled/");
   Scenario s("googcc_unit/no_toggling");
   auto* send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = DataRate::KilobitsPerSec(2000);
-    c->loss_rate = 0.2;
-    c->delay = TimeDelta::Millis(10);
+    c.bandwidth = DataRate::KilobitsPerSec(2000);
+    c.loss_rate = 0.2;
+    c.delay = TimeDelta::Millis(10);
   });
 
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = DataRate::KilobitsPerSec(300);
+    c.transport.rates.start_rate = DataRate::KilobitsPerSec(300);
   });
   auto* route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to initialize.
   s.RunFor(TimeDelta::Millis(250));
 
   std::queue<DataRate> bandwidth_history;
-  const TimeDelta step = TimeDelta::Millis(50);
+  const step: TimeDelta = TimeDelta::Millis(50);
   for (TimeDelta time = TimeDelta::Zero(); time < TimeDelta::Millis(2000);
        time += step) {
     s.RunFor(step);
-    const TimeDelta window = TimeDelta::Millis(500);
+    const window: TimeDelta = TimeDelta::Millis(500);
     if (bandwidth_history.len() >= window / step)
       bandwidth_history.pop();
-    bandwidth_history.push(client->send_bandwidth());
+    bandwidth_history.push(client.send_bandwidth());
     EXPECT_LT(
         CountBandwidthDips(bandwidth_history, DataRate::KilobitsPerSec(100)),
         2);
@@ -993,22 +993,22 @@ fn NoRttBackoffCollapseWhenVideoStops() {
   ScopedFieldTrials trial("WebRTC-Bwe-MaxRttLimit/limit:2s/");
   Scenario s("googcc_unit/rttbackoff_video_stop");
   auto* send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = DataRate::KilobitsPerSec(2000);
-    c->delay = TimeDelta::Millis(100);
+    c.bandwidth = DataRate::KilobitsPerSec(2000);
+    c.delay = TimeDelta::Millis(100);
   });
 
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
+    c.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   });
   auto* route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  auto* video = s.CreateVideoStream(route->forward(), VideoStreamConfig());
+  auto* video = s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to initialize, then stop video.
-  s.RunFor(Duration::from_secs(1));
-  video->send()->Stop();
-  s.RunFor(Duration::from_secs(4));
-  EXPECT_GT(client->send_bandwidth().kbps(), 1000);
+  s.RunFor(TimeDelta::Seconds(1));
+  video.send().Stop();
+  s.RunFor(TimeDelta::Seconds(4));
+  EXPECT_GT(client.send_bandwidth().kbps(), 1000);
 }
 
 #[test]
@@ -1018,22 +1018,22 @@ let ret_net = s.CreateMutableSimulationNode(NetworkSimulationConfig());
   auto* route = s.CreateRoutes(
       s.CreateClient("send", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())},
-      s.CreateClient("return", CallClientConfig()), {ret_net->node()});
-  auto* video = s.CreateVideoStream(route->forward(), VideoStreamConfig());
-  s.RunFor(Duration::from_secs(5));
+      s.CreateClient("return", CallClientConfig()), {ret_net.node()});
+  auto* video = s.CreateVideoStream(route.forward(), VideoStreamConfig());
+  s.RunFor(TimeDelta::Seconds(5));
   // Delay feedback by several minutes. This will cause removal of the send time
-  // history for the packets as long as kSendTimeHistoryWindow is configured for
+  // history for the packets as long as SendTimeHistoryWindow is configured for
   // a shorter time span.
-  ret_net->PauseTransmissionUntil(s.Now() + Duration::from_secs(300));
+  ret_net.PauseTransmissionUntil(s.Now() + TimeDelta::Seconds(300));
   // Stopping video stream while waiting to save test execution time.
-  video->send()->Stop();
-  s.RunFor(Duration::from_secs(299));
+  video.send().Stop();
+  s.RunFor(TimeDelta::Seconds(299));
   // Starting to cause addition of new packet to history, which cause old
   // packets to be removed.
-  video->send()->Start();
+  video.send().Start();
   // Runs until the lost packets are received. We expect that this will run
   // without causing any runtime failures.
-  s.RunFor(Duration::from_secs(2));
+  s.RunFor(TimeDelta::Seconds(2));
 }
 
 #[test]
@@ -1043,22 +1043,22 @@ fn IsFairToTCP() {
   net_conf.bandwidth = DataRate::KilobitsPerSec(1000);
   net_conf.delay = TimeDelta::Millis(50);
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
+    c.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   });
 let send_net = {s.CreateSimulationNode(net_conf)};
 let ret_net = {s.CreateSimulationNode(net_conf)};
   auto* route = s.CreateRoutes(
       client, send_net, s.CreateClient("return", CallClientConfig()), ret_net);
-  s.CreateVideoStream(route->forward(), VideoStreamConfig());
-  s.net()->StartCrossTraffic(CreateFakeTcpCrossTraffic(
-      s.net()->CreateRoute(send_net), s.net()->CreateRoute(ret_net),
+  s.CreateVideoStream(route.forward(), VideoStreamConfig());
+  s.net().StartCrossTraffic(CreateFakeTcpCrossTraffic(
+      s.net().CreateRoute(send_net), s.net().CreateRoute(ret_net),
       FakeTcpConfig()));
-  s.RunFor(Duration::from_secs(10));
+  s.RunFor(TimeDelta::Seconds(10));
 
   // Currently only testing for the upper limit as we in practice back out
   // quite a lot in this scenario. If this behavior is fixed, we should add a
   // lower bound to ensure it stays fixed.
-  EXPECT_LT(client->send_bandwidth().kbps(), 750);
+  EXPECT_LT(client.send_bandwidth().kbps(), 750);
 }
 
 #[test]
@@ -1075,31 +1075,31 @@ fn FallbackToLossBasedBweWithoutPacketFeedback() {
 
   Scenario s("googcc_unit/high_loss_channel", false);
   auto* net = s.CreateMutableSimulationNode([&](NetworkSimulationConfig* c) {
-    c->bandwidth = kLinkCapacity;
-    c->delay = TimeDelta::Millis(100);
+    c.bandwidth = LinkCapacity;
+    c.delay = TimeDelta::Millis(100);
   });
   auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
-    c->transport.rates.start_rate = kStartRate;
+    c.transport.rates.start_rate = StartRate;
   });
   auto* route = s.CreateRoutes(
-      client, {net->node()}, s.CreateClient("return", CallClientConfig()),
+      client, {net.node()}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
 
   // Create a config without packet feedback.
   VideoStreamConfig video_config;
   video_config.stream.packet_feedback = false;
-  s.CreateVideoStream(route->forward(), video_config);
+  s.CreateVideoStream(route.forward(), video_config);
 
-  s.RunFor(Duration::from_secs(20));
+  s.RunFor(TimeDelta::Seconds(20));
   // Bandwith does not backoff because network is normal.
-  EXPECT_GE(client->target_rate().kbps(), 500);
+  EXPECT_GE(client.target_rate().kbps(), 500);
 
   // Update the network to create high loss ratio
-  net->UpdateConfig([](NetworkSimulationConfig* c) { c->loss_rate = 0.15; });
-  s.RunFor(Duration::from_secs(20));
+  net.UpdateConfig([](NetworkSimulationConfig* c) { c.loss_rate = 0.15; });
+  s.RunFor(TimeDelta::Seconds(20));
 
   // Bandwidth decreases thanks to loss based bwe v0.
-  EXPECT_LE(client->target_rate().kbps(), 300);
+  EXPECT_LE(client.target_rate().kbps(), 300);
 }
 
 class GoogCcRttTest : public ::testing::TestWithParam<bool> {
@@ -1130,14 +1130,14 @@ TEST_P(GoogCcRttTest, CalculatesRttFromTransporFeedback) {
       /*per_packet_network_delay=*/TimeDelta::Millis(50), one_way_delay,
       /*send_time=*/current_time);
   let update: NetworkControlUpdate =
-      controller->OnTransportPacketsFeedback(feedback);
+      controller.OnTransportPacketsFeedback(feedback);
   current_time += TimeDelta::Millis(50);
-  update = controller->OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({.at_time = current_time});
   if (update.target_rate) {
-    rtt = update.target_rate->network_estimate.round_trip_time;
+    rtt = update.target_rate.network_estimate.round_trip_time;
   }
-  ASSERT_TRUE(rtt.is_some());
-  assert_eq!(rtt->ms(), 2 * one_way_delay.ms());
+  assert!(rtt.is_some());
+  assert_eq!(rtt.ms(), 2 * one_way_delay.ms());
 }
 
 INSTANTIATE_TEST_SUITE_P(GoogCcRttTests, GoogCcRttTest, ::testing::Bool());

@@ -25,19 +25,19 @@
 
 
 MATCHER(LossBasedBweUpdateWithBitrateOnly, "") {
-  if (arg->GetType() != RtcEvent::Type::BweUpdateLossBased) {
+  if (arg.GetType() != RtcEvent::Type::BweUpdateLossBased) {
     return false;
   }
 let bwe_event = static_cast<RtcEventBweUpdateLossBased*>(arg);
-  return bwe_event->bitrate_bps() > 0 && bwe_event->fraction_loss() == 0;
+  return bwe_event.bitrate_bps() > 0 && bwe_event.fraction_loss() == 0;
 }
 
 MATCHER(LossBasedBweUpdateWithBitrateAndLossFraction, "") {
-  if (arg->GetType() != RtcEvent::Type::BweUpdateLossBased) {
+  if (arg.GetType() != RtcEvent::Type::BweUpdateLossBased) {
     return false;
   }
 let bwe_event = static_cast<RtcEventBweUpdateLossBased*>(arg);
-  return bwe_event->bitrate_bps() > 0 && bwe_event->fraction_loss() > 0;
+  return bwe_event.bitrate_bps() > 0 && bwe_event.fraction_loss() > 0;
 }
 
 fn TestProbing(bool use_delay_based) {
@@ -50,7 +50,7 @@ fn TestProbing(bool use_delay_based) {
   bwe.SetSendBitrate(DataRate::BitsPerSec(200000), Timestamp::Millis(now_ms));
 
   const RembBps: isize = 1000000;
-  const SecondRembBps: isize = kRembBps + 500000;
+  const SecondRembBps: isize = RembBps + 500000;
 
   bwe.UpdatePacketsLost(/*packets_lost=*/0, /*number_of_packets=*/1,
                         Timestamp::Millis(now_ms));
@@ -59,25 +59,25 @@ fn TestProbing(bool use_delay_based) {
   // Initial REMB applies immediately.
   if (use_delay_based) {
     bwe.UpdateDelayBasedEstimate(Timestamp::Millis(now_ms),
-                                 DataRate::BitsPerSec(kRembBps));
+                                 DataRate::BitsPerSec(RembBps));
   } else {
     bwe.UpdateReceiverEstimate(Timestamp::Millis(now_ms),
-                               DataRate::BitsPerSec(kRembBps));
+                               DataRate::BitsPerSec(RembBps));
   }
   bwe.UpdateEstimate(Timestamp::Millis(now_ms));
-  assert_eq!(kRembBps, bwe.target_rate().bps());
+  assert_eq!(RembBps, bwe.target_rate().bps());
 
   // Second REMB doesn't apply immediately.
   now_ms += 2001;
   if (use_delay_based) {
     bwe.UpdateDelayBasedEstimate(Timestamp::Millis(now_ms),
-                                 DataRate::BitsPerSec(kSecondRembBps));
+                                 DataRate::BitsPerSec(SecondRembBps));
   } else {
     bwe.UpdateReceiverEstimate(Timestamp::Millis(now_ms),
-                               DataRate::BitsPerSec(kSecondRembBps));
+                               DataRate::BitsPerSec(SecondRembBps));
   }
   bwe.UpdateEstimate(Timestamp::Millis(now_ms));
-  assert_eq!(kRembBps, bwe.target_rate().bps());
+  assert_eq!(RembBps, bwe.target_rate().bps());
 }
 
 #[test]
@@ -103,34 +103,34 @@ fn DoesntReapplyBitrateDecreaseWithoutFollowingRemb() {
   static const MinBitrateBps: isize = 100000;
   static const InitialBitrateBps: isize = 1000000;
   let now_ms: i64 = 1000;
-  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
+  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(MinBitrateBps),
                        DataRate::BitsPerSec(1500000));
-  bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
+  bwe.SetSendBitrate(DataRate::BitsPerSec(InitialBitrateBps),
                      Timestamp::Millis(now_ms));
 
   static const FractionLoss: uint8_t = 128;
   static const RttMs: i64 = 50;
   now_ms += 10000;
 
-  assert_eq!(kInitialBitrateBps, bwe.target_rate().bps());
+  assert_eq!(InitialBitrateBps, bwe.target_rate().bps());
   assert_eq!(0, bwe.fraction_loss());
   assert_eq!(0, bwe.round_trip_time().ms());
 
   // Signal heavy loss to go down in bitrate.
   bwe.UpdatePacketsLost(/*packets_lost=*/50, /*number_of_packets=*/100,
                         Timestamp::Millis(now_ms));
-  bwe.UpdateRtt(TimeDelta::Millis(kRttMs), Timestamp::Millis(now_ms));
+  bwe.UpdateRtt(TimeDelta::Millis(RttMs), Timestamp::Millis(now_ms));
 
   // Trigger an update 2 seconds later to not be rate limited.
   now_ms += 1000;
   bwe.UpdateEstimate(Timestamp::Millis(now_ms));
-  EXPECT_LT(bwe.target_rate().bps(), kInitialBitrateBps);
+  EXPECT_LT(bwe.target_rate().bps(), InitialBitrateBps);
   // Verify that the obtained bitrate isn't hitting the min bitrate, or this
   // test doesn't make sense. If this ever happens, update the thresholds or
   // loss rates so that it doesn't hit min bitrate after one bitrate update.
-  EXPECT_GT(bwe.target_rate().bps(), kMinBitrateBps);
-  assert_eq!(kFractionLoss, bwe.fraction_loss());
-  assert_eq!(kRttMs, bwe.round_trip_time().ms());
+  EXPECT_GT(bwe.target_rate().bps(), MinBitrateBps);
+  assert_eq!(FractionLoss, bwe.fraction_loss());
+  assert_eq!(RttMs, bwe.round_trip_time().ms());
 
   // Triggering an update shouldn't apply further downgrade nor upgrade since
   // there's no intermediate receiver block received indicating whether this is
@@ -143,8 +143,8 @@ fn DoesntReapplyBitrateDecreaseWithoutFollowingRemb() {
 
   assert_eq!(last_bitrate_bps, bwe.target_rate().bps());
   // The old loss rate should still be applied though.
-  assert_eq!(kFractionLoss, bwe.fraction_loss());
-  assert_eq!(kRttMs, bwe.round_trip_time().ms());
+  assert_eq!(FractionLoss, bwe.fraction_loss());
+  assert_eq!(RttMs, bwe.round_trip_time().ms());
 }
 
 #[test]
@@ -160,20 +160,20 @@ fn SettingSendBitrateOverridesDelayBasedEstimate() {
 
   let now_ms: i64 = 0;
 
-  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
-                       DataRate::BitsPerSec(kMaxBitrateBps));
-  bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
+  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(MinBitrateBps),
+                       DataRate::BitsPerSec(MaxBitrateBps));
+  bwe.SetSendBitrate(DataRate::BitsPerSec(InitialBitrateBps),
                      Timestamp::Millis(now_ms));
 
   bwe.UpdateDelayBasedEstimate(Timestamp::Millis(now_ms),
-                               DataRate::BitsPerSec(kDelayBasedBitrateBps));
+                               DataRate::BitsPerSec(DelayBasedBitrateBps));
   bwe.UpdateEstimate(Timestamp::Millis(now_ms));
-  EXPECT_GE(bwe.target_rate().bps(), kInitialBitrateBps);
-  EXPECT_LE(bwe.target_rate().bps(), kDelayBasedBitrateBps);
+  EXPECT_GE(bwe.target_rate().bps(), InitialBitrateBps);
+  EXPECT_LE(bwe.target_rate().bps(), DelayBasedBitrateBps);
 
-  bwe.SetSendBitrate(DataRate::BitsPerSec(kForcedHighBitrate),
+  bwe.SetSendBitrate(DataRate::BitsPerSec(ForcedHighBitrate),
                      Timestamp::Millis(now_ms));
-  assert_eq!(bwe.target_rate().bps(), kForcedHighBitrate);
+  assert_eq!(bwe.target_rate().bps(), ForcedHighBitrate);
 }
 
 #[test]
@@ -199,14 +199,14 @@ fn FractionLossIsNotOverflowed() {
   static const MinBitrateBps: isize = 100000;
   static const InitialBitrateBps: isize = 1000000;
   let now_ms: i64 = 1000;
-  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
+  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(MinBitrateBps),
                        DataRate::BitsPerSec(1500000));
-  bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
+  bwe.SetSendBitrate(DataRate::BitsPerSec(InitialBitrateBps),
                      Timestamp::Millis(now_ms));
 
   now_ms += 10000;
 
-  assert_eq!(kInitialBitrateBps, bwe.target_rate().bps());
+  assert_eq!(InitialBitrateBps, bwe.target_rate().bps());
   assert_eq!(0, bwe.fraction_loss());
 
   // Signal negative loss.
@@ -224,9 +224,9 @@ fn RttIsAboveLimitIfRttGreaterThanLimit() {
   static const MaxBitrateBps: isize = 10000000;
   static const InitialBitrateBps: isize = 300000;
   let now_ms: i64 = 0;
-  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
-                       DataRate::BitsPerSec(kMaxBitrateBps));
-  bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
+  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(MinBitrateBps),
+                       DataRate::BitsPerSec(MaxBitrateBps));
+  bwe.SetSendBitrate(DataRate::BitsPerSec(InitialBitrateBps),
                      Timestamp::Millis(now_ms));
   bwe.UpdatePropagationRtt(/*at_time=*/Timestamp::Millis(now_ms),
                            /*propagation_rtt=*/TimeDelta::Millis(5000));
@@ -242,9 +242,9 @@ fn RttIsBelowLimitIfRttLessThanLimit() {
   static const MaxBitrateBps: isize = 10000000;
   static const InitialBitrateBps: isize = 300000;
   let now_ms: i64 = 0;
-  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(kMinBitrateBps),
-                       DataRate::BitsPerSec(kMaxBitrateBps));
-  bwe.SetSendBitrate(DataRate::BitsPerSec(kInitialBitrateBps),
+  bwe.SetMinMaxBitrate(DataRate::BitsPerSec(MinBitrateBps),
+                       DataRate::BitsPerSec(MaxBitrateBps));
+  bwe.SetSendBitrate(DataRate::BitsPerSec(InitialBitrateBps),
                      Timestamp::Millis(now_ms));
   bwe.UpdatePropagationRtt(/*at_time=*/Timestamp::Millis(now_ms),
                            /*propagation_rtt=*/TimeDelta::Millis(1000));

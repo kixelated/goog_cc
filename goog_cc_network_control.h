@@ -76,17 +76,17 @@ pub struct GoogCcNetworkController {
   NetworkControlUpdate OnNetworkStateEstimate(
       NetworkStateEstimate msg) override;
 
-  NetworkControlUpdate GetNetworkState(Timestamp at_time) const;
+  fn GetNetworkState(&self, at_time: Timestamp) -> NetworkControlUpdate;
 
  private:
   friend class GoogCcStatePrinter;
   Vec<ProbeClusterConfig> ResetConstraints(
       TargetRateConstraints new_constraints);
-  void ClampConstraints();
+  fn ClampConstraints(&mut self) { todo!(); }
   void MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update,
                                     Timestamp at_time);
-  void UpdateCongestionWindowlen();
-  PacerConfig GetPacingRates(Timestamp at_time) const;
+  fn UpdateCongestionWindowlen(&mut self) { todo!(); }
+  fn GetPacingRates(&self, at_time: Timestamp) -> PacerConfig;
   fn SetNetworkStateEstimate(Option<NetworkStateEstimate> estimate) {
   todo!();
 }

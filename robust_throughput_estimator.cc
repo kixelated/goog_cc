@@ -81,11 +81,11 @@ fn IncomingPacketFeedbackVector(&self /* RobustThroughputEstimator */,
          i > 0 && self.window[i].receive_time < self.window[i - 1].receive_time; i--) {
       std::swap(self.window[i], self.window[i - 1]);
     }
-    const MaxReorderingTime: TimeDelta = Duration::from_secs(1);
-    const TimeDelta receive_delta =
+    const MaxReorderingTime: TimeDelta = TimeDelta::Seconds(1);
+    const receive_delta: TimeDelta =
         (self.window.back().receive_time - packet.receive_time);
-    if (receive_delta > kMaxReorderingTime) {
-      RTC_LOG(LS_WARNING)
+    if (receive_delta > MaxReorderingTime) {
+      tracing::warn!(
           << "Severe packet re-ordering or timestamps offset changed: "
           << receive_delta;
       self.window.clear();
@@ -127,7 +127,7 @@ Option<DataRate> bitrate(&self /* RobustThroughputEstimator */) {
   let first_recv_size: DataSize = DataSize::Bytes(0);
   let last_send_size: DataSize = DataSize::Bytes(0);
   let num_sent_packets_in_window: usize = 0;
-  for packet in &window_ {
+  for packet in &self.window {
     if (packet.receive_time < first_recv_time) {
       first_recv_time = packet.receive_time;
       first_recv_size =

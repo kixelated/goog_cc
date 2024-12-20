@@ -25,8 +25,8 @@
 namespace {
 const NumProbesCluster0: isize = 5;
 const NumProbesCluster1: isize = 8;
-const PacedPacketInfo kPacingInfo0(0, kNumProbesCluster0, 2000);
-const PacedPacketInfo kPacingInfo1(1, kNumProbesCluster1, 4000);
+const PacedPacketInfo PacingInfo0(0, NumProbesCluster0, 2000);
+const PacedPacketInfo PacingInfo1(1, NumProbesCluster1, 4000);
 const TargetUtilizationFraction: f32 = 0.95f;
 }  // namespace
 
@@ -35,18 +35,18 @@ fn ProbeDetection() {
   let now_ms: i64 = self.clock.TimeInMilliseconds();
 
   // First burst sent at 8 * 1000 / 10 = 800 kbps.
-  for (isize i = 0; i < kNumProbesCluster0i += 1) {
+  for (isize i = 0; i < NumProbesCluster0i += 1) {
     self.clock.AdvanceTimeMilliseconds(10);
     now_ms = self.clock.TimeInMilliseconds();
-    IncomingFeedback(now_ms, now_ms, 1000, kPacingInfo0);
+    IncomingFeedback(now_ms, now_ms, 1000, PacingInfo0);
   }
   assert!((self.bitrate_observer.updated());
 
   // Second burst sent at 8 * 1000 / 5 = 1600 kbps.
-  for (isize i = 0; i < kNumProbesCluster1i += 1) {
+  for (isize i = 0; i < NumProbesCluster1i += 1) {
     self.clock.AdvanceTimeMilliseconds(5);
     now_ms = self.clock.TimeInMilliseconds();
-    IncomingFeedback(now_ms, now_ms, 1000, kPacingInfo1);
+    IncomingFeedback(now_ms, now_ms, 1000, PacingInfo1);
   }
 
   assert!((self.bitrate_observer.updated());
@@ -58,10 +58,10 @@ fn ProbeDetectionNonPacedPackets() {
   let now_ms: i64 = self.clock.TimeInMilliseconds();
   // First burst sent at 8 * 1000 / 10 = 800 kbps, but with every other packet
   // not being paced which could mess things up.
-  for (isize i = 0; i < kNumProbesCluster0i += 1) {
+  for (isize i = 0; i < NumProbesCluster0i += 1) {
     self.clock.AdvanceTimeMilliseconds(5);
     now_ms = self.clock.TimeInMilliseconds();
-    IncomingFeedback(now_ms, now_ms, 1000, kPacingInfo0);
+    IncomingFeedback(now_ms, now_ms, 1000, PacingInfo0);
     // Non-paced packet, arriving 5 ms after.
     self.clock.AdvanceTimeMilliseconds(5);
     IncomingFeedback(now_ms, now_ms, 100, PacedPacketInfo());
@@ -77,11 +77,11 @@ fn ProbeDetectionFasterArrival() {
   // First burst sent at 8 * 1000 / 10 = 800 kbps.
   // Arriving at 8 * 1000 / 5 = 1600 kbps.
   let send_time_ms: i64 = 0;
-  for (isize i = 0; i < kNumProbesCluster0i += 1) {
+  for (isize i = 0; i < NumProbesCluster0i += 1) {
     self.clock.AdvanceTimeMilliseconds(1);
     send_time_ms += 10;
     now_ms = self.clock.TimeInMilliseconds();
-    IncomingFeedback(now_ms, send_time_ms, 1000, kPacingInfo0);
+    IncomingFeedback(now_ms, send_time_ms, 1000, PacingInfo0);
   }
 
   assert!(!(self.bitrate_observer.updated());
@@ -95,16 +95,16 @@ fn ProbeDetectionSlowerArrival() {
   // Since the receive rate is significantly below the send rate, we expect to
   // use 95% of the estimated capacity.
   let send_time_ms: i64 = 0;
-  for (isize i = 0; i < kNumProbesCluster1i += 1) {
+  for (isize i = 0; i < NumProbesCluster1i += 1) {
     self.clock.AdvanceTimeMilliseconds(7);
     send_time_ms += 5;
     now_ms = self.clock.TimeInMilliseconds();
-    IncomingFeedback(now_ms, send_time_ms, 1000, kPacingInfo1);
+    IncomingFeedback(now_ms, send_time_ms, 1000, PacingInfo1);
   }
 
   assert!((self.bitrate_observer.updated());
   EXPECT_NEAR(self.bitrate_observer.latest_bitrate(),
-              kTargetUtilizationFraction * 1140000u, 10000u);
+              TargetUtilizationFraction * 1140000u, 10000u);
 }
 
 #[test]
@@ -115,16 +115,16 @@ fn ProbeDetectionSlowerArrivalHighBitrate() {
   // Since the receive rate is significantly below the send rate, we expect to
   // use 95% of the estimated capacity.
   let send_time_ms: i64 = 0;
-  for (isize i = 0; i < kNumProbesCluster1i += 1) {
+  for (isize i = 0; i < NumProbesCluster1i += 1) {
     self.clock.AdvanceTimeMilliseconds(2);
     send_time_ms += 1;
     now_ms = self.clock.TimeInMilliseconds();
-    IncomingFeedback(now_ms, send_time_ms, 1000, kPacingInfo1);
+    IncomingFeedback(now_ms, send_time_ms, 1000, PacingInfo1);
   }
 
   assert!((self.bitrate_observer.updated());
   EXPECT_NEAR(self.bitrate_observer.latest_bitrate(),
-              kTargetUtilizationFraction * 4000000u, 10000u);
+              TargetUtilizationFraction * 4000000u, 10000u);
 }
 
 #[test]
@@ -145,7 +145,7 @@ fn InitialBehavior() {
 #[test]
 fn InitializeResult() {
   DelayBasedBwe::Result result;
-  assert_eq!(result.delay_detector_state, BandwidthUsage::kBwNormal);
+  assert_eq!(result.delay_detector_state, BandwidthUsage::Normal);
 }
 
 #[test]
@@ -207,22 +207,22 @@ fn TestInitialOveruse() {
   // High FPS to ensure that we send a lot of packets in a short time.
   const Fps: isize = 90;
 
-  self.stream_generator.AddStream(new test::RtpStream(kFps, kStartBitrate.bps()));
-  self.stream_generator.set_capacity_bps(kInitialCapacity.bps());
+  self.stream_generator.AddStream(new test::RtpStream(Fps, StartBitrate.bps()));
+  self.stream_generator.set_capacity_bps(InitialCapacity.bps());
 
   // Needed to initialize the AimdRateControl.
-  self.bitrate_estimator.SetStartBitrate(kStartBitrate);
+  self.bitrate_estimator.SetStartBitrate(StartBitrate);
 
   // Produce 40 frames (in 1/3 second) and give them to the estimator.
-  let bitrate_bps: i64 = kStartBitrate.bps();
+  let bitrate_bps: i64 = StartBitrate.bps();
   let seen_overuse: bool = false;
   for (isize i = 0; i < 40i += 1) {
-    let overuse: bool = GenerateAndProcessFrame(kDummySsrc, bitrate_bps);
+    let overuse: bool = GenerateAndProcessFrame(DummySsrc, bitrate_bps);
     if (overuse) {
       assert!((self.bitrate_observer.updated());
-      EXPECT_LE(self.bitrate_observer.latest_bitrate(), kInitialCapacity.bps());
+      EXPECT_LE(self.bitrate_observer.latest_bitrate(), InitialCapacity.bps());
       EXPECT_GT(self.bitrate_observer.latest_bitrate(),
-                0.8 * kInitialCapacity.bps());
+                0.8 * InitialCapacity.bps());
       bitrate_bps = self.bitrate_observer.latest_bitrate();
       seen_overuse = true;
       break;
@@ -232,8 +232,8 @@ fn TestInitialOveruse() {
     }
   }
   assert!((seen_overuse);
-  EXPECT_LE(self.bitrate_observer.latest_bitrate(), kInitialCapacity.bps());
-  EXPECT_GT(self.bitrate_observer.latest_bitrate(), 0.8 * kInitialCapacity.bps());
+  EXPECT_LE(self.bitrate_observer.latest_bitrate(), InitialCapacity.bps());
+  EXPECT_GT(self.bitrate_observer.latest_bitrate(), 0.8 * InitialCapacity.bps());
 }
 
 #[test]

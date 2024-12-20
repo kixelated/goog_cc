@@ -36,7 +36,7 @@
 namespace {
 
 const InitHoldDuration: TimeDelta = TimeDelta::Millis(300);
-const MaxHoldDuration: TimeDelta = Duration::from_secs(60);
+const MaxHoldDuration: TimeDelta = TimeDelta::Seconds(60);
 
 fn IsValid(DataRate datarate) -> bool {
   return datarate.IsFinite();
@@ -56,16 +56,16 @@ f64 GetLossProbability(f64 inherent_loss,
                           DataRate loss_limited_bandwidth,
                           DataRate sending_rate) {
   if (inherent_loss < 0.0 || inherent_loss > 1.0) {
-    RTC_LOG(LS_WARNING) << "The inherent loss must be in [0,1]: "
+    tracing::warn!( << "The inherent loss must be in [0,1]: "
                         << inherent_loss;
     inherent_loss = std::cmp::min(std::cmp::max(inherent_loss, 0.0), 1.0);
   }
   if (!sending_rate.IsFinite()) {
-    RTC_LOG(LS_WARNING) << "The sending rate must be finite: "
+    tracing::warn!( << "The sending rate must be finite: "
                         << ToString(sending_rate);
   }
   if (!loss_limited_bandwidth.IsFinite()) {
-    RTC_LOG(LS_WARNING) << "The loss limited bandwidth must be finite: "
+    tracing::warn!( << "The loss limited bandwidth must be finite: "
                         << ToString(loss_limited_bandwidth);
   }
 
@@ -100,7 +100,7 @@ LossBasedBweV2::LossBasedBweV2(const FieldTrialsView* key_value_config)
   self.instant_upper_bound_temporal_weights.resize(
       self.config.observation_window_size);
   CalculateTemporalWeights();
-  self.last_hold_info.duration = kInitHoldDuration;
+  self.last_hold_info.duration = InitHoldDuration;
 }
 
 bool IsEnabled(&self /* LossBasedBweV2 */) {
@@ -130,7 +130,7 @@ LossBasedBweV2::Result GetLossBasedResult(&self /* LossBasedBweV2 */) {
         tracing::warn!( "The estimator must be initialized before it can be used.");
       }
       if (self.num_observations <= self.config.min_num_observations) {
-        RTC_LOG(LS_WARNING) << "The estimator must receive enough loss "
+        tracing::warn!( << "The estimator must receive enough loss "
                                "statistics before it can be used.";
       }
     }
@@ -139,7 +139,7 @@ LossBasedBweV2::Result GetLossBasedResult(&self /* LossBasedBweV2 */) {
                                       : DataRate::PlusInfinity(),
             .state = LossBasedState::kDelayBasedEstimate};
   }
-  loss_based_result: return,
+  return loss_based_result;
 }
 
 fn SetAcknowledgedBitrate(&self /* LossBasedBweV2 */,DataRate acknowledged_bitrate) {
@@ -147,7 +147,7 @@ fn SetAcknowledgedBitrate(&self /* LossBasedBweV2 */,DataRate acknowledged_bitra
     self.acknowledged_bitrate = acknowledged_bitrate;
     CalculateInstantLowerBound();
   } else {
-    RTC_LOG(LS_WARNING) << "The acknowledged bitrate must be finite: "
+    tracing::warn!( << "The acknowledged bitrate must be finite: "
                         << ToString(acknowledged_bitrate);
   }
 }
@@ -158,7 +158,7 @@ fn SetBandwidthEstimate(&self /* LossBasedBweV2 */,DataRate bandwidth_estimate) 
     self.loss_based_result = {.bandwidth_estimate = bandwidth_estimate,
                           .state = LossBasedState::kDelayBasedEstimate};
   } else {
-    RTC_LOG(LS_WARNING) << "The bandwidth estimate must be finite: "
+    tracing::warn!( << "The bandwidth estimate must be finite: "
                         << ToString(bandwidth_estimate);
   }
 }
@@ -169,14 +169,14 @@ fn SetMinMaxBitrate(&self /* LossBasedBweV2 */,DataRate min_bitrate,
     self.min_bitrate = min_bitrate;
     CalculateInstantLowerBound();
   } else {
-    RTC_LOG(LS_WARNING) << "The min bitrate must be finite: "
+    tracing::warn!( << "The min bitrate must be finite: "
                         << ToString(min_bitrate);
   }
 
   if (IsValid(max_bitrate)) {
     self.max_bitrate = max_bitrate;
   } else {
-    RTC_LOG(LS_WARNING) << "The max bitrate must be finite: "
+    tracing::warn!( << "The max bitrate must be finite: "
                         << ToString(max_bitrate);
   }
 }
@@ -203,7 +203,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
 
   if (!IsValid(self.current_best_estimate.loss_limited_bandwidth)) {
     if (!IsValid(delay_based_estimate)) {
-      RTC_LOG(LS_WARNING) << "The delay based estimate must be finite: "
+      tracing::warn!( << "The delay based estimate must be finite: "
                         << ToString(delay_based_estimate);
       return;
     }
@@ -269,7 +269,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
                    std::cmp::min(best_candidate.loss_limited_bandwidth,
                             rampup_factor * (*self.acknowledged_bitrate)));
       // Increase current estimate by at least 1kbps to make sure that the state
-      // will be switched to kIncreasing, thus padding is triggered.
+      // will be switched to Increasing, thus padding is triggered.
       if (self.loss_based_result.state == LossBasedState::kDecreasing &&
           best_candidate.loss_limited_bandwidth ==
               self.current_best_estimate.loss_limited_bandwidth) {
@@ -351,7 +351,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
           .timestamp = self.last_send_time_most_recent_observation +
                        self.last_hold_info.duration,
           .duration =
-              std::cmp::min(kMaxHoldDuration, self.last_hold_info.duration *
+              std::cmp::min(MaxHoldDuration, self.last_hold_info.duration *
                                              self.config.hold_duration_factor),
           .rate = bounded_bandwidth_estimate};
     }
@@ -361,7 +361,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
     // Reset the HOLD info if delay based estimate works to avoid getting
     // stuck in low bitrate.
     self.last_hold_info = {.timestamp = Timestamp::MinusInfinity(),
-                       .duration = kInitHoldDuration,
+                       .duration = InitHoldDuration,
                        .rate = DataRate::PlusInfinity()};
     self.last_padding_info = PaddingInfo();
     self.loss_based_result.state = LossBasedState::kDelayBasedEstimate;
@@ -373,7 +373,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
        self.recovering_after_loss_timestamp + self.config.delayed_increase_window <
            self.last_send_time_most_recent_observation)) {
     self.bandwidth_limit_in_current_window =
-        std::cmp::max(kCongestionControllerMinBitrate,
+        std::cmp::max(CongestionControllerMinBitrate,
                  self.current_best_estimate.loss_limited_bandwidth *
                      self.config.max_increase_factor);
     self.recovering_after_loss_timestamp = self.last_send_time_most_recent_observation;
@@ -404,7 +404,7 @@ Option<LossBasedBweV2::Config> CreateConfig(&self /* LossBasedBweV2 */,
   FieldTrialParameter<f64> rampup_acceleration_max_factor(
       "BwRampupAccelMaxFactor", 0.0);
   FieldTrialParameter<TimeDelta> rampup_acceleration_maxout_time(
-      "BwRampupAccelMaxoutTime", Duration::from_secs(60));
+      "BwRampupAccelMaxoutTime", TimeDelta::Seconds(60));
   FieldTrialList<f64> candidate_factors("CandidateFactors",
                                            {1.02, 1.0, 0.95});
   FieldTrialParameter<f64> higher_bandwidth_bias_factor("HigherBwBiasFactor",
@@ -509,7 +509,7 @@ Option<LossBasedBweV2::Config> CreateConfig(&self /* LossBasedBweV2 */,
                      &bound_best_candidate,
                      &pace_at_loss_based_estimate,
                      &median_sending_rate_factor},
-                    key_value_config->Lookup("WebRTC-Bwe-LossBasedBweV2"));
+                    key_value_config.Lookup("WebRTC-Bwe-LossBasedBweV2"));
   }
 
   if (!enabled.Get()) {
@@ -586,38 +586,38 @@ bool IsConfigValid(&self /* LossBasedBweV2 */) {
   let valid: bool = true;
 
   if (self.config.bandwidth_rampup_upper_bound_factor <= 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The bandwidth rampup upper bound factor must be greater than 1: "
         << self.config.bandwidth_rampup_upper_bound_factor;
     valid = false;
   }
   if (self.config.bandwidth_rampup_upper_bound_factor_in_hold <= 1.0) {
-    RTC_LOG(LS_WARNING) << "The bandwidth rampup upper bound factor in hold "
+    tracing::warn!( << "The bandwidth rampup upper bound factor in hold "
                            "must be greater than 1: "
                         << self.config.bandwidth_rampup_upper_bound_factor_in_hold;
     valid = false;
   }
   if (self.config.bandwidth_rampup_hold_threshold < 0.0) {
-    RTC_LOG(LS_WARNING) << "The bandwidth rampup hold threshold must"
+    tracing::warn!( << "The bandwidth rampup hold threshold must"
                            "must be non-negative.: "
                         << self.config.bandwidth_rampup_hold_threshold;
     valid = false;
   }
   if (self.config.rampup_acceleration_max_factor < 0.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The rampup acceleration max factor must be non-negative.: "
         << self.config.rampup_acceleration_max_factor;
     valid = false;
   }
   if (self.config.rampup_acceleration_maxout_time <= TimeDelta::Zero()) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The rampup acceleration maxout time must be above zero: "
         << self.config.rampup_acceleration_maxout_time.seconds();
     valid = false;
   }
   for (f64 candidate_factor : self.config.candidate_factors) {
     if (candidate_factor <= 0.0) {
-      RTC_LOG(LS_WARNING) << "All candidate factors must be greater than zero: "
+      tracing::warn!( << "All candidate factors must be greater than zero: "
                           << candidate_factor;
       valid = false;
     }
@@ -629,7 +629,7 @@ bool IsConfigValid(&self /* LossBasedBweV2 */) {
       !self.config.append_delay_based_estimate_candidate &&
       !absl::c_any_of(self.config.candidate_factors,
                       [](f64 cf) { return cf != 1.0; })) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The configuration does not allow generating candidates. Specify "
            "a candidate factor other than 1.0, allow the acknowledged rate "
            "to be a candidate, and/or allow the delay based estimate to be a "
@@ -638,34 +638,34 @@ bool IsConfigValid(&self /* LossBasedBweV2 */) {
   }
 
   if (self.config.higher_bandwidth_bias_factor < 0.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The higher bandwidth bias factor must be non-negative: "
         << self.config.higher_bandwidth_bias_factor;
     valid = false;
   }
   if (self.config.inherent_loss_lower_bound < 0.0 ||
       self.config.inherent_loss_lower_bound >= 1.0) {
-    RTC_LOG(LS_WARNING) << "The inherent loss lower bound must be in [0, 1): "
+    tracing::warn!( << "The inherent loss lower bound must be in [0, 1): "
                         << self.config.inherent_loss_lower_bound;
     valid = false;
   }
   if (self.config.loss_threshold_of_high_bandwidth_preference < 0.0 ||
       self.config.loss_threshold_of_high_bandwidth_preference >= 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The loss threshold of high bandwidth preference must be in [0, 1): "
         << self.config.loss_threshold_of_high_bandwidth_preference;
     valid = false;
   }
   if (self.config.bandwidth_preference_smoothing_factor <= 0.0 ||
       self.config.bandwidth_preference_smoothing_factor > 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The bandwidth preference smoothing factor must be in (0, 1]: "
         << self.config.bandwidth_preference_smoothing_factor;
     valid = false;
   }
   if (self.config.inherent_loss_upper_bound_bandwidth_balance <=
       DataRate::Zero()) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The inherent loss upper bound bandwidth balance "
            "must be positive: "
         << ToString(self.config.inherent_loss_upper_bound_bandwidth_balance);
@@ -674,7 +674,7 @@ bool IsConfigValid(&self /* LossBasedBweV2 */) {
   if (self.config.inherent_loss_upper_bound_offset <
           self.config.inherent_loss_lower_bound ||
       self.config.inherent_loss_upper_bound_offset >= 1.0) {
-    RTC_LOG(LS_WARNING) << "The inherent loss upper bound must be greater "
+    tracing::warn!( << "The inherent loss upper bound must be greater "
                            "than or equal to the inherent "
                            "loss lower bound, which is "
                         << self.config.inherent_loss_lower_bound
@@ -684,89 +684,89 @@ bool IsConfigValid(&self /* LossBasedBweV2 */) {
   }
   if (self.config.initial_inherent_loss_estimate < 0.0 ||
       self.config.initial_inherent_loss_estimate >= 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The initial inherent loss estimate must be in [0, 1): "
         << self.config.initial_inherent_loss_estimate;
     valid = false;
   }
   if (self.config.newton_iterations <= 0) {
-    RTC_LOG(LS_WARNING) << "The number of Newton iterations must be positive: "
+    tracing::warn!( << "The number of Newton iterations must be positive: "
                         << self.config.newton_iterations;
     valid = false;
   }
   if (self.config.newton_step_size <= 0.0) {
-    RTC_LOG(LS_WARNING) << "The Newton step size must be positive: "
+    tracing::warn!( << "The Newton step size must be positive: "
                         << self.config.newton_step_size;
     valid = false;
   }
   if (self.config.observation_duration_lower_bound <= TimeDelta::Zero()) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The observation duration lower bound must be positive: "
         << ToString(self.config.observation_duration_lower_bound);
     valid = false;
   }
   if (self.config.observation_window_size < 2) {
-    RTC_LOG(LS_WARNING) << "The observation window size must be at least 2: "
+    tracing::warn!( << "The observation window size must be at least 2: "
                         << self.config.observation_window_size;
     valid = false;
   }
   if (self.config.sending_rate_smoothing_factor < 0.0 ||
       self.config.sending_rate_smoothing_factor >= 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The sending rate smoothing factor must be in [0, 1): "
         << self.config.sending_rate_smoothing_factor;
     valid = false;
   }
   if (self.config.instant_upper_bound_temporal_weight_factor <= 0.0 ||
       self.config.instant_upper_bound_temporal_weight_factor > 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The instant upper bound temporal weight factor must be in (0, 1]"
         << self.config.instant_upper_bound_temporal_weight_factor;
     valid = false;
   }
   if (self.config.instant_upper_bound_bandwidth_balance <= DataRate::Zero()) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The instant upper bound bandwidth balance must be positive: "
         << ToString(self.config.instant_upper_bound_bandwidth_balance);
     valid = false;
   }
   if (self.config.instant_upper_bound_loss_offset < 0.0 ||
       self.config.instant_upper_bound_loss_offset >= 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The instant upper bound loss offset must be in [0, 1): "
         << self.config.instant_upper_bound_loss_offset;
     valid = false;
   }
   if (self.config.temporal_weight_factor <= 0.0 ||
       self.config.temporal_weight_factor > 1.0) {
-    RTC_LOG(LS_WARNING) << "The temporal weight factor must be in (0, 1]: "
+    tracing::warn!( << "The temporal weight factor must be in (0, 1]: "
                         << self.config.temporal_weight_factor;
     valid = false;
   }
   if (self.config.bandwidth_backoff_lower_bound_factor > 1.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The bandwidth backoff lower bound factor must not be greater than "
            "1: "
         << self.config.bandwidth_backoff_lower_bound_factor;
     valid = false;
   }
   if (self.config.max_increase_factor <= 0.0) {
-    RTC_LOG(LS_WARNING) << "The maximum increase factor must be positive: "
+    tracing::warn!( << "The maximum increase factor must be positive: "
                         << self.config.max_increase_factor;
     valid = false;
   }
   if (self.config.delayed_increase_window <= TimeDelta::Zero()) {
-    RTC_LOG(LS_WARNING) << "The delayed increase window must be positive: "
+    tracing::warn!( << "The delayed increase window must be positive: "
                         << self.config.delayed_increase_window.ms();
     valid = false;
   }
   if (self.config.min_num_observations <= 0) {
-    RTC_LOG(LS_WARNING) << "The min number of observations must be positive: "
+    tracing::warn!( << "The min number of observations must be positive: "
                         << self.config.min_num_observations;
     valid = false;
   }
   if (self.config.lower_bound_by_acked_rate_factor < 0.0) {
-    RTC_LOG(LS_WARNING)
+    tracing::warn!(
         << "The estimate lower bound by acknowledged rate factor must be "
            "non-negative: "
         << self.config.lower_bound_by_acked_rate_factor;
@@ -866,7 +866,7 @@ DataRate GetCandidateBandwidthUpperBound(&self /* LossBasedBweV2 */) {
     return candidate_bandwidth_upper_bound;
 
   if (self.config.rampup_acceleration_max_factor > 0.0) {
-    const TimeDelta time_since_bandwidth_reduced = std::cmp::min(
+    const time_since_bandwidth_reduced: TimeDelta = std::cmp::min(
         self.config.rampup_acceleration_maxout_time,
         std::cmp::max(TimeDelta::Zero(), self.last_send_time_most_recent_observation -
                                         self.last_time_estimate_reduced));
@@ -912,7 +912,7 @@ Vec<LossBasedBweV2::ChannelParameters> GetCandidates(&self /* LossBasedBweV2 */,
     bandwidths.push_back(GetInstantUpperBound());
   }
 
-  const DataRate candidate_bandwidth_upper_bound =
+  const candidate_bandwidth_upper_bound: DataRate =
       GetCandidateBandwidthUpperBound();
 
   Vec<ChannelParameters> candidates;
@@ -1064,7 +1064,7 @@ DataRate GetSendingRate(&self /* LossBasedBweV2 */,
     return instantaneous_sending_rate;
   }
 
-  const isize most_recent_observation_idx =
+  const most_recent_observation_idx: isize =
       (self.num_observations - 1) % self.config.observation_window_size;
   const Observation& most_recent_observation =
       self.observations[most_recent_observation_idx];
@@ -1125,7 +1125,7 @@ fn NewtonsMethodUpdate(&self /* LossBasedBweV2 */,
   }
 
   for (isize i = 0; i < self.config.newton_iterationsi += 1) {
-    const Derivatives derivatives = GetDerivatives(channel_parameters);
+    const derivatives: Derivatives = GetDerivatives(channel_parameters);
     channel_parameters.inherent_loss -=
         self.config.newton_step_size * derivatives.first / derivatives.second;
     channel_parameters.inherent_loss =
@@ -1160,7 +1160,7 @@ bool PushBackObservation(&self /* LossBasedBweV2 */,
     self.last_send_time_most_recent_observation = first_send_time;
   }
 
-  const TimeDelta observation_duration =
+  const observation_duration: TimeDelta =
       last_send_time - self.last_send_time_most_recent_observation;
   // Too small to be meaningful.
   // To consider: what if it is too long?, i.e. we did not receive any packets
@@ -1202,8 +1202,8 @@ bool CanKeepIncreasingState(&self /* LossBasedBweV2 */,DataRate estimate) {
       self.loss_based_result.state != LossBasedState::kIncreaseUsingPadding)
     return true;
 
-  // Keep using the kIncreaseUsingPadding if either the state has been
-  // kIncreaseUsingPadding for less than kPaddingDuration or the estimate
+  // Keep using the IncreaseUsingPadding if either the state has been
+  // IncreaseUsingPadding for less than PaddingDuration or the estimate
   // increases.
   return self.last_padding_info.padding_timestamp + self.config.padding_duration >=
              self.last_send_time_most_recent_observation ||

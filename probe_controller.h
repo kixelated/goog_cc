@@ -34,7 +34,7 @@ struct ProbeControllerConfig {
   ~ProbeControllerConfig();
 
   // These parameters configure the initial probes. First we send one or two
-  // probes of sizes p1 * start_bitrate_ and p2 * self.start_bitrate.
+  // probes of sizes p1 * self.start_bitrate and p2 * self.start_bitrate.
   // Then whenever we get a bitrate estimate of at least further_probe_threshold
   // times the size of the last sent probe we'll send another one of size
   // step_size times the new estimate.
@@ -98,11 +98,11 @@ struct ProbeControllerConfig {
 // by either delay based bwe, or loss based bwe when it increases/decreases the
 // estimate.
 enum class BandwidthLimitedCause : isize {
-  kLossLimitedBweIncreasing = 0,
-  kLossLimitedBwe = 1,
-  kDelayBasedLimited = 2,
-  kDelayBasedLimitedDelayIncreased = 3,
-  kRttBasedBackOffHighRtt = 4
+  LossLimitedBweIncreasing = 0,
+  LossLimitedBwe = 1,
+  DelayBasedLimited = 2,
+  DelayBasedLimitedDelayIncreased = 3,
+  RttBasedBackOffHighRtt = 4
 };
 
 // This class controls initiation of probing to estimate initial channel
@@ -178,11 +178,11 @@ pub struct ProbeController {
  private:
   pub enum State {
     // Initial state where no probing has been triggered yet.
-    kInit,
+    Init,
     // Waiting for probing results to continue further probing.
-    kWaitingForProbingResult,
+    WaitingForProbingResult,
     // Probing is complete.
-    kProbingComplete,
+    ProbingComplete,
   };
 
   fn UpdateState(State new_state) {
@@ -194,9 +194,9 @@ pub struct ProbeController {
       Timestamp now,
       Vec<DataRate> bitrates_to_probe,
       bool probe_further);
-  bool TimeForAlrProbe(Timestamp at_time) const;
-  bool TimeForNetworkStateProbe(Timestamp at_time) const;
-  bool TimeForNextRepeatedInitialProbe(Timestamp at_time) const;
+  fn TimeForAlrProbe(&self, at_time: Timestamp) -> bool;
+  fn TimeForNetworkStateProbe(&self, at_time: Timestamp) -> bool;
+  fn TimeForNextRepeatedInitialProbe(&self, at_time: Timestamp) -> bool;
   ProbeClusterConfig CreateProbeClusterConfig(Timestamp at_time,
                                               DataRate bitrate);
 

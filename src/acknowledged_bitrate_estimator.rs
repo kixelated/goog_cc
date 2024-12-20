@@ -8,59 +8,61 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-
-use crate::{api::{transport::PacketResult, units::{DataRate, Timestamp}}, AcknowledgedBitrateEstimatorInterface, BitrateEstimator};
-
+use crate::{
+    api::{
+        transport::PacketResult,
+        units::{DataRate, Timestamp},
+    },
+    AcknowledgedBitrateEstimatorInterface, BitrateEstimator,
+};
 
 pub struct AcknowledgedBitrateEstimator {
-  alr_ended_time: Option<Timestamp>,
-  in_alr: bool,
-  bitrate_estimator: BitrateEstimator,
+    alr_ended_time: Option<Timestamp>,
+    in_alr: bool,
+    bitrate_estimator: BitrateEstimator,
 }
 
 impl AcknowledgedBitrateEstimatorInterface for AcknowledgedBitrateEstimator {
-  fn incoming_packet_feedback(&mut self,
-    packet_feedback: &[PacketResult]) {
-      assert!(packet_feedback.is_sorted_by_key(|x| x.receive_time));
+    fn incoming_packet_feedback(&mut self, packet_feedback: &[PacketResult]) {
+        assert!(packet_feedback.is_sorted_by_key(|x| x.receive_time));
 
-  for packet in packet_feedback.iter() {
-    if let Some(alr_ended_time) = self.alr_ended_time {
-      if packet.sent_packet.send_time > alr_ended_time {
-        self.bitrate_estimator.ExpectFastRateChange();
-        self.alr_ended_time = None;
-      }
+        for packet in packet_feedback.iter() {
+            if let Some(alr_ended_time) = self.alr_ended_time {
+                if packet.sent_packet.send_time > alr_ended_time {
+                    self.bitrate_estimator.ExpectFastRateChange();
+                    self.alr_ended_time = None;
+                }
+            }
+            let mut acknowledged_estimate = packet.sent_packet.size;
+            acknowledged_estimate += packet.sent_packet.prior_unacked_data;
+            self.bitrate_estimator
+                .Update(packet.receive_time, acknowledged_estimate, self.in_alr);
+        }
     }
-    let mut acknowledged_estimate= packet.sent_packet.size;
-    acknowledged_estimate += packet.sent_packet.prior_unacked_data;
-    self.bitrate_estimator.Update(packet.receive_time, acknowledged_estimate,
-                               self.in_alr);
-  }
-}
 
-  fn bitrate(&self) -> Option<DataRate> {
-    self.bitrate_estimator.bitrate()
-  }
+    fn bitrate(&self) -> Option<DataRate> {
+        self.bitrate_estimator.bitrate()
+    }
 
-fn peek_rate(&self) -> Option<DataRate> {
-  self.bitrate_estimator.PeekRate()
-}
+    fn peek_rate(&self) -> Option<DataRate> {
+        self.bitrate_estimator.PeekRate()
+    }
 
-fn set_alr_ended_time(&mut self, alr_ended_time: Timestamp) {
-  self.alr_ended_time.replace(alr_ended_time);
-}
+    fn set_alr_ended_time(&mut self, alr_ended_time: Timestamp) {
+        self.alr_ended_time.replace(alr_ended_time);
+    }
 
-fn set_alr(&mut self, in_alr: bool) {
-  self.in_alr = in_alr;
-}
-
+    fn set_alr(&mut self, in_alr: bool) {
+        self.in_alr = in_alr;
+    }
 }
 
 impl AcknowledgedBitrateEstimator {
-  pub fn new(bitrate_estimator: BitrateEstimator) -> Self {
-    Self {
-      alr_ended_time: None,
-      in_alr: false,
-      bitrate_estimator,
+    pub fn new(bitrate_estimator: BitrateEstimator) -> Self {
+        Self {
+            alr_ended_time: None,
+            in_alr: false,
+            bitrate_estimator,
+        }
     }
-  }
 }
