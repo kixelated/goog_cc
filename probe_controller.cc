@@ -202,15 +202,15 @@ Vec<ProbeClusterConfig> SetBitrates(&self /* ProbeController */,
       max_bitrate.IsFinite() ? max_bitrate : DefaultMaxProbingBitrate;
 
   switch (self.state) {
-    case State::kInit:
+    case State::Init:
       if (self.network_available)
         return InitiateExponentialProbing(at_time);
       break;
 
-    case State::kWaitingForProbingResult:
+    case State::WaitingForProbingResult:
       break;
 
-    case State::kProbingComplete:
+    case State::ProbingComplete:
       // If the new max bitrate is higher than both the old max bitrate and the
       // estimate then initiate probing.
       if (!self.estimated_bitrate.IsZero() && old_max_bitrate < self.max_bitrate &&
@@ -228,7 +228,7 @@ Vec<ProbeClusterConfig> OnMaxTotalAllocatedBitrate(&self /* ProbeController */,
   const in_alr: bool = self.alr_start_time.is_some();
   const allow_allocation_probe: bool = in_alr;
   if (self.config.probe_on_max_allocated_bitrate_change &&
-      self.state == State::kProbingComplete &&
+      self.state == State::ProbingComplete &&
       max_total_allocated_bitrate != self.max_total_allocated_bitrate &&
       self.estimated_bitrate < self.max_bitrate &&
       self.estimated_bitrate < max_total_allocated_bitrate &&
@@ -276,26 +276,26 @@ Vec<ProbeClusterConfig> OnNetworkAvailability(&self /* ProbeController */,
     NetworkAvailability msg) {
   self.network_available = msg.network_available;
 
-  if (!self.network_available && self.state == State::kWaitingForProbingResult) {
-    self.state = State::kProbingComplete;
+  if (!self.network_available && self.state == State::WaitingForProbingResult) {
+    self.state = State::ProbingComplete;
     self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
   }
 
-  if (self.network_available && self.state == State::kInit && !self.start_bitrate.IsZero())
+  if (self.network_available && self.state == State::Init && !self.start_bitrate.IsZero())
     return InitiateExponentialProbing(msg.at_time);
   return Vec<ProbeClusterConfig>();
 }
 
 fn UpdateState(&self /* ProbeController */,State new_state) {
   switch (new_state) {
-    case State::kInit:
-      self.state = State::kInit;
+    case State::Init:
+      self.state = State::Init;
       break;
-    case State::kWaitingForProbingResult:
-      self.state = State::kWaitingForProbingResult;
+    case State::WaitingForProbingResult:
+      self.state = State::WaitingForProbingResult;
       break;
-    case State::kProbingComplete:
-      self.state = State::kProbingComplete;
+    case State::ProbingComplete:
+      self.state = State::ProbingComplete;
       self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
       break;
   }
@@ -304,7 +304,7 @@ fn UpdateState(&self /* ProbeController */,State new_state) {
 Vec<ProbeClusterConfig> InitiateExponentialProbing(&self /* ProbeController */,
     at_time: Timestamp) {
   assert!(self.network_available);
-  assert!(self.state == State::kInit);
+  assert!(self.state == State::Init);
   assert!_GT(self.start_bitrate, DataRate::Zero());
 
   // When probing at 1.8 Mbps ( 6x 300), this represents a threshold of
@@ -320,7 +320,7 @@ Vec<ProbeClusterConfig> InitiateExponentialProbing(&self /* ProbeController */,
       self.max_total_allocated_bitrate.IsZero()) {
     self.last_allowed_repeated_initial_probe =
         at_time + self.config.repeated_initial_probing_time_period;
-    RTC_LOG(LS_INFO) << "Repeated initial probing enabled, last allowed probe: "
+    tracing::info!("Repeated initial probing enabled, last allowed probe: "
                      << last_allowed_repeated_initial_probe_
                      << " now: " << at_time;
   }
@@ -339,7 +339,7 @@ Vec<ProbeClusterConfig> SetEstimatedBitrate(&self /* ProbeController */,
   }
   self.estimated_bitrate = bitrate;
 
-  if (self.state == State::kWaitingForProbingResult) {
+  if (self.state == State::WaitingForProbingResult) {
     // Continue probing if probing results indicate channel has greater
     // capacity unless we already reached the needed bitrate.
     if (self.config.abort_further_probe_if_max_lower_than_current &&
@@ -356,7 +356,7 @@ Vec<ProbeClusterConfig> SetEstimatedBitrate(&self /* ProbeController */,
             ? self.network_estimate.link_capacity_upper *
                   self.config.further_probe_threshold
             : DataRate::PlusInfinity();
-    RTC_LOG(LS_INFO) << "Measured bitrate: " << bitrate
+    tracing::info!("Measured bitrate: " << bitrate
                      << " Minimum to probe further: "
                      << self.min_bitrate_to_probe_further << " upper limit: "
                      << network_state_estimate_probe_further_limit;
@@ -403,7 +403,7 @@ Vec<ProbeClusterConfig> RequestProbe(&self /* ProbeController */,
       (self.alr_end_time.is_some() &&
        at_time - self.alr_end_time.value() < AlrEndedTimeout);
   if (in_alr || alr_ended_recently || self.in_rapid_recovery_experiment) {
-    if (self.state == State::kProbingComplete) {
+    if (self.state == State::ProbingComplete) {
       let suggested_probe: DataRate =
           ProbeFractionAfterDrop * self.bitrate_before_last_large_drop;
       let min_expected_probe_result: DataRate =
@@ -413,7 +413,7 @@ Vec<ProbeClusterConfig> RequestProbe(&self /* ProbeController */,
       if (min_expected_probe_result > self.estimated_bitrate &&
           time_since_drop < BitrateDropTimeout &&
           time_since_probe > MinTimeBetweenAlrProbes) {
-        RTC_LOG(LS_INFO) << "Detected big bandwidth drop, start probing.";
+        tracing::info!("Detected big bandwidth drop, start probing.";
         // Track how often we probe in response to bandwidth drop in ALR.
         RTC_HISTOGRAM_COUNTS_10000(
             "WebRTC.BWE.BweDropProbingIntervalInS",
@@ -432,8 +432,8 @@ fn SetNetworkStateEstimate(&self /* ProbeController */,
 }
 
 fn Reset(&self /* ProbeController */,at_time: Timestamp) {
-  self.bandwidth_limited_cause = BandwidthLimitedCause::kDelayBasedLimited;
-  self.state = State::kInit;
+  self.bandwidth_limited_cause = BandwidthLimitedCause::DelayBasedLimited;
+  self.state = State::Init;
   self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
   self.time_last_probing_initiated = Timestamp::Zero();
   self.estimated_bitrate = DataRate::Zero();
@@ -464,7 +464,7 @@ bool TimeForNetworkStateProbe(&self /* ProbeController */,at_time: Timestamp) {
   }
 
   let probe_due_to_low_estimate: bool =
-      self.bandwidth_limited_cause == BandwidthLimitedCause::kDelayBasedLimited &&
+      self.bandwidth_limited_cause == BandwidthLimitedCause::DelayBasedLimited &&
       self.estimated_bitrate <
           self.config.probe_if_estimate_lower_than_network_state_estimate_ratio *
               self.network_estimate.link_capacity_upper;
@@ -490,7 +490,7 @@ bool TimeForNetworkStateProbe(&self /* ProbeController */,at_time: Timestamp) {
 }
 
 bool TimeForNextRepeatedInitialProbe(&self /* ProbeController */,at_time: Timestamp) {
-  if (self.state != State::kWaitingForProbingResult &&
+  if (self.state != State::WaitingForProbingResult &&
       self.last_allowed_repeated_initial_probe > at_time) {
     let next_probe_time: Timestamp =
         self.time_last_probing_initiated + MaxWaitingTimeForProbingResult;
@@ -504,12 +504,12 @@ bool TimeForNextRepeatedInitialProbe(&self /* ProbeController */,at_time: Timest
 Vec<ProbeClusterConfig> Process(&self /* ProbeController */,at_time: Timestamp) {
   if (at_time - self.time_last_probing_initiated >
       MaxWaitingTimeForProbingResult) {
-    if (self.state == State::kWaitingForProbingResult) {
-      RTC_LOG(LS_INFO) << "kWaitingForProbingResult: timeout";
-      UpdateState(State::kProbingComplete);
+    if (self.state == State::WaitingForProbingResult) {
+      tracing::info!("kWaitingForProbingResult: timeout";
+      UpdateState(State::ProbingComplete);
     }
   }
-  if (self.estimated_bitrate.IsZero() || self.state != State::kProbingComplete) {
+  if (self.estimated_bitrate.IsZero() || self.state != State::ProbingComplete) {
     return {};
   }
   if (TimeForNextRepeatedInitialProbe(at_time)) {
@@ -565,7 +565,7 @@ Vec<ProbeClusterConfig> InitiateProbing(&self /* ProbeController */,
                        self.max_bitrate);
     if (std::cmp::min(network_estimate, self.estimated_bitrate) >
         self.config.skip_if_estimate_larger_than_fraction_of_max * max_probe_rate) {
-      UpdateState(State::kProbingComplete);
+      UpdateState(State::ProbingComplete);
       return {};
     }
   }
@@ -583,18 +583,18 @@ Vec<ProbeClusterConfig> InitiateProbing(&self /* ProbeController */,
   }
 
   switch (self.bandwidth_limited_cause) {
-    case BandwidthLimitedCause::kRttBasedBackOffHighRtt:
-    case BandwidthLimitedCause::kDelayBasedLimitedDelayIncreased:
-    case BandwidthLimitedCause::kLossLimitedBwe:
-      RTC_LOG(LS_INFO) << "Not sending probe in bandwidth limited state. "
+    case BandwidthLimitedCause::RttBasedBackOffHighRtt:
+    case BandwidthLimitedCause::DelayBasedLimitedDelayIncreased:
+    case BandwidthLimitedCause::LossLimitedBwe:
+      tracing::info!("Not sending probe in bandwidth limited state. "
                        << (self.bandwidth_limited_cause) as isize;
       return {};
-    case BandwidthLimitedCause::kLossLimitedBweIncreasing:
+    case BandwidthLimitedCause::LossLimitedBweIncreasing:
       max_probe_bitrate =
           std::cmp::min(max_probe_bitrate,
                    self.estimated_bitrate * self.config.loss_limited_probe_scale);
       break;
-    case BandwidthLimitedCause::kDelayBasedLimited:
+    case BandwidthLimitedCause::DelayBasedLimited:
       break;
     default:
       break;
@@ -603,7 +603,7 @@ Vec<ProbeClusterConfig> InitiateProbing(&self /* ProbeController */,
   if (self.config.network_state_estimate_probing_interval.IsFinite() &&
       self.network_estimate && self.network_estimate.link_capacity_upper.IsFinite()) {
     if (self.network_estimate.link_capacity_upper.IsZero()) {
-      RTC_LOG(LS_INFO) << "Not sending probe, Network state estimate is zero";
+      tracing::info!("Not sending probe, Network state estimate is zero";
       return {};
     }
     max_probe_bitrate = std::cmp::min(
@@ -623,13 +623,13 @@ Vec<ProbeClusterConfig> InitiateProbing(&self /* ProbeController */,
   }
   self.time_last_probing_initiated = now;
   if (probe_further) {
-    UpdateState(State::kWaitingForProbingResult);
+    UpdateState(State::WaitingForProbingResult);
     // Dont expect probe results to be larger than a fraction of the actual
     // probe rate.
     self.min_bitrate_to_probe_further = pending_probes.back().target_data_rate *
                                     self.config.further_probe_threshold;
   } else {
-    UpdateState(State::kProbingComplete);
+    UpdateState(State::ProbingComplete);
   }
   return pending_probes;
 }

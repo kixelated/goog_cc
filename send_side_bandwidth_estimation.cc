@@ -224,7 +224,7 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
       bitrate_threshold_(DefaultBitrateThreshold),
       loss_based_bandwidth_estimator_v1_(key_value_config),
       loss_based_bandwidth_estimator_v2_(new LossBasedBweV2(key_value_config)),
-      loss_based_state_(LossBasedState::kDelayBasedEstimate),
+      loss_based_state_(LossBasedState::DelayBasedEstimate),
       disable_receiver_limit_caps_only_("Disabled") {
   assert!(event_log);
   if (BweLossExperimentIsEnabled(*self.key_value_config)) {
@@ -232,7 +232,7 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
     if (ReadBweLossExperimentParameters(
             *self.key_value_config, &self.low_loss_threshold, &self.high_loss_threshold,
             &bitrate_threshold_kbps)) {
-      RTC_LOG(LS_INFO) << "Enabled BweLossExperiment with parameters "
+      tracing::info!("Enabled BweLossExperiment with parameters "
                        << self.low_loss_threshold << ", " << high_loss_threshold_
                        << ", " << bitrate_threshold_kbps;
       self.bitrate_threshold = DataRate::KilobitsPerSec(bitrate_threshold_kbps);

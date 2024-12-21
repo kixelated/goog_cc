@@ -181,7 +181,7 @@ let probes = probe_controller.SetBitrates(
   // Long enough to time out exponential probing.
   fixture.AdvanceTime(ExponentialProbingTimeout);
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probes = probe_controller.Process(fixture.CurrentTime());
   probes = probe_controller.SetBitrates(
@@ -203,7 +203,7 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
       MaxBitrate - DataRate::BitsPerSec(1),
-      BandwidthLimitedCause::kDelayBasedLimited, fixture.CurrentTime());
+      BandwidthLimitedCause::DelayBasedLimited, fixture.CurrentTime());
 
   // Wait long enough to time out exponential probing.
   fixture.AdvanceTime(ExponentialProbingTimeout);
@@ -237,7 +237,7 @@ fn ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe() {
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   // Wait long enough to time out exponential probing.
@@ -254,7 +254,7 @@ let probes = probe_controller.SetBitrates(
 
   // Continue probing if probe succeeds.
   probes = probe_controller.SetEstimatedBitrate(
-      1.5 * StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      1.5 * StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert_eq!(probes.len(), 1u);
   EXPECT_GT(probes.at(0).target_data_rate, 1.5 * StartBitrate);
@@ -274,7 +274,7 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
       MaxBitrate - DataRate::BitsPerSec(1),
-      BandwidthLimitedCause::kDelayBasedLimited, fixture.CurrentTime());
+      BandwidthLimitedCause::DelayBasedLimited, fixture.CurrentTime());
   fixture.AdvanceTime(ExponentialProbingTimeout);
   probes = probe_controller.Process(fixture.CurrentTime());
   assert!(probes.empty());
@@ -300,11 +300,11 @@ let probes = probe_controller.SetBitrates(
   // Long enough to time out exponential probing.
   fixture.AdvanceTime(ExponentialProbingTimeout);
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probes = probe_controller.Process(fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      MaxBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      MaxBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate + DataRate::BitsPerSec(100),
@@ -328,12 +328,12 @@ let probes = probe_controller.SetBitrates(
   // Repeated probe should only be sent when estimated bitrate climbs above
   // 0.7 * 6 * StartBitrate = 1260.
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1000), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1000), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1800), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert_eq!(probes.len(), 1u);
   assert_eq!(probes[0].target_data_rate.bps(), 2 * 1800);
@@ -361,7 +361,7 @@ let probes = probe_controller.SetBitrates(
   EXPECT_THAT(probes, IsEmpty());
 
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1800), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   EXPECT_THAT(probes, IsEmpty());
 }
@@ -387,7 +387,7 @@ let probes = probe_controller.SetBitrates(
   EXPECT_THAT(probes, IsEmpty());
 
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1800), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   EXPECT_THAT(probes, IsEmpty());
 }
@@ -413,7 +413,7 @@ let probes = probe_controller.SetBitrates(
   // If the inital probe result is received, a new probe is sent at 2x the
   // needed max bitrate.
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1800), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert_eq!(probes.len(), 1u);
   assert_eq!(probes[0].target_data_rate.bps(), 2 * StartBitrate.bps());
@@ -435,7 +435,7 @@ let probes = probe_controller.SetBitrates(
   probes = probe_controller.Process(fixture.CurrentTime());
   EXPECT_THAT(probes, IsEmpty());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1800), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1800), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   EXPECT_THAT(probes, IsEmpty());
 }
@@ -509,14 +509,14 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   EXPECT_GE(probes.len(), 2u);
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   probe_controller.SetAlrStartTimeMs(fixture.CurrentTime().ms());
   fixture.AdvanceTime(AlrProbeInterval + TimeDelta::Millis(1));
   probes = probe_controller.Process(fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(250), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(250), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probes = probe_controller.RequestProbe(fixture.CurrentTime());
 
@@ -536,14 +536,14 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   assert_eq!(probes.len(), 2u);
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   probe_controller.SetAlrStartTimeMs(None);
   fixture.AdvanceTime(AlrProbeInterval + TimeDelta::Millis(1));
   probes = probe_controller.Process(fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(250), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(250), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probe_controller.SetAlrEndedTimeMs(fixture.CurrentTime().ms());
   fixture.AdvanceTime(AlrEndedTimeout - TimeDelta::Millis(1));
@@ -565,14 +565,14 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   assert_eq!(probes.len(), 2u);
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   probe_controller.SetAlrStartTimeMs(None);
   fixture.AdvanceTime(AlrProbeInterval + TimeDelta::Millis(1));
   probes = probe_controller.Process(fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(250), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(250), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probe_controller.SetAlrEndedTimeMs(fixture.CurrentTime().ms());
   fixture.AdvanceTime(AlrEndedTimeout + TimeDelta::Millis(1));
@@ -592,14 +592,14 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   assert_eq!(probes.len(), 2u);
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   probe_controller.SetAlrStartTimeMs(fixture.CurrentTime().ms());
   fixture.AdvanceTime(AlrProbeInterval + TimeDelta::Millis(1));
   probes = probe_controller.Process(fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(250), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(250), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   fixture.AdvanceTime(BitrateDropTimeout + TimeDelta::Millis(1));
   probes = probe_controller.RequestProbe(fixture.CurrentTime());
@@ -619,7 +619,7 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   assert_eq!(probes.len(), 2u);
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   let start_time: Timestamp = fixture.CurrentTime();
@@ -632,7 +632,7 @@ let probes = probe_controller.SetBitrates(
   assert_eq!(probes[0].target_data_rate.bps(), 1000);
 
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   // The following probe should be sent at 10s into ALR.
@@ -640,7 +640,7 @@ let probes = probe_controller.SetBitrates(
   fixture.AdvanceTime(TimeDelta::Seconds(4));
   probes = probe_controller.Process(fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 
@@ -649,7 +649,7 @@ let probes = probe_controller.SetBitrates(
   probes = probe_controller.Process(fixture.CurrentTime());
   assert_eq!(probes.len(), 1u);
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 }
@@ -731,13 +731,13 @@ let probes = probe_controller.SetBitrates(MinBitrate, 10 * MbpsMultiplier,
                                               fixture.CurrentTime());
   // Verify that probe bitrate is capped at the specified max bitrate.
   probes = probe_controller.SetEstimatedBitrate(
-      60 * MbpsMultiplier, BandwidthLimitedCause::kDelayBasedLimited,
+      60 * MbpsMultiplier, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert_eq!(probes.len(), 1u);
   assert_eq!(probes[0].target_data_rate, 100 * MbpsMultiplier);
   // Verify that repeated probes aren't sent.
   probes = probe_controller.SetEstimatedBitrate(
-      100 * MbpsMultiplier, BandwidthLimitedCause::kDelayBasedLimited,
+      100 * MbpsMultiplier, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 }
@@ -762,7 +762,7 @@ let probes = probe_controller.SetBitrates(
 
   let estimated_bitrate: DataRate = MaxBitrate / 10;
   probes = probe_controller.SetEstimatedBitrate(
-      estimated_bitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      estimated_bitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   // Set a max allocated bitrate below the current estimate.
@@ -813,12 +813,12 @@ let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate,
   // Repeated probe should only be sent when estimated bitrate climbs above
   // 0.8 * 5 * StartBitrateBps = 1200.
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1100), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1100), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert_eq!(probes.len(), 0u);
 
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(1250), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(1250), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert_eq!(probes.len(), 1u);
   assert_eq!(probes[0].target_data_rate.bps(), 3 * 1250);
@@ -845,7 +845,7 @@ fn LimitAlrProbeWhenLossBasedBweLimited() {
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   // Expect the controller to send a new probe after 5s has passed.
   probe_controller.SetAlrStartTimeMs(fixture.CurrentTime().ms());
@@ -855,7 +855,7 @@ let probes = probe_controller.SetBitrates(
 
   probes = probe_controller.SetEstimatedBitrate(
       DataRate::BitsPerSec(500),
-      BandwidthLimitedCause::kLossLimitedBweIncreasing, fixture.CurrentTime());
+      BandwidthLimitedCause::LossLimitedBweIncreasing, fixture.CurrentTime());
   fixture.AdvanceTime(TimeDelta::Seconds(6));
   probes = probe_controller.Process(fixture.CurrentTime());
   assert_eq!(probes.len(), 1u);
@@ -863,7 +863,7 @@ let probes = probe_controller.SetBitrates(
 
   probes = probe_controller.SetEstimatedBitrate(
       1.5 * DataRate::BitsPerSec(500),
-      BandwidthLimitedCause::kDelayBasedLimited, fixture.CurrentTime());
+      BandwidthLimitedCause::DelayBasedLimited, fixture.CurrentTime());
   fixture.AdvanceTime(TimeDelta::Seconds(6));
   probes = probe_controller.Process(fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
@@ -883,7 +883,7 @@ fn PeriodicProbeAtUpperNetworkStateEstimate() {
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(5000), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(5000), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   // Expect the controller to send a new probe after 5s has passed.
   NetworkStateEstimate state_estimate;
@@ -914,7 +914,7 @@ TEST(ProbeControllerTest,
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::BitsPerSec(500), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::BitsPerSec(500), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   // Expect the controller to send a new probe after 5s has passed.
   NetworkStateEstimate state_estimate;
@@ -926,7 +926,7 @@ let probes = probe_controller.SetBitrates(
 
   probes = probe_controller.SetEstimatedBitrate(
       DataRate::BitsPerSec(500),
-      BandwidthLimitedCause::kLossLimitedBweIncreasing, fixture.CurrentTime());
+      BandwidthLimitedCause::LossLimitedBweIncreasing, fixture.CurrentTime());
   // Expect the controller to send a new probe after 5s has passed.
   fixture.AdvanceTime(TimeDelta::Seconds(5));
   probes = probe_controller.Process(fixture.CurrentTime());
@@ -947,7 +947,7 @@ fn AlrProbesLimitedByNetworkStateEstimate() {
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::KilobitsPerSec(6), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::KilobitsPerSec(6), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probe_controller.SetAlrStartTimeMs(fixture.CurrentTime().ms());
 
@@ -979,7 +979,7 @@ fn CanSetLongerProbeDurationAfterNetworkStateEstimate() {
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      DataRate::KilobitsPerSec(5), BandwidthLimitedCause::kDelayBasedLimited,
+      DataRate::KilobitsPerSec(5), BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
   EXPECT_LT(probes[0].target_duration, TimeDelta::Millis(100));
@@ -1005,7 +1005,7 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probe_controller.EnablePeriodicAlrProbing(true);
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kLossLimitedBweIncreasing,
+      StartBitrate, BandwidthLimitedCause::LossLimitedBweIncreasing,
       fixture.CurrentTime());
 
   // Wait long enough to time out exponential probing.
@@ -1033,7 +1033,7 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probe_controller.EnablePeriodicAlrProbing(true);
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kLossLimitedBwe,
+      StartBitrate, BandwidthLimitedCause::LossLimitedBwe,
       fixture.CurrentTime());
 
   // Wait long enough to time out exponential probing.
@@ -1060,7 +1060,7 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probe_controller.EnablePeriodicAlrProbing(true);
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kLossLimitedBweIncreasing,
+      StartBitrate, BandwidthLimitedCause::LossLimitedBweIncreasing,
       fixture.CurrentTime());
 
   // Wait long enough to time out exponential probing.
@@ -1106,7 +1106,7 @@ let probes = probe_controller.SetBitrates(
   // Expect that more probes are sent if BWE is the same as delay based
   // estimate.
   probes = probe_controller.SetEstimatedBitrate(
-      probe_target_rate, BandwidthLimitedCause::kDelayBasedLimited,
+      probe_target_rate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
   assert_eq!(probes[0].target_data_rate, 2 * probe_target_rate);
@@ -1129,7 +1129,7 @@ fn ProbeIfEstimateLowerThanNetworkStateEstimate() {
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   // Need to wait at least one second before process can trigger a new probe.
   fixture.AdvanceTime(TimeDelta::Millis(1100));
@@ -1155,7 +1155,7 @@ let probes = probe_controller.SetBitrates(
 
   // Stop probing if estimate increase. We might probe further here though.
   probes = probe_controller.SetEstimatedBitrate(
-      2 * StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      2 * StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   // No more periodic probes.
   fixture.AdvanceTime(TimeDelta::Millis(1100));
@@ -1192,7 +1192,7 @@ let probes = probe_controller.SetBitrates(
   EXPECT_LT(probes[0].target_data_rate, state_estimate.link_capacity_upper);
   // Expect that no more probes are sent immediately if BWE is loss limited.
   probes = probe_controller.SetEstimatedBitrate(
-      probes[0].target_data_rate, BandwidthLimitedCause::kLossLimitedBwe,
+      probes[0].target_data_rate, BandwidthLimitedCause::LossLimitedBwe,
       fixture.CurrentTime());
   assert!((probes.empty());
 }
@@ -1226,7 +1226,7 @@ let probes = probe_controller.SetBitrates(
   EXPECT_LT(probes[0].target_data_rate, state_estimate.link_capacity_upper);
   // Since the probe was successfull, expect to continue probing.
   probes = probe_controller.SetEstimatedBitrate(
-      probes[0].target_data_rate, BandwidthLimitedCause::kDelayBasedLimited,
+      probes[0].target_data_rate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!(!(probes.empty());
   assert_eq!(probes[0].target_data_rate, state_estimate.link_capacity_upper);
@@ -1251,7 +1251,7 @@ let probes = probe_controller.SetBitrates(
   probe_controller.SetNetworkStateEstimate(state_estimate);
   // No immediate further probing since probe result is low.
   probes = probe_controller.SetEstimatedBitrate(
-      probes[0].target_data_rate / 2, BandwidthLimitedCause::kDelayBasedLimited,
+      probes[0].target_data_rate / 2, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!(probes.empty());
 
@@ -1264,7 +1264,7 @@ let probes = probe_controller.SetBitrates(
   state_estimate.link_capacity_upper = 3 * StartBitrate;
   probe_controller.SetNetworkStateEstimate(state_estimate);
   probes = probe_controller.SetEstimatedBitrate(
-      probes[0].target_data_rate, BandwidthLimitedCause::kDelayBasedLimited,
+      probes[0].target_data_rate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   EXPECT_THAT(probes, IsEmpty());
 
@@ -1275,7 +1275,7 @@ let probes = probe_controller.SetBitrates(
   // But no more probes if estimate is close to the link capacity.
   probes = probe_controller.SetEstimatedBitrate(
       state_estimate.link_capacity_upper * 0.9,
-      BandwidthLimitedCause::kDelayBasedLimited, fixture.CurrentTime());
+      BandwidthLimitedCause::DelayBasedLimited, fixture.CurrentTime());
   assert!((probes.empty());
 }
 
@@ -1298,7 +1298,7 @@ let probes = probe_controller.SetBitrates(
 
   // Attempt to probe up to max rate.
   probes = probe_controller.SetEstimatedBitrate(
-      MaxBitrate * 0.8, BandwidthLimitedCause::kDelayBasedLimited,
+      MaxBitrate * 0.8, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
   assert_eq!(probes[0].target_data_rate, MaxBitrate);
@@ -1306,7 +1306,7 @@ let probes = probe_controller.SetBitrates(
   // If the probe result arrives, dont expect a new probe immediately since we
   // already tried to probe at the max rate.
   probes = probe_controller.SetEstimatedBitrate(
-      MaxBitrate * 0.8, BandwidthLimitedCause::kDelayBasedLimited,
+      MaxBitrate * 0.8, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 
@@ -1357,7 +1357,7 @@ let probes = probe_controller.SetBitrates(
   ASSERT_FALSE(probes.empty());
 
   probes = probe_controller.SetEstimatedBitrate(
-      MaxBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      MaxBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 
@@ -1387,7 +1387,7 @@ let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
   probes = probe_controller.SetEstimatedBitrate(
-      MaxBitrate / 2, BandwidthLimitedCause::kDelayBasedLimited,
+      MaxBitrate / 2, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
 
   fixture.AdvanceTime(TimeDelta::Seconds(10));
@@ -1423,7 +1423,7 @@ let probes = probe_controller.SetBitrates(
   probe_controller.SetNetworkStateEstimate(
       {.link_capacity_upper = 2 * MaxBitrate});
   probes = probe_controller.SetEstimatedBitrate(
-      MaxBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      MaxBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 
@@ -1450,7 +1450,7 @@ let probes = probe_controller.SetBitrates(
   probe_controller.SetNetworkStateEstimate(
       {.link_capacity_upper = 2 * MaxBitrate});
   probes = probe_controller.SetEstimatedBitrate(
-      MaxBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      MaxBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
 
@@ -1458,7 +1458,7 @@ let probes = probe_controller.SetBitrates(
   fixture.AdvanceTime(TimeDelta::Millis(2100));
 
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   assert!((probes.empty());
   probe_controller.SetNetworkStateEstimate(
@@ -1487,7 +1487,7 @@ TEST(ProbeControllerTest,
 let probes = probe_controller.SetBitrates(
       MinBitrate, StartBitrate, MaxBitrate, fixture.CurrentTime());
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kDelayBasedLimited,
+      StartBitrate, BandwidthLimitedCause::DelayBasedLimited,
       fixture.CurrentTime());
   probe_controller.SetNetworkStateEstimate(
       {.link_capacity_upper = StartBitrate});
@@ -1531,7 +1531,7 @@ let probes = probe_controller.SetBitrates(
   state_estimate.link_capacity_upper = 3 * StartBitrate;
   probe_controller.SetNetworkStateEstimate(state_estimate);
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kDelayBasedLimitedDelayIncreased,
+      StartBitrate, BandwidthLimitedCause::DelayBasedLimitedDelayIncreased,
       fixture.CurrentTime());
   assert!(probes.empty());
 
@@ -1562,7 +1562,7 @@ let probes = probe_controller.SetBitrates(
   state_estimate.link_capacity_upper = 3 * StartBitrate;
   probe_controller.SetNetworkStateEstimate(state_estimate);
   probes = probe_controller.SetEstimatedBitrate(
-      StartBitrate, BandwidthLimitedCause::kRttBasedBackOffHighRtt,
+      StartBitrate, BandwidthLimitedCause::RttBasedBackOffHighRtt,
       fixture.CurrentTime());
   assert!(probes.empty());
 

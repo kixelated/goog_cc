@@ -69,22 +69,22 @@ BandwidthLimitedCause GetBandwidthLimitedCause(LossBasedState loss_based_state,
                                                BandwidthUsage bandwidth_usage) {
   if (bandwidth_usage == BandwidthUsage::Overusing ||
       bandwidth_usage == BandwidthUsage::Underusing) {
-    return BandwidthLimitedCause::kDelayBasedLimitedDelayIncreased;
+    return BandwidthLimitedCause::DelayBasedLimitedDelayIncreased;
   } else if (is_rtt_above_limit) {
-    return BandwidthLimitedCause::kRttBasedBackOffHighRtt;
+    return BandwidthLimitedCause::RttBasedBackOffHighRtt;
   }
   switch (loss_based_state) {
-    case LossBasedState::kDecreasing:
+    case LossBasedState::Decreasing:
       // Probes may not be sent in this state.
-      return BandwidthLimitedCause::kLossLimitedBwe;
-    case webrtc::LossBasedState::kIncreaseUsingPadding:
+      return BandwidthLimitedCause::LossLimitedBwe;
+    case webrtc::LossBasedState::IncreaseUsingPadding:
       // Probes may not be sent in this state.
-      return BandwidthLimitedCause::kLossLimitedBwe;
-    case LossBasedState::kIncreasing:
+      return BandwidthLimitedCause::LossLimitedBwe;
+    case LossBasedState::Increasing:
       // Probes may be sent in this state.
-      return BandwidthLimitedCause::kLossLimitedBweIncreasing;
-    case LossBasedState::kDelayBasedEstimate:
-      return BandwidthLimitedCause::kDelayBasedLimited;
+      return BandwidthLimitedCause::LossLimitedBweIncreasing;
+    case LossBasedState::DelayBasedEstimate:
+      return BandwidthLimitedCause::DelayBasedLimited;
   }
 }
 
@@ -135,7 +135,7 @@ GoogCcNetworkController::GoogCcNetworkController(NetworkControllerConfig config,
       last_loss_based_target_rate_(*config.constraints.starting_rate),
       last_pushback_target_rate_(self.last_loss_based_target_rate),
       last_stable_target_rate_(self.last_loss_based_target_rate),
-      last_loss_base_state_(LossBasedState::kDelayBasedEstimate),
+      last_loss_base_state_(LossBasedState::DelayBasedEstimate),
       pacing_factor_(config.stream_based_config.pacing_factor.unwrap_or(
           DefaultPaceMultiplier)),
       min_total_allocated_bitrate_(
@@ -510,7 +510,7 @@ let acknowledged_bitrate = self.acknowledged_bitrate_estimator.bitrate();
                                              report.feedback_time);
   for (const auto& feedback : report.SortedByReceiveTime()) {
     if (feedback.sent_packet.pacing_info.probe_cluster_id !=
-        PacedPacketInfo::kNotAProbe) {
+        PacedPacketInfo::NotAProbe) {
       self.probe_bitrate_estimator.HandleProbeAndEstimateBitrate(feedback);
     }
   }
@@ -732,7 +732,7 @@ PacerConfig GetPacingRates(&self /* GoogCcNetworkController */,at_time: Timestam
   }
 
   let padding_rate: DataRate =
-      (self.last_loss_base_state == LossBasedState::kIncreaseUsingPadding)
+      (self.last_loss_base_state == LossBasedState::IncreaseUsingPadding)
           ? std::cmp::max(self.max_padding_rate, self.last_loss_based_target_rate)
           max_padding_rate: :,
   padding_rate = std::cmp::min(padding_rate, self.last_pushback_target_rate);

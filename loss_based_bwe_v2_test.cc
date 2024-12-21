@@ -714,7 +714,7 @@ TEST_F(LossBasedBweV2Test,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
 
   // Network recovers after loss.
   Vec<PacketResult> enough_feedback_2 =
@@ -727,7 +727,7 @@ TEST_F(LossBasedBweV2Test,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDelayBasedEstimate);
+            LossBasedState::DelayBasedEstimate);
 
   // Network recovers continuing.
   Vec<PacketResult> enough_feedback_3 =
@@ -740,7 +740,7 @@ TEST_F(LossBasedBweV2Test,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDelayBasedEstimate);
+            LossBasedState::DelayBasedEstimate);
 }
 
 TEST_F(LossBasedBweV2Test,
@@ -762,7 +762,7 @@ TEST_F(LossBasedBweV2Test,
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
 
   // Network recovers after loss.
   Vec<PacketResult> enough_feedback_2 =
@@ -776,7 +776,7 @@ TEST_F(LossBasedBweV2Test,
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   EXPECT_NE(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDelayBasedEstimate);
+            LossBasedState::DelayBasedEstimate);
 }
 
 // After loss based bwe backs off, the next estimate is capped by
@@ -802,7 +802,7 @@ TEST_F(LossBasedBweV2Test,
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   LossBasedBweV2::Result result =
       loss_based_bandwidth_estimator.GetLossBasedResult();
   let estimate_1: DataRate = result.bandwidth_estimate;
@@ -811,7 +811,7 @@ TEST_F(LossBasedBweV2Test,
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(estimate_1 * 0.9);
 
   let feedback_count: isize = 1;
-  while (feedback_count < 5 && result.state != LossBasedState::kIncreasing) {
+  while (feedback_count < 5 && result.state != LossBasedState::Increasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -820,7 +820,7 @@ TEST_F(LossBasedBweV2Test,
         /*in_alr=*/false);
     result = loss_based_bandwidth_estimator.GetLossBasedResult();
   }
-  assert_eq!(result.state, LossBasedState::kIncreasing);
+  assert_eq!(result.state, LossBasedState::Increasing);
 
   // The estimate is capped by acked_bitrate * BwRampupUpperBoundFactor.
   assert_eq!(result.bandwidth_estimate, estimate_1 * 0.9 * 1.2);
@@ -862,7 +862,7 @@ fn EnsureIncreaseEvenIfAckedBitrateBound() {
                                                          delay_based_estimate,
                                                          /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   LossBasedBweV2::Result result =
       loss_based_bandwidth_estimator.GetLossBasedResult();
   let estimate_1: DataRate = result.bandwidth_estimate;
@@ -872,7 +872,7 @@ fn EnsureIncreaseEvenIfAckedBitrateBound() {
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(estimate_1 / 2);
 
   let feedback_count: isize = 1;
-  while (feedback_count < 5 && result.state != LossBasedState::kIncreasing) {
+  while (feedback_count < 5 && result.state != LossBasedState::Increasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -882,7 +882,7 @@ fn EnsureIncreaseEvenIfAckedBitrateBound() {
     result = loss_based_bandwidth_estimator.GetLossBasedResult();
   }
 
-  assert_eq!(result.state, LossBasedState::kIncreasing);
+  assert_eq!(result.state, LossBasedState::Increasing);
   // The estimate increases by 1kbps.
   assert_eq!(result.bandwidth_estimate, estimate_1 + DataRate::BitsPerSec(1));
 }
@@ -1273,7 +1273,7 @@ fn HasDecreaseStateBecauseOfUpperBound() {
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(200));
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
 }
 
 #[test]
@@ -1299,7 +1299,7 @@ fn HasIncreaseStateBecauseOfLowerBound() {
       /*in_alr=*/false);
 
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
 
   // Network still has a high loss, but better acked rate.
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
@@ -1319,7 +1319,7 @@ fn HasIncreaseStateBecauseOfLowerBound() {
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(200) * 10);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kIncreasing);
+            LossBasedState::Increasing);
 }
 
 TEST_F(LossBasedBweV2Test,
@@ -1338,7 +1338,7 @@ TEST_F(LossBasedBweV2Test,
       /*in_alr=*/true);
   LossBasedBweV2::Result result_after_loss =
       loss_based_bandwidth_estimator.GetLossBasedResult();
-  assert_eq!(result_after_loss.state, LossBasedState::kDecreasing);
+  assert_eq!(result_after_loss.state, LossBasedState::Decreasing);
 
   for (isize feedback_count = 1; feedback_count <= 3feedback_count += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1368,7 +1368,7 @@ fn HasDelayBasedStateIfLossBasedBweIsMax() {
       /*delay_based_estimate=*/DataRate::KilobitsPerSec(2000),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDelayBasedEstimate);
+            LossBasedState::DelayBasedEstimate);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(1000));
@@ -1381,13 +1381,13 @@ fn HasDelayBasedStateIfLossBasedBweIsMax() {
       /*in_alr=*/false);
   LossBasedBweV2::Result result =
       loss_based_bandwidth_estimator.GetLossBasedResult();
-  assert_eq!(result.state, LossBasedState::kDecreasing);
+  assert_eq!(result.state, LossBasedState::Decreasing);
   ASSERT_LT(result.bandwidth_estimate, DataRate::KilobitsPerSec(1000));
 
   // Eventually  the estimator recovers to delay based state.
   let feedback_count: isize = 2;
   while (feedback_count < 5 &&
-         result.state != LossBasedState::kDelayBasedEstimate) {
+         result.state != LossBasedState::DelayBasedEstimate) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         /*feedback = */ CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1396,7 +1396,7 @@ fn HasDelayBasedStateIfLossBasedBweIsMax() {
         /*in_alr=*/false);
     result = loss_based_bandwidth_estimator.GetLossBasedResult();
   }
-  assert_eq!(result.state, LossBasedState::kDelayBasedEstimate);
+  assert_eq!(result.state, LossBasedState::DelayBasedEstimate);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(1000));
@@ -1415,7 +1415,7 @@ fn IncreaseUsingPaddingStateIfFieldTrial() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
 
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
@@ -1424,7 +1424,7 @@ fn IncreaseUsingPaddingStateIfFieldTrial() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kIncreaseUsingPadding);
+            LossBasedState::IncreaseUsingPadding);
 }
 
 #[test]
@@ -1441,7 +1441,7 @@ fn BestCandidateResetsToUpperBoundInFieldTrial() {
       /*in_alr=*/true);
   LossBasedBweV2::Result result_after_loss =
       loss_based_bandwidth_estimator.GetLossBasedResult();
-  assert_eq!(result_after_loss.state, LossBasedState::kDecreasing);
+  assert_eq!(result_after_loss.state, LossBasedState::Decreasing);
 
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
       CreatePacketResultsWithReceivedPackets(
@@ -1458,8 +1458,8 @@ fn BestCandidateResetsToUpperBoundInFieldTrial() {
   // After a BWE decrease due to large loss, BWE is expected to ramp up slowly
   // and follow the acked bitrate.
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kIncreaseUsingPadding);
-  EXPECT_NEAR(loss_based_bandwidth_estimator.GetLossBasedResult()
+            LossBasedState::IncreaseUsingPadding);
+  assert_relative_eq!(loss_based_bandwidth_estimator.GetLossBasedResult()
                   .bandwidth_estimate.kbps(),
               result_after_loss.bandwidth_estimate.kbps(), 100);
 }
@@ -1475,7 +1475,7 @@ fn DecreaseToAckedCandidateIfPaddingInAlr() {
       DataRate::KilobitsPerSec(1000));
   let feedback_id: isize = 0;
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state !=
-         LossBasedState::kDecreasing) {
+         LossBasedState::Decreasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWith100pLossRate(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1486,7 +1486,7 @@ fn DecreaseToAckedCandidateIfPaddingInAlr() {
   }
 
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state !=
-         LossBasedState::kIncreaseUsingPadding) {
+         LossBasedState::IncreaseUsingPadding) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1509,7 +1509,7 @@ fn DecreaseToAckedCandidateIfPaddingInAlr() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/true);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(100));
@@ -1530,7 +1530,7 @@ fn DecreaseAfterPadding() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       acknowledged_bitrate);
@@ -1539,7 +1539,7 @@ fn DecreaseAfterPadding() {
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(acknowledged_bitrate);
   let feedback_id: isize = 1;
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state !=
-         LossBasedState::kIncreaseUsingPadding) {
+         LossBasedState::IncreaseUsingPadding) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1554,7 +1554,7 @@ fn DecreaseAfterPadding() {
   // The state is IncreaseUsingPadding for a while without changing the
   // estimate, which is limited by 2 * acked rate.
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state ==
-         LossBasedState::kIncreaseUsingPadding) {
+         LossBasedState::IncreaseUsingPadding) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1565,7 +1565,7 @@ fn DecreaseAfterPadding() {
   }
 
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   const start_decreasing: Timestamp
       Timestamp::Zero() + ObservationDurationLowerBound * (feedback_id - 1);
   assert_eq!(start_decreasing - estimate_increased, TimeDelta::Seconds(1));
@@ -1584,7 +1584,7 @@ fn IncreaseEstimateIfNotHold() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   let estimate: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
 
@@ -1595,7 +1595,7 @@ fn IncreaseEstimateIfNotHold() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kIncreasing);
+            LossBasedState::Increasing);
   EXPECT_GT(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       estimate);
@@ -1614,7 +1614,7 @@ fn IncreaseEstimateAfterHoldDuration() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   let estimate: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
 
@@ -1626,7 +1626,7 @@ fn IncreaseEstimateAfterHoldDuration() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       estimate);
@@ -1639,7 +1639,7 @@ fn IncreaseEstimateAfterHoldDuration() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kIncreasing);
+            LossBasedState::Increasing);
   EXPECT_GE(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       estimate);
@@ -1652,7 +1652,7 @@ fn IncreaseEstimateAfterHoldDuration() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   let estimate_at_hold: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
 
@@ -1666,7 +1666,7 @@ fn IncreaseEstimateAfterHoldDuration() {
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/false);
     assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-              LossBasedState::kDecreasing);
+              LossBasedState::Decreasing);
     EXPECT_LT(
         loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
         estimate_at_hold);
@@ -1674,7 +1674,7 @@ fn IncreaseEstimateAfterHoldDuration() {
 
   let feedback_id: isize = 7;
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state !=
-         LossBasedState::kIncreasing) {
+         LossBasedState::Increasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1682,14 +1682,14 @@ fn IncreaseEstimateAfterHoldDuration() {
         /*delay_based_estimate=*/DataRate::PlusInfinity(),
         /*in_alr=*/false);
     if (loss_based_bandwidth_estimator.GetLossBasedResult().state ==
-        LossBasedState::kDecreasing) {
+        LossBasedState::Decreasing) {
       // In the hold duration, the estimate can not go higher than estimate at
       // hold.
       EXPECT_LE(loss_based_bandwidth_estimator.GetLossBasedResult()
                     .bandwidth_estimate,
                 estimate_at_hold);
     } else if (loss_based_bandwidth_estimator.GetLossBasedResult().state ==
-               LossBasedState::kIncreasing) {
+               LossBasedState::Increasing) {
       // After the hold duration, the estimate can increase again.
       EXPECT_GT(loss_based_bandwidth_estimator.GetLossBasedResult()
                     .bandwidth_estimate,
@@ -1712,7 +1712,7 @@ fn HoldRateNotLowerThanAckedRate() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
 
   // During the hold duration, hold rate is not lower than the acked rate.
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(
@@ -1724,7 +1724,7 @@ fn HoldRateNotLowerThanAckedRate() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DataRate::KilobitsPerSec(1000));
@@ -1790,7 +1790,7 @@ fn EndHoldDurationIfDelayBasedEstimateWorks() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   let estimate: DataRate =
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate;
 
@@ -1801,7 +1801,7 @@ fn EndHoldDurationIfDelayBasedEstimateWorks() {
       /*delay_based_estimate=*/estimate + DataRate::KilobitsPerSec(10),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDelayBasedEstimate);
+            LossBasedState::DelayBasedEstimate);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       estimate + DataRate::KilobitsPerSec(10));
@@ -1822,7 +1822,7 @@ fn UseByteLossRate() {
       /*delay_based_estimate=*/DataRate::PlusInfinity(),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   // The estimate is bounded by the instant upper bound due to high loss.
   EXPECT_LT(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
@@ -1860,7 +1860,7 @@ fn UseByteLossRateIgnoreLossSpike() {
       DelayBasedEstimate,
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDelayBasedEstimate);
+            LossBasedState::DelayBasedEstimate);
   assert_eq!(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DelayBasedEstimate);
@@ -1873,7 +1873,7 @@ fn UseByteLossRateIgnoreLossSpike() {
       DelayBasedEstimate,
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   EXPECT_LT(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DelayBasedEstimate);
@@ -1908,7 +1908,7 @@ fn UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst() {
       DelayBasedEstimate,
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   EXPECT_LE(
       loss_based_bandwidth_estimator.GetLossBasedResult().bandwidth_estimate,
       DelayBasedEstimate);
@@ -1927,7 +1927,7 @@ fn PaceAtLossBasedEstimate() {
       /*delay_based_estimate=*/DataRate::KilobitsPerSec(1000),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDelayBasedEstimate);
+            LossBasedState::DelayBasedEstimate);
   assert!(!(loss_based_bandwidth_estimator.PaceAtLossBasedEstimate());
 
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1937,7 +1937,7 @@ fn PaceAtLossBasedEstimate() {
       /*delay_based_estimate=*/DataRate::KilobitsPerSec(1000),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kDecreasing);
+            LossBasedState::Decreasing);
   assert!((loss_based_bandwidth_estimator.PaceAtLossBasedEstimate());
 
   loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1947,7 +1947,7 @@ fn PaceAtLossBasedEstimate() {
       /*delay_based_estimate=*/DataRate::KilobitsPerSec(1000),
       /*in_alr=*/false);
   assert_eq!(loss_based_bandwidth_estimator.GetLossBasedResult().state,
-            LossBasedState::kIncreaseUsingPadding);
+            LossBasedState::IncreaseUsingPadding);
   assert!((loss_based_bandwidth_estimator.PaceAtLossBasedEstimate());
 }
 

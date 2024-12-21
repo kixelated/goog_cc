@@ -103,7 +103,7 @@ fn ProbeDetectionSlowerArrival() {
   }
 
   assert!((self.bitrate_observer.updated());
-  EXPECT_NEAR(self.bitrate_observer.latest_bitrate(),
+  assert_relative_eq!(self.bitrate_observer.latest_bitrate(),
               TargetUtilizationFraction * 1140000u, 10000u);
 }
 
@@ -123,7 +123,7 @@ fn ProbeDetectionSlowerArrivalHighBitrate() {
   }
 
   assert!((self.bitrate_observer.updated());
-  EXPECT_NEAR(self.bitrate_observer.latest_bitrate(),
+  assert_relative_eq!(self.bitrate_observer.latest_bitrate(),
               TargetUtilizationFraction * 4000000u, 10000u);
 }
 

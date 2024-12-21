@@ -200,7 +200,7 @@ fn CappedByReceiveRate() {
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
   assert!(throughput.is_some());
-  EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+  assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
               recv_rate.bytes_per_sec<f64>(),
               0.05 * recv_rate.bytes_per_sec<f64>());  // Allow 5% error
 }
@@ -221,7 +221,7 @@ fn CappedBySendRate() {
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
   assert!(throughput.is_some());
-  EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+  assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
               send_rate.bytes_per_sec<f64>(),
               0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
 }
@@ -259,7 +259,7 @@ let throughput = throughput_estimator.bitrate();
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
     throughput = throughput_estimator.bitrate();
     assert!(throughput.is_some());
-    EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+    assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
                 send_rate.bytes_per_sec<f64>(),
                 0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
   }
@@ -274,7 +274,7 @@ let throughput = throughput_estimator.bitrate();
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
     throughput = throughput_estimator.bitrate();
     assert!(throughput.is_some());
-    EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+    assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
                 send_rate.bytes_per_sec<f64>(),
                 0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
   }
@@ -306,7 +306,7 @@ fn HighLoss() {
   throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
   assert!(throughput.is_some());
-  EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+  assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
               send_rate.bytes_per_sec<f64>() / 2,
               0.05 * send_rate.bytes_per_sec<f64>() / 2);  // Allow 5% error
 }
@@ -390,7 +390,7 @@ let throughput = throughput_estimator.bitrate();
   throughput_estimator.IncomingPacketFeedbackVector(delayed_packets);
 let throughput = throughput_estimator.bitrate();
   assert!(throughput.is_some());
-  EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+  assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
               send_rate.bytes_per_sec<f64>(),
               0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
 
@@ -402,7 +402,7 @@ let throughput = throughput_estimator.bitrate();
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
 let throughput = throughput_estimator.bitrate();
     assert!(throughput.is_some());
-    EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+    assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
                 send_rate.bytes_per_sec<f64>(),
                 0.05 * send_rate.bytes_per_sec<f64>());  // Allow 5% error
   }
@@ -449,7 +449,7 @@ fn StreamPausedAndResumed() {
 let throughput = throughput_estimator.bitrate();
   assert!((throughput.is_some());
   let expected_bytes_per_sec: f64 = 100 * 1000.0;
-  EXPECT_NEAR(throughput.value().bytes_per_sec<f64>(),
+  assert_relative_eq!(throughput.value().bytes_per_sec<f64>(),
               expected_bytes_per_sec,
               0.05 * expected_bytes_per_sec);  // Allow 5% error
 

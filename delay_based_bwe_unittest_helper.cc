@@ -179,7 +179,7 @@ fn AddDefaultStream(&self /* DelayBasedBweTest */) {
   self.stream_generator.AddStream(new test::RtpStream(30, 3e5));
 }
 
-const u32 DelayBasedBweTest::kDefaultSsrc = 0;
+const u32 DelayBasedBweTest::DefaultSsrc = 0;
 
 fn IncomingFeedback(&self /* DelayBasedBweTest */,i64 arrival_time_ms,
                                          i64 send_time_ms,
@@ -208,7 +208,7 @@ fn IncomingFeedback(&self /* DelayBasedBweTest */,receive_time: Timestamp,
   packet.sent_packet.pacing_info = pacing_info;
   packet.sent_packet.sequence_number = self.next_sequence_number += 1;
   if (packet.sent_packet.pacing_info.probe_cluster_id !=
-      PacedPacketInfo::kNotAProbe)
+      PacedPacketInfo::NotAProbe)
     self.probe_bitrate_estimator.HandleProbeAndEstimateBitrate(packet);
 
   TransportPacketsFeedback msg;
@@ -251,7 +251,7 @@ bool GenerateAndProcessFrame(&self /* DelayBasedBweTest */,u32 /* ssrc */,
     packet.receive_time += TimeDelta::Millis(self.arrival_time_offset_ms);
 
     if (packet.sent_packet.pacing_info.probe_cluster_id !=
-        PacedPacketInfo::kNotAProbe)
+        PacedPacketInfo::NotAProbe)
       self.probe_bitrate_estimator.HandleProbeAndEstimateBitrate(packet);
   }
 
@@ -344,7 +344,7 @@ fn InitialBehaviorTestHelper(&self /* DelayBasedBweTest */,
   assert!((self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
   assert_eq!(1u, ssrcs.len());
   assert_eq!(DefaultSsrc, ssrcs.front());
-  EXPECT_NEAR(expected_converge_bitrate, bitrate.bps(),
+  assert_relative_eq!(expected_converge_bitrate, bitrate.bps(),
               AcceptedBitrateErrorBps);
   assert!((self.bitrate_observer.updated());
   self.bitrate_observer.Reset();
@@ -377,7 +377,7 @@ fn RateIncreaseReorderingTestHelper(&self /* DelayBasedBweTest */,
     send_time_ms += FrameIntervalMs;
   }
   assert!((self.bitrate_observer.updated());
-  EXPECT_NEAR(expected_bitrate_bps, self.bitrate_observer.latest_bitrate(),
+  assert_relative_eq!(expected_bitrate_bps, self.bitrate_observer.latest_bitrate(),
               AcceptedBitrateErrorBps);
   for (isize i = 0; i < 10i += 1) {
     self.clock.AdvanceTimeMilliseconds(2 * FrameIntervalMs);
@@ -387,7 +387,7 @@ fn RateIncreaseReorderingTestHelper(&self /* DelayBasedBweTest */,
                      send_time_ms - FrameIntervalMs, 1000);
   }
   assert!((self.bitrate_observer.updated());
-  EXPECT_NEAR(expected_bitrate_bps, self.bitrate_observer.latest_bitrate(),
+  assert_relative_eq!(expected_bitrate_bps, self.bitrate_observer.latest_bitrate(),
               AcceptedBitrateErrorBps);
 }
 
@@ -455,7 +455,7 @@ fn CapacityDropTestHelper(&self /* DelayBasedBweTest */,
   let bitrate_bps: u32 = SteadyStateRun(
       DefaultSsrc, steady_state_time * Framerate, StartBitrate,
       MinExpectedBitrate, MaxExpectedBitrate, InitialCapacityBps);
-  EXPECT_NEAR(InitialCapacityBps, bitrate_bps, 180000u);
+  assert_relative_eq!(InitialCapacityBps, bitrate_bps, 180000u);
   self.bitrate_observer.Reset();
 
   // Add an offset to make sure the BWE can handle it.
@@ -475,7 +475,7 @@ fn CapacityDropTestHelper(&self /* DelayBasedBweTest */,
       bitrate_bps = self.bitrate_observer.latest_bitrate();
   }
 
-  EXPECT_NEAR(expected_bitrate_drop_delta,
+  assert_relative_eq!(expected_bitrate_drop_delta,
               bitrate_drop_time - overuse_start_time, 33);
 }
 

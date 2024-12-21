@@ -84,8 +84,8 @@ CallClient* CreateVideoSendingClient(
     CallClientConfig config,
     Vec<EmulatedNetworkNode*> send_link,
     Vec<EmulatedNetworkNode*> return_link) {
-  auto* client = s.CreateClient("send", std::move(config));
-  auto* route = s.CreateRoutes(client, send_link,
+let client = s.CreateClient("send", std::move(config));
+let route = s.CreateRoutes(client, send_link,
                                 s.CreateClient("return", CallClientConfig()),
                                 return_link);
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
@@ -193,16 +193,16 @@ let send_net = s.CreateMutableSimulationNode([](NetworkSimulationConfig* c) {
   });
 let ret_net = s.CreateMutableSimulationNode(
       [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(100); });
-  StatesPrinter* truth = s.CreatePrinter(
+let truth: &StatesPrinter = s.CreatePrinter(
       "send.truth.txt", TimeDelta::PlusInfinity(), {send_net.ConfigPrinter()});
 
-  auto* client = CreateVideoSendingClient(&s, config, {send_net.node()},
+let client = CreateVideoSendingClient(&s, config, {send_net.node()},
                                           {ret_net.node()});
 
   truth.PrintRow();
   s.RunFor(TimeDelta::Seconds(25));
   truth.PrintRow();
-  EXPECT_NEAR(client.target_rate().kbps(), 450, 100);
+  assert_relative_eq!(client.target_rate().kbps(), 450, 100);
 
   send_net.UpdateConfig([](NetworkSimulationConfig* c) {
     c.bandwidth = DataRate::KilobitsPerSec(800);
@@ -212,7 +212,7 @@ let ret_net = s.CreateMutableSimulationNode(
   truth.PrintRow();
   s.RunFor(TimeDelta::Seconds(20));
   truth.PrintRow();
-  EXPECT_NEAR(client.target_rate().kbps(), 750, 150);
+  assert_relative_eq!(client.target_rate().kbps(), 750, 150);
 
   send_net.UpdateConfig([](NetworkSimulationConfig* c) {
     c.bandwidth = DataRate::KilobitsPerSec(100);
@@ -224,7 +224,7 @@ let ret_net = s.CreateMutableSimulationNode(
   truth.PrintRow();
   s.RunFor(TimeDelta::Seconds(50));
   truth.PrintRow();
-  EXPECT_NEAR(client.target_rate().kbps(), 90, 25);
+  assert_relative_eq!(client.target_rate().kbps(), 90, 25);
 }
 
 fn RunRembDipScenario(absl::string_view test_name) -> DataRate {
@@ -232,12 +232,12 @@ fn RunRembDipScenario(absl::string_view test_name) -> DataRate {
   NetworkSimulationConfig net_conf;
   net_conf.bandwidth = DataRate::KilobitsPerSec(2000);
   net_conf.delay = TimeDelta::Millis(50);
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   });
 let send_net = {s.CreateSimulationNode(net_conf)};
 let ret_net = {s.CreateSimulationNode(net_conf)};
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, send_net, s.CreateClient("return", CallClientConfig()), ret_net);
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
 
@@ -360,7 +360,7 @@ fn OnNetworkRouteChanged() {
   const DefaultMinBitrate: DataRate = DataRate::KilobitsPerSec(5);
   update = controller.OnNetworkRouteChange(CreateRouteChange(current_time));
   assert_eq!(update.target_rate.target_rate, DefaultMinBitrate);
-  EXPECT_NEAR(update.pacer_config.data_rate().bps<f64>(),
+  assert_relative_eq!(update.pacer_config.data_rate().bps<f64>(),
               DefaultMinBitrate.bps<f64>() * DefaultPacingRate, 10);
   assert_eq!(update.probe_cluster_configs.len(), 2u);
 }
@@ -547,7 +547,7 @@ let ret_net = s.CreateSimulationNode(
   config.transport.rates.max_rate = DataRate::KilobitsPerSec(2000);
   config.transport.rates.min_rate = DataRate::KilobitsPerSec(10);
 
-  auto* client = CreateVideoSendingClient(&s, std::move(config),
+let client = CreateVideoSendingClient(&s, std::move(config),
                                           {send_net.node()}, {ret_net});
 
   s.RunFor(TimeDelta::Seconds(10));
@@ -582,7 +582,7 @@ let ret_net = s.CreateSimulationNode(
   config.transport.rates.max_rate = DataRate::KilobitsPerSec(2000);
   config.transport.rates.min_rate = DataRate::KilobitsPerSec(10);
 
-  auto* client = CreateVideoSendingClient(&s, std::move(config),
+let client = CreateVideoSendingClient(&s, std::move(config),
                                           {send_net.node()}, {ret_net});
 
   s.RunFor(TimeDelta::Seconds(10));
@@ -612,8 +612,8 @@ let ret_net = s.CreateSimulationNode(
   // Start high so bandwidth drop has max effect.
   config.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   config.transport.rates.max_rate = DataRate::KilobitsPerSec(2000);
-  auto* client = s.CreateClient("send", config);
-  auto* route =
+let client = s.CreateClient("send", config);
+let route =
       s.CreateRoutes(client, {send_net.node()},
                      s.CreateClient("return", CallClientConfig()), {ret_net});
   VideoStreamConfig video;
@@ -624,11 +624,11 @@ let ret_net = s.CreateSimulationNode(
   s.RunFor(TimeDelta::Seconds(10));
 
   // Check that padding rate matches target rate.
-  EXPECT_NEAR(client.padding_rate().kbps(), client.target_rate().kbps(), 1);
+  assert_relative_eq!(client.padding_rate().kbps(), client.target_rate().kbps(), 1);
 
   // Check this is also the case when congestion window pushback kicks in.
   send_net.PauseTransmissionUntil(s.Now() + TimeDelta::Seconds(1));
-  EXPECT_NEAR(client.padding_rate().kbps(), client.target_rate().kbps(), 1);
+  assert_relative_eq!(client.padding_rate().kbps(), client.target_rate().kbps(), 1);
 }
 
 #[test]
@@ -655,7 +655,7 @@ let ret_net = s.CreateSimulationNode(
   CallClientConfig config;
   config.transport.rates.start_rate = LinkCapacity;
 
-  auto* client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
+let client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
   // Run for a few seconds to allow the controller to stabilize.
   s.RunFor(TimeDelta::Seconds(10));
   const BloatPacketSize: DataSize = DataSize::Bytes(1000);
@@ -666,7 +666,7 @@ let ret_net = s.CreateSimulationNode(
   // Wait to allow the high RTT to be detected and acted upon.
   s.RunFor(TimeDelta::Seconds(6));
   // By now the target rate should have dropped to the minimum configured rate.
-  EXPECT_NEAR(client.target_rate().kbps(), BandwidthFloor.kbps(), 5);
+  assert_relative_eq!(client.target_rate().kbps(), BandwidthFloor.kbps(), 5);
 }
 
 #[test]
@@ -686,7 +686,7 @@ let factory = CreateFeedbackOnlyFactory();
 let send_net = s.CreateSimulationNode(net_conf);
 let ret_net = s.CreateSimulationNode(net_conf);
 
-  auto* client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
+let client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
   // Run for a while to allow the estimate to stabilize.
   s.RunFor(TimeDelta::Seconds(30));
   let min_stable_target: DataRate = DataRate::PlusInfinity();
@@ -735,7 +735,7 @@ let send_net = s.CreateSimulationNode([](NetworkSimulationConfig* c) {
 let ret_net = s.CreateSimulationNode(
       [](NetworkSimulationConfig* c) { c.delay = TimeDelta::Millis(200); });
 
-  auto* client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
+let client = CreateVideoSendingClient(&s, config, {send_net}, {ret_net});
 
   s.RunFor(TimeDelta::Seconds(120));
   // Without LossBasedControl trial, bandwidth drops to ~10 kbps.
@@ -755,17 +755,17 @@ fn AverageBitrateAfterCrossInducedLoss(absl::string_view name) -> DataRate {
 let send_net = {s.CreateSimulationNode(net_conf)};
 let ret_net = {s.CreateSimulationNode(net_conf)};
 
-  auto* client = s.CreateClient("send", CallClientConfig());
-  auto* callee = s.CreateClient("return", CallClientConfig());
-  auto* route = s.CreateRoutes(client, send_net, callee, ret_net);
+let client = s.CreateClient("send", CallClientConfig());
+let callee = s.CreateClient("return", CallClientConfig());
+let route = s.CreateRoutes(client, send_net, callee, ret_net);
   // TODO(srte): Make this work with RTX enabled or remove it.
-  auto* video = s.CreateVideoStream(route.forward(), [](VideoStreamConfig* c) {
+let video = s.CreateVideoStream(route.forward(), [](VideoStreamConfig* c) {
     c.stream.use_rtx = false;
   });
   s.RunFor(TimeDelta::Seconds(10));
   for (isize i = 0; i < 4i += 1) {
     // Sends TCP cross traffic inducing loss.
-    auto* tcp_traffic = s.net().StartCrossTraffic(CreateFakeTcpCrossTraffic(
+let tcp_traffic = s.net().StartCrossTraffic(CreateFakeTcpCrossTraffic(
         s.net().CreateRoute(send_net), s.net().CreateRoute(ret_net),
         FakeTcpConfig()));
     s.RunFor(TimeDelta::Seconds(2));
@@ -778,7 +778,7 @@ let ret_net = {s.CreateSimulationNode(net_conf)};
   // (i.e. the TQ that belongs to the CallClient, not the Scenario TQ that
   // we're currently on).
   VideoReceiveStreamInterface::Stats video_receive_stats;
-  auto* video_stream = video.receive();
+let video_stream = video.receive();
   callee.SendTask([&video_stream, &video_receive_stats]() {
     video_receive_stats = video_stream.GetStats();
   });
@@ -794,25 +794,25 @@ fn MaintainsLowRateInSafeResetTrial() {
 
   ScopedFieldTrials trial("WebRTC-Bwe-SafeResetOnRouteChange/Enabled/");
   Scenario s("googcc_unit/safe_reset_low");
-  auto* send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
+let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = LinkCapacity;
     c.delay = TimeDelta::Millis(10);
   });
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = StartRate;
   });
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(500));
-  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 50);
+  assert_relative_eq!(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 50);
   s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(100));
   // Under the trial, the target should be unchanged for low rates.
-  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 50);
+  assert_relative_eq!(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 50);
 }
 
 #[test]
@@ -827,22 +827,22 @@ let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = LinkCapacity;
     c.delay = TimeDelta::Millis(50);
   });
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = StartRate;
   });
   client.UpdateNetworkAdapterId(0);
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(500));
-  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
+  assert_relative_eq!(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
   s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(50));
   // Under the trial, the target should not drop.
-  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
+  assert_relative_eq!(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
 
   s.RunFor(TimeDelta::Millis(500));
   // But if adapter id change, BWE should reset and start from the beginning if
@@ -851,7 +851,7 @@ let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
   s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(50));
-  EXPECT_NEAR(client.send_bandwidth().kbps(), StartRate.kbps(), 30);
+  assert_relative_eq!(client.send_bandwidth().kbps(), StartRate.kbps(), 30);
 }
 
 #[test]
@@ -865,22 +865,22 @@ let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = LinkCapacity;
     c.delay = TimeDelta::Millis(50);
   });
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = StartRate;
   });
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(500));
-  EXPECT_NEAR(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
+  assert_relative_eq!(client.send_bandwidth().kbps(), LinkCapacity.kbps(), 300);
   client.UpdateNetworkAdapterId(1);
   s.ChangeRoute(route.forward(), {send_net});
   // Allow new settings to propagate.
   s.RunFor(TimeDelta::Millis(50));
   // Under the trial, the target should be reset from high values.
-  EXPECT_NEAR(client.send_bandwidth().kbps(), StartRate.kbps(), 30);
+  assert_relative_eq!(client.send_bandwidth().kbps(), StartRate.kbps(), 30);
 }
 
 #[test]
@@ -891,31 +891,31 @@ fn DetectsHighRateInSafeResetTrial() {
   const StartRate: DataRate = DataRate::KilobitsPerSec(300);
 
   Scenario s("googcc_unit/safe_reset_high_detect");
-  auto* initial_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
+let initial_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = InitialLinkCapacity;
     c.delay = TimeDelta::Millis(50);
   });
-  auto* new_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
+let new_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = NewLinkCapacity;
     c.delay = TimeDelta::Millis(50);
   });
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = StartRate;
   });
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {initial_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to stabilize.
   s.RunFor(TimeDelta::Millis(2000));
-  EXPECT_NEAR(client.send_bandwidth().kbps(), InitialLinkCapacity.kbps(), 50);
+  assert_relative_eq!(client.send_bandwidth().kbps(), InitialLinkCapacity.kbps(), 50);
   client.UpdateNetworkAdapterId(1);
   s.ChangeRoute(route.forward(), {new_net});
   // Allow new settings to propagate, but not probes to be received.
   s.RunFor(TimeDelta::Millis(50));
   // Under the field trial, the target rate should be unchanged since it's lower
   // than the starting rate.
-  EXPECT_NEAR(client.send_bandwidth().kbps(), InitialLinkCapacity.kbps(), 50);
+  assert_relative_eq!(client.send_bandwidth().kbps(), InitialLinkCapacity.kbps(), 50);
   // However, probing should have made us detect the higher rate.
   // NOTE: This test causes high loss rate, and the loss-based estimator reduces
   // the bitrate, making the test fail if we wait longer than one second here.
@@ -935,14 +935,14 @@ fn TargetRateReducedOnPacingBufferBuildupInTrial() {
   const StartRate: DataRate = DataRate::KilobitsPerSec(1000);
 
   Scenario s("googcc_unit/pacing_buffer_buildup");
-  auto* net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
+let net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = LinkCapacity;
     c.delay = TimeDelta::Millis(50);
   });
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = StartRate;
   });
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
@@ -957,16 +957,16 @@ fn TargetRateReducedOnPacingBufferBuildupInTrial() {
 fn NoBandwidthTogglingInLossControlTrial() {
   ScopedFieldTrials trial("WebRTC-Bwe-LossBasedControl/Enabled/");
   Scenario s("googcc_unit/no_toggling");
-  auto* send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
+let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = DataRate::KilobitsPerSec(2000);
     c.loss_rate = 0.2;
     c.delay = TimeDelta::Millis(10);
   });
 
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = DataRate::KilobitsPerSec(300);
   });
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
@@ -992,18 +992,18 @@ fn NoBandwidthTogglingInLossControlTrial() {
 fn NoRttBackoffCollapseWhenVideoStops() {
   ScopedFieldTrials trial("WebRTC-Bwe-MaxRttLimit/limit:2s/");
   Scenario s("googcc_unit/rttbackoff_video_stop");
-  auto* send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
+let send_net = s.CreateSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = DataRate::KilobitsPerSec(2000);
     c.delay = TimeDelta::Millis(100);
   });
 
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   });
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {send_net}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
-  auto* video = s.CreateVideoStream(route.forward(), VideoStreamConfig());
+let video = s.CreateVideoStream(route.forward(), VideoStreamConfig());
   // Allow the controller to initialize, then stop video.
   s.RunFor(TimeDelta::Seconds(1));
   video.send().Stop();
@@ -1015,11 +1015,11 @@ fn NoRttBackoffCollapseWhenVideoStops() {
 fn NoCrashOnVeryLateFeedback() {
   Scenario s;
 let ret_net = s.CreateMutableSimulationNode(NetworkSimulationConfig());
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       s.CreateClient("send", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())},
       s.CreateClient("return", CallClientConfig()), {ret_net.node()});
-  auto* video = s.CreateVideoStream(route.forward(), VideoStreamConfig());
+let video = s.CreateVideoStream(route.forward(), VideoStreamConfig());
   s.RunFor(TimeDelta::Seconds(5));
   // Delay feedback by several minutes. This will cause removal of the send time
   // history for the packets as long as SendTimeHistoryWindow is configured for
@@ -1042,12 +1042,12 @@ fn IsFairToTCP() {
   NetworkSimulationConfig net_conf;
   net_conf.bandwidth = DataRate::KilobitsPerSec(1000);
   net_conf.delay = TimeDelta::Millis(50);
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = DataRate::KilobitsPerSec(1000);
   });
 let send_net = {s.CreateSimulationNode(net_conf)};
 let ret_net = {s.CreateSimulationNode(net_conf)};
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, send_net, s.CreateClient("return", CallClientConfig()), ret_net);
   s.CreateVideoStream(route.forward(), VideoStreamConfig());
   s.net().StartCrossTraffic(CreateFakeTcpCrossTraffic(
@@ -1074,14 +1074,14 @@ fn FallbackToLossBasedBweWithoutPacketFeedback() {
   const StartRate: DataRate = DataRate::KilobitsPerSec(1000);
 
   Scenario s("googcc_unit/high_loss_channel", false);
-  auto* net = s.CreateMutableSimulationNode([&](NetworkSimulationConfig* c) {
+let net = s.CreateMutableSimulationNode([&](NetworkSimulationConfig* c) {
     c.bandwidth = LinkCapacity;
     c.delay = TimeDelta::Millis(100);
   });
-  auto* client = s.CreateClient("send", [&](CallClientConfig* c) {
+let client = s.CreateClient("send", [&](CallClientConfig* c) {
     c.transport.rates.start_rate = StartRate;
   });
-  auto* route = s.CreateRoutes(
+let route = s.CreateRoutes(
       client, {net.node()}, s.CreateClient("return", CallClientConfig()),
       {s.CreateSimulationNode(NetworkSimulationConfig())});
 

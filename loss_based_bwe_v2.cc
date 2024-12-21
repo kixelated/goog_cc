@@ -137,7 +137,7 @@ LossBasedBweV2::Result GetLossBasedResult(&self /* LossBasedBweV2 */) {
     return {.bandwidth_estimate = IsValid(self.delay_based_estimate)
                                       ? delay_based_estimate_
                                       : DataRate::PlusInfinity(),
-            .state = LossBasedState::kDelayBasedEstimate};
+            .state = LossBasedState::DelayBasedEstimate};
   }
   return loss_based_result;
 }
@@ -156,7 +156,7 @@ fn SetBandwidthEstimate(&self /* LossBasedBweV2 */,bandwidth_estimate: DataRate)
   if (IsValid(bandwidth_estimate)) {
     self.current_best_estimate.loss_limited_bandwidth = bandwidth_estimate;
     self.loss_based_result = {.bandwidth_estimate = bandwidth_estimate,
-                          .state = LossBasedState::kDelayBasedEstimate};
+                          .state = LossBasedState::DelayBasedEstimate};
   } else {
     tracing::warn!( << "The bandwidth estimate must be finite: "
                         << ToString(bandwidth_estimate);
@@ -209,7 +209,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
     }
     self.current_best_estimate.loss_limited_bandwidth = delay_based_estimate;
     self.loss_based_result = {.bandwidth_estimate = delay_based_estimate,
-                          .state = LossBasedState::kDelayBasedEstimate};
+                          .state = LossBasedState::DelayBasedEstimate};
   }
 
   let best_candidate: ChannelParameters = self.current_best_estimate;
@@ -270,7 +270,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
                             rampup_factor * (*self.acknowledged_bitrate)));
       // Increase current estimate by at least 1kbps to make sure that the state
       // will be switched to Increasing, thus padding is triggered.
-      if (self.loss_based_result.state == LossBasedState::kDecreasing &&
+      if (self.loss_based_result.state == LossBasedState::Decreasing &&
           best_candidate.loss_limited_bandwidth ==
               self.current_best_estimate.loss_limited_bandwidth) {
         best_candidate.loss_limited_bandwidth =
@@ -293,7 +293,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
   }
   if (self.config.bound_best_candidate &&
       bounded_bandwidth_estimate < best_candidate.loss_limited_bandwidth) {
-    RTC_LOG(LS_INFO) << "Resetting loss based BWE to "
+    tracing::info!("Resetting loss based BWE to "
                      << bounded_bandwidth_estimate.kbps()
                      << "due to loss. Avg loss rate: "
                      average_reported_loss_ratio: <<,
@@ -308,7 +308,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
     }
   }
 
-  if (self.loss_based_result.state == LossBasedState::kDecreasing &&
+  if (self.loss_based_result.state == LossBasedState::Decreasing &&
       self.last_hold_info.timestamp > self.last_send_time_most_recent_observation &&
       bounded_bandwidth_estimate < self.delay_based_estimate) {
     // Ensure that acked rate is the lower bound of HOLD rate.
@@ -337,13 +337,13 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
           self.last_send_time_most_recent_observation;
     }
     self.loss_based_result.state = self.config.padding_duration > TimeDelta::Zero()
-                                   ? LossBasedState::kIncreaseUsingPadding
-                                   : LossBasedState::kIncreasing;
+                                   ? LossBasedState::IncreaseUsingPadding
+                                   : LossBasedState::Increasing;
   } else if (bounded_bandwidth_estimate < self.delay_based_estimate &&
              bounded_bandwidth_estimate < self.max_bitrate) {
-    if (self.loss_based_result.state != LossBasedState::kDecreasing &&
+    if (self.loss_based_result.state != LossBasedState::Decreasing &&
         self.config.hold_duration_factor > 0) {
-      RTC_LOG(LS_INFO) << this << " "
+      tracing::info!(this << " "
                        << "Switch to HOLD. Bounded BWE: "
                        << bounded_bandwidth_estimate.kbps()
                        << ", duration: " << self.last_hold_info.duration.ms();
@@ -356,7 +356,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
           .rate = bounded_bandwidth_estimate};
     }
     self.last_padding_info = PaddingInfo();
-    self.loss_based_result.state = LossBasedState::kDecreasing;
+    self.loss_based_result.state = LossBasedState::Decreasing;
   } else {
     // Reset the HOLD info if delay based estimate works to avoid getting
     // stuck in low bitrate.
@@ -364,7 +364,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
                        .duration = InitHoldDuration,
                        .rate = DataRate::PlusInfinity()};
     self.last_padding_info = PaddingInfo();
-    self.loss_based_result.state = LossBasedState::kDelayBasedEstimate;
+    self.loss_based_result.state = LossBasedState::DelayBasedEstimate;
   }
   self.loss_based_result.bandwidth_estimate = bounded_bandwidth_estimate;
 
@@ -384,9 +384,9 @@ bool IsEstimateIncreasingWhenLossLimited(&self /* LossBasedBweV2 */,
     old_estimate: DataRate, new_estimate: DataRate) {
   return (old_estimate < new_estimate ||
           (old_estimate == new_estimate &&
-           (self.loss_based_result.state == LossBasedState::kIncreasing ||
+           (self.loss_based_result.state == LossBasedState::Increasing ||
             self.loss_based_result.state ==
-                LossBasedState::kIncreaseUsingPadding))) &&
+                LossBasedState::IncreaseUsingPadding))) &&
          IsInLossLimitedState();
 }
 
@@ -1194,12 +1194,12 @@ bool PushBackObservation(&self /* LossBasedBweV2 */,
 }
 
 bool IsInLossLimitedState(&self /* LossBasedBweV2 */) {
-  return self.loss_based_result.state != LossBasedState::kDelayBasedEstimate;
+  return self.loss_based_result.state != LossBasedState::DelayBasedEstimate;
 }
 
 bool CanKeepIncreasingState(&self /* LossBasedBweV2 */,estimate: DataRate) {
   if (self.config.padding_duration == TimeDelta::Zero() ||
-      self.loss_based_result.state != LossBasedState::kIncreaseUsingPadding)
+      self.loss_based_result.state != LossBasedState::IncreaseUsingPadding)
     return true;
 
   // Keep using the IncreaseUsingPadding if either the state has been
@@ -1212,7 +1212,7 @@ bool CanKeepIncreasingState(&self /* LossBasedBweV2 */,estimate: DataRate) {
 
 bool PaceAtLossBasedEstimate(&self /* LossBasedBweV2 */) {
   return self.config.pace_at_loss_based_estimate &&
-         self.loss_based_result.state != LossBasedState::kDelayBasedEstimate;
+         self.loss_based_result.state != LossBasedState::DelayBasedEstimate;
 }
 
 DataRate GetMedianSendingRate(&self /* LossBasedBweV2 */) {
