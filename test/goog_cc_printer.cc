@@ -42,7 +42,7 @@ fn WriteTypedValue(RtcEventLogOutput* out, isize value) {
 fn WriteTypedValue(RtcEventLogOutput* out, f64 value) {
   LogWriteFormat(out, "%.6f", value);
 }
-fn WriteTypedValue(RtcEventLogOutput* out, Option<DataRate> value) {
+fn WriteTypedValue(RtcEventLogOutput* out, value: Option<DataRate>) {
   LogWriteFormat(out, "%.0f", value ? value.bytes_per_sec<f64>() : NAN);
 }
 fn WriteTypedValue(RtcEventLogOutput* out, Option<DataSize> value) {
@@ -65,7 +65,7 @@ pub struct TypedFieldLogger {
   TypedFieldLogger(absl::string_view name, F&& getter)
       : name_(name), getter_(std::forward<F>(getter)) {}
   const std::string& name() const override { return self.name; }
-  void WriteValue(RtcEventLogOutput* out) override {
+  fn WriteValue(RtcEventLogOutput* out) override {
     WriteTypedValue(out, getter_());
   }
 
@@ -163,7 +163,7 @@ fn PrintHeaders(&self /* GoogCcStatePrinter */,RtcEventLogOutput* log) {
 
 fn PrintState(&self /* GoogCcStatePrinter */,RtcEventLogOutput* log,
                                     GoogCcNetworkController* controller,
-                                    Timestamp at_time) {
+                                    at_time: Timestamp) {
   self.controller = controller;
 let state_update = self.controller.GetNetworkState(at_time);
   self.target = state_update.target_rate.value();
@@ -200,7 +200,7 @@ let controller = GoogCcNetworkControllerFactory::Create(config);
   return controller;
 }
 
-fn PrintState(&self /* GoogCcDebugFactory */,const Timestamp at_time) {
+fn PrintState(&self /* GoogCcDebugFactory */,const at_time: Timestamp) {
   if (self.controller && self.log_writer) {
     self.printer.PrintState(self.log_writer.get(), self.controller, at_time);
   }

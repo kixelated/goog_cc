@@ -271,7 +271,7 @@ mod test {
 
         // Test that both inter_arrival instances complete the timestamp group from
         // the given data and that all returned deltas are as expected (except
-        // timestamp delta, which is rounded from us to different ranges and must
+        // delta: Timestamp, which is rounded from us to different ranges and must
         // match within an interval, given in |timestamp_near].
         pub fn ExpectTrue(
             &mut self,

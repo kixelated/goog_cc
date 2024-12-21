@@ -28,7 +28,7 @@ pub struct FieldLogger {
  public:
   virtual ~FieldLogger() = default;
   virtual const std::string& name() const = 0;
-  virtual void WriteValue(RtcEventLogOutput* out) = 0;
+  virtual fn WriteValue(RtcEventLogOutput* out) = 0;
 };
 
 pub struct GoogCcStatePrinter {
@@ -41,9 +41,9 @@ pub struct GoogCcStatePrinter {
   fn PrintHeaders(RtcEventLogOutput* log) {
   todo!();
 }
-  void PrintState(RtcEventLogOutput* log,
+  fn PrintState(RtcEventLogOutput* log,
                   GoogCcNetworkController* controller,
-                  Timestamp at_time);
+                  at_time: Timestamp);
 
  private:
   VecDeque<FieldLogger*> CreateLoggers();
@@ -67,7 +67,7 @@ pub struct GoogCcDebugFactory {
   std::unique_ptr<NetworkControllerInterface> Create(
       NetworkControllerConfig config) override;
 
-  fn PrintState(Timestamp at_time) {
+  fn PrintState(at_time: Timestamp) {
   todo!();
 }
 

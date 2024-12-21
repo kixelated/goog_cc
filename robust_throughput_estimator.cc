@@ -54,7 +54,7 @@ bool FirstPacketOutsideWindow(&self /* RobustThroughputEstimator */) {
 }
 
 fn IncomingPacketFeedbackVector(&self /* RobustThroughputEstimator */,
-    const Vec<PacketResult>& packet_feedback_vector) {
+    packet_feedback_vector: &[PacketResult]) {
   assert!(std::is_sorted(packet_feedback_vector.begin(),
                             packet_feedback_vector.end(),
                             PacketResult::ReceiveTimeOrder()));
@@ -101,7 +101,7 @@ fn IncomingPacketFeedbackVector(&self /* RobustThroughputEstimator */,
   }
 }
 
-Option<DataRate> bitrate(&self /* RobustThroughputEstimator */) {
+bitrate: Option<DataRate>(&self /* RobustThroughputEstimator */) {
   if (self.window.empty() || self.window.len() < self.settings.required_packets)
     return None;
 

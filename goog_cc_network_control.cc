@@ -65,7 +65,7 @@ const DefaultPaceMultiplier: f32 = 2.5f;
 const ProbeDropThroughputFraction: f64 = 0.85;
 
 BandwidthLimitedCause GetBandwidthLimitedCause(LossBasedState loss_based_state,
-                                               bool is_rtt_above_limit,
+                                               is_rtt_above_limit: bool,
                                                BandwidthUsage bandwidth_usage) {
   if (bandwidth_usage == BandwidthUsage::Overusing ||
       bandwidth_usage == BandwidthUsage::Underusing) {
@@ -163,7 +163,7 @@ NetworkControlUpdate OnNetworkAvailability(&self /* GoogCcNetworkController */,
 NetworkControlUpdate OnNetworkRouteChange(&self /* GoogCcNetworkController */,
     NetworkRouteChange msg) {
   if (self.safe_reset_on_route_change) {
-    Option<DataRate> estimated_bitrate;
+    estimated_bitrate: Option<DataRate>;
     if (self.safe_reset_acknowledged_rate) {
       estimated_bitrate = self.acknowledged_bitrate_estimator.bitrate();
       if (!estimated_bitrate)
@@ -213,7 +213,7 @@ NetworkControlUpdate OnProcessInterval(&self /* GoogCcNetworkController */,
           *self.initial_config.stream_based_config
                .enable_repeated_initial_probing);
     }
-    Option<DataRate> total_bitrate =
+    total_bitrate: Option<DataRate> =
         self.initial_config.stream_based_config.max_total_allocated_bitrate;
     if (total_bitrate) {
 let probes = self.probe_controller.OnMaxTotalAllocatedBitrate(
@@ -494,7 +494,7 @@ NetworkControlUpdate OnTransportPacketsFeedback(&self /* GoogCcNetworkController
       self.lost_packets_since_last_loss_update = 0;
     }
   }
-  Option<i64> alr_start_time =
+  alr_start_time: Option<i64> =
       self.alr_detector.GetApplicationLimitedRegionStartTime();
 
   if (self.previously_in_alr && !alr_start_time.is_some()) {
@@ -519,7 +519,7 @@ let acknowledged_bitrate = self.acknowledged_bitrate_estimator.bitrate();
     self.network_estimator.OnTransportPacketsFeedback(report);
     SetNetworkStateEstimate(self.network_estimator.GetCurrentEstimate());
   }
-  Option<DataRate> probe_bitrate =
+  probe_bitrate: Option<DataRate> =
       self.probe_bitrate_estimator.FetchAndResetLastEstimatedBitrate();
   if (self.ignore_probes_lower_than_network_estimate && probe_bitrate &&
       self.estimate && *probe_bitrate < self.delay_based_bwe.last_estimate() &&
@@ -613,7 +613,7 @@ let prev_estimate = self.estimate;
 }
 
 NetworkControlUpdate GetNetworkState(&self /* GoogCcNetworkController */,
-    Timestamp at_time) {
+    at_time: Timestamp) {
   NetworkControlUpdate update;
   update.target_rate = TargetTransferRate();
   update.target_rate.network_estimate.at_time = at_time;
@@ -635,8 +635,8 @@ NetworkControlUpdate GetNetworkState(&self /* GoogCcNetworkController */,
 
 fn MaybeTriggerOnNetworkChanged(&self /* GoogCcNetworkController */,
     NetworkControlUpdate* update,
-    Timestamp at_time) {
-  let fraction_loss: uint8_t = self.bandwidth_estimation.fraction_loss();
+    at_time: Timestamp) {
+  let fraction_loss: u8 = self.bandwidth_estimation.fraction_loss();
   let round_trip_time: TimeDelta = self.bandwidth_estimation.round_trip_time();
   let loss_based_target_rate: DataRate = self.bandwidth_estimation.target_rate();
   let loss_based_state: LossBasedState = self.bandwidth_estimation.loss_based_state();
@@ -708,7 +708,7 @@ let probes = self.probe_controller.SetEstimatedBitrate(
   }
 }
 
-PacerConfig GetPacingRates(&self /* GoogCcNetworkController */,Timestamp at_time) {
+PacerConfig GetPacingRates(&self /* GoogCcNetworkController */,at_time: Timestamp) {
   // Pacing rate is based on target rate before congestion window pushback,
   // because we don't want to build queues in the pacer when pushback occurs.
   let pacing_rate: DataRate = DataRate::Zero();

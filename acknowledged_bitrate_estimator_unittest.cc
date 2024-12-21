@@ -43,7 +43,7 @@ class MockBitrateEstimator : public BitrateEstimator {
   using BitrateEstimator::BitrateEstimator;
   MOCK_METHOD(void,
               Update,
-              (Timestamp at_time, DataSize data_size, bool in_alr),
+              (at_time: Timestamp, DataSize data_size, in_alr: bool),
               (override));
   MOCK_METHOD(std::optional<DataRate>, bitrate, (), (const, override));
   MOCK_METHOD(void, ExpectFastRateChange, (), (override));

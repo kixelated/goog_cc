@@ -36,7 +36,7 @@ class TestProbeBitrateEstimator : public ::testing::Test {
 
   // TODO(philipel): Use PacedPacketInfo when ProbeBitrateEstimator is rewritten
   //                 to use that information.
-  void AddPacketFeedback(isize probe_cluster_id,
+  fn AddPacketFeedback(isize probe_cluster_id,
                          usize size_bytes,
                          i64 send_time_ms,
                          i64 arrival_time_ms,

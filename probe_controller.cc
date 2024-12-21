@@ -184,10 +184,10 @@ ProbeController::ProbeController(const FieldTrialsView* key_value_config,
 ProbeController::~ProbeController() {}
 
 Vec<ProbeClusterConfig> SetBitrates(&self /* ProbeController */,
-    DataRate min_bitrate,
-    DataRate start_bitrate,
-    DataRate max_bitrate,
-    Timestamp at_time) {
+    min_bitrate: DataRate,
+    start_bitrate: DataRate,
+    max_bitrate: DataRate,
+    at_time: Timestamp) {
   if (start_bitrate > DataRate::Zero()) {
     self.start_bitrate = start_bitrate;
     self.estimated_bitrate = start_bitrate;
@@ -223,8 +223,8 @@ Vec<ProbeClusterConfig> SetBitrates(&self /* ProbeController */,
 }
 
 Vec<ProbeClusterConfig> OnMaxTotalAllocatedBitrate(&self /* ProbeController */,
-    DataRate max_total_allocated_bitrate,
-    Timestamp at_time) {
+    max_total_allocated_bitrate: DataRate,
+    at_time: Timestamp) {
   const in_alr: bool = self.alr_start_time.is_some();
   const allow_allocation_probe: bool = in_alr;
   if (self.config.probe_on_max_allocated_bitrate_change &&
@@ -302,7 +302,7 @@ fn UpdateState(&self /* ProbeController */,State new_state) {
 }
 
 Vec<ProbeClusterConfig> InitiateExponentialProbing(&self /* ProbeController */,
-    Timestamp at_time) {
+    at_time: Timestamp) {
   assert!(self.network_available);
   assert!(self.state == State::kInit);
   assert!_GT(self.start_bitrate, DataRate::Zero());
@@ -329,9 +329,9 @@ Vec<ProbeClusterConfig> InitiateExponentialProbing(&self /* ProbeController */,
 }
 
 Vec<ProbeClusterConfig> SetEstimatedBitrate(&self /* ProbeController */,
-    DataRate bitrate,
+    bitrate: DataRate,
     BandwidthLimitedCause bandwidth_limited_cause,
-    Timestamp at_time) {
+    at_time: Timestamp) {
   self.bandwidth_limited_cause = bandwidth_limited_cause;
   if (bitrate < BitrateDropThreshold * self.estimated_bitrate) {
     self.time_of_last_large_drop = at_time;
@@ -370,28 +370,28 @@ Vec<ProbeClusterConfig> SetEstimatedBitrate(&self /* ProbeController */,
   return {};
 }
 
-fn EnablePeriodicAlrProbing(&self /* ProbeController */,bool enable) {
+fn EnablePeriodicAlrProbing(&self /* ProbeController */,enable: bool) {
   self.enable_periodic_alr_probing = enable;
 }
 
-fn EnableRepeatedInitialProbing(&self /* ProbeController */,bool enable) {
+fn EnableRepeatedInitialProbing(&self /* ProbeController */,enable: bool) {
   self.repeated_initial_probing_enabled = enable;
 }
 
 fn SetAlrStartTimeMs(&self /* ProbeController */,
-    Option<i64> alr_start_time_ms) {
+    alr_start_time: Option<i64>_ms) {
   if (alr_start_time_ms) {
     self.alr_start_time = Timestamp::Millis(*alr_start_time_ms);
   } else {
     self.alr_start_time = None;
   }
 }
-fn SetAlrEndedTimeMs(&self /* ProbeController */,i64 alr_end_time_ms) {
+fn SetAlrEndedTimeMs(&self /* ProbeController */,alr_end_time: i64_ms) {
   self.alr_end_time.emplace(Timestamp::Millis(alr_end_time_ms));
 }
 
 Vec<ProbeClusterConfig> RequestProbe(&self /* ProbeController */,
-    Timestamp at_time) {
+    at_time: Timestamp) {
   // Called once we have returned to normal state after a large drop in
   // estimated bandwidth. The current response is to initiate a single probe
   // session (if not already probing) at the previous bitrate.
@@ -431,7 +431,7 @@ fn SetNetworkStateEstimate(&self /* ProbeController */,
   self.network_estimate = estimate;
 }
 
-fn Reset(&self /* ProbeController */,Timestamp at_time) {
+fn Reset(&self /* ProbeController */,at_time: Timestamp) {
   self.bandwidth_limited_cause = BandwidthLimitedCause::kDelayBasedLimited;
   self.state = State::kInit;
   self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
@@ -447,7 +447,7 @@ fn Reset(&self /* ProbeController */,Timestamp at_time) {
   self.bitrate_before_last_large_drop = DataRate::Zero();
 }
 
-bool TimeForAlrProbe(&self /* ProbeController */,Timestamp at_time) {
+bool TimeForAlrProbe(&self /* ProbeController */,at_time: Timestamp) {
   if (self.enable_periodic_alr_probing && self.alr_start_time) {
     let next_probe_time: Timestamp =
         std::cmp::max(*self.alr_start_time, self.time_last_probing_initiated) +
@@ -457,7 +457,7 @@ bool TimeForAlrProbe(&self /* ProbeController */,Timestamp at_time) {
   return false;
 }
 
-bool TimeForNetworkStateProbe(&self /* ProbeController */,Timestamp at_time) {
+bool TimeForNetworkStateProbe(&self /* ProbeController */,at_time: Timestamp) {
   if (!self.network_estimate ||
       self.network_estimate.link_capacity_upper.IsInfinite()) {
     return false;
@@ -489,7 +489,7 @@ bool TimeForNetworkStateProbe(&self /* ProbeController */,Timestamp at_time) {
   return false;
 }
 
-bool TimeForNextRepeatedInitialProbe(&self /* ProbeController */,Timestamp at_time) {
+bool TimeForNextRepeatedInitialProbe(&self /* ProbeController */,at_time: Timestamp) {
   if (self.state != State::kWaitingForProbingResult &&
       self.last_allowed_repeated_initial_probe > at_time) {
     let next_probe_time: Timestamp =
@@ -501,7 +501,7 @@ bool TimeForNextRepeatedInitialProbe(&self /* ProbeController */,Timestamp at_ti
   return false;
 }
 
-Vec<ProbeClusterConfig> Process(&self /* ProbeController */,Timestamp at_time) {
+Vec<ProbeClusterConfig> Process(&self /* ProbeController */,at_time: Timestamp) {
   if (at_time - self.time_last_probing_initiated >
       MaxWaitingTimeForProbingResult) {
     if (self.state == State::kWaitingForProbingResult) {
@@ -524,8 +524,8 @@ Vec<ProbeClusterConfig> Process(&self /* ProbeController */,Timestamp at_time) {
   return Vec<ProbeClusterConfig>();
 }
 
-ProbeClusterConfig CreateProbeClusterConfig(&self /* ProbeController */,Timestamp at_time,
-                                                             DataRate bitrate) {
+ProbeClusterConfig CreateProbeClusterConfig(&self /* ProbeController */,at_time: Timestamp,
+                                                             bitrate: DataRate) {
   ProbeClusterConfig config;
   config.at_time = at_time;
   config.target_data_rate = bitrate;
@@ -550,9 +550,9 @@ ProbeClusterConfig CreateProbeClusterConfig(&self /* ProbeController */,Timestam
 }
 
 Vec<ProbeClusterConfig> InitiateProbing(&self /* ProbeController */,
-    Timestamp now,
-    Vec<DataRate> bitrates_to_probe,
-    bool probe_further) {
+    now: Timestamp,
+    bitrates_to_probe: Vec<DataRate>,
+    probe_further: bool) {
   if (self.config.skip_if_estimate_larger_than_fraction_of_max > 0) {
     let network_estimate: DataRate = network_estimate_
                                     ? self.network_estimate.link_capacity_upper
@@ -613,7 +613,7 @@ Vec<ProbeClusterConfig> InitiateProbing(&self /* ProbeController */,
   }
 
   Vec<ProbeClusterConfig> pending_probes;
-  for (DataRate bitrate : bitrates_to_probe) {
+  for (bitrate: DataRate : bitrates_to_probe) {
     assert!(!bitrate.IsZero());
     if (bitrate >= max_probe_bitrate) {
       bitrate = max_probe_bitrate;

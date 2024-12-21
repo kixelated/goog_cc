@@ -51,16 +51,16 @@ let factor_range = config.max_increase_factor - config.min_increase_factor;
   return config.min_increase_factor + (1 - relative_offset) * factor_range;
 }
 
-f64 LossFromBitrate(DataRate bitrate,
-                       DataRate loss_bandwidth_balance,
+f64 LossFromBitrate(bitrate: DataRate,
+                       loss_bandwidth_balance: DataRate,
                        f64 exponent) {
   if (loss_bandwidth_balance >= bitrate)
     return 1.0;
   return pow(loss_bandwidth_balance / bitrate, exponent);
 }
 
-DataRate BitrateFromLoss(f64 loss,
-                         DataRate loss_bandwidth_balance,
+bitrate: DataRateFromLoss(f64 loss,
+                         loss_bandwidth_balance: DataRate,
                          f64 exponent) {
   if (exponent <= 0) {
     assert!_NOTREACHED();
@@ -137,8 +137,8 @@ LossBasedBandwidthEstimation::LossBasedBandwidthEstimation(
       last_loss_ratio_(0) {}
 
 fn UpdateLossStatistics(&self /* LossBasedBandwidthEstimation */,
-    const Vec<PacketResult>& packet_results,
-    Timestamp at_time) {
+    packet_results: &[PacketResult],
+    at_time: Timestamp) {
   if (packet_results.empty()) {
     assert!_NOTREACHED();
     return;
@@ -166,8 +166,8 @@ fn UpdateLossStatistics(&self /* LossBasedBandwidthEstimation */,
 }
 
 fn UpdateAcknowledgedBitrate(&self /* LossBasedBandwidthEstimation */,
-    DataRate acknowledged_bitrate,
-    Timestamp at_time) {
+    acknowledged_bitrate: DataRate,
+    at_time: Timestamp) {
   const time_passed: TimeDelta =
       self.acknowledged_bitrate_last_update.IsFinite()
           ? at_time - acknowledged_bitrate_last_update_
@@ -182,10 +182,10 @@ fn UpdateAcknowledgedBitrate(&self /* LossBasedBandwidthEstimation */,
   }
 }
 
-DataRate Update(&self /* LossBasedBandwidthEstimation */,Timestamp at_time,
-                                              DataRate min_bitrate,
-                                              DataRate wanted_bitrate,
-                                              TimeDelta last_round_trip_time) {
+DataRate Update(&self /* LossBasedBandwidthEstimation */,at_time: Timestamp,
+                                              min_bitrate: DataRate,
+                                              wanted_bitrate: DataRate,
+                                              last_round_trip_time: TimeDelta) {
   if (self.loss_based_bitrate.IsZero()) {
     self.loss_based_bitrate = wanted_bitrate;
   }
@@ -236,7 +236,7 @@ DataRate Update(&self /* LossBasedBandwidthEstimation */,Timestamp at_time,
   return loss_based_bitrate;
 }
 
-fn Initialize(&self /* LossBasedBandwidthEstimation */,DataRate bitrate) {
+fn Initialize(&self /* LossBasedBandwidthEstimation */,bitrate: DataRate) {
   self.loss_based_bitrate = bitrate;
   self.average_loss = 0;
   self.average_loss_max = 0;
@@ -260,7 +260,7 @@ f64 loss_decrease_threshold(&self /* LossBasedBandwidthEstimation */) {
                          self.config.loss_bandwidth_balance_exponent);
 }
 
-DataRate decreased_bitrate(&self /* LossBasedBandwidthEstimation */) {
+decreased_bitrate: DataRate(&self /* LossBasedBandwidthEstimation */) {
   return self.config.decrease_factor * self.acknowledged_bitrate_max;
 }
 }  // namespace webrtc

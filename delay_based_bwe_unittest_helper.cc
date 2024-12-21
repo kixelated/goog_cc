@@ -197,8 +197,8 @@ fn IncomingFeedback(&self /* DelayBasedBweTest */,i64 arrival_time_ms,
                    Timestamp::Millis(send_time_ms), payload_size, pacing_info);
 }
 
-fn IncomingFeedback(&self /* DelayBasedBweTest */,Timestamp receive_time,
-                                         Timestamp send_time,
+fn IncomingFeedback(&self /* DelayBasedBweTest */,receive_time: Timestamp,
+                                         send_time: Timestamp,
                                          usize payload_size,
                                          const PacedPacketInfo& pacing_info) {
   PacketResult packet;

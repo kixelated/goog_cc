@@ -39,8 +39,8 @@ pub struct FeedbackGenerator {
  public:
   Vec<PacketResult> CreateFeedbackVector(usize number_of_packets,
                                                  DataSize packet_size,
-                                                 DataRate send_rate,
-                                                 DataRate recv_rate) {
+                                                 send_rate: DataRate,
+                                                 recv_rate: DataRate) {
     Vec<PacketResult> packet_feedback_vector(number_of_packets);
     let i: for = 0; i < number_of_packets; i++) {
       packet_feedback_vector[i].sent_packet.send_time = self.send_clock;
@@ -61,8 +61,8 @@ fn AdvanceReceiveClock(TimeDelta delta) { self.recv_clock += delta; }
 fn AdvanceSendClock(TimeDelta delta) { self.send_clock += delta; }
 
  private:
-  Timestamp self.send_clock = Timestamp::Millis(100000);
-  Timestamp self.recv_clock = Timestamp::Millis(10000);
+  send_clock: Timestamp, = Timestamp::Millis(100000);
+  recv_clock: Timestamp, = Timestamp::Millis(10000);
   uint16_t self.sequence_number = 100;
 };
 
@@ -88,8 +88,8 @@ fn InitialEstimate() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   // No estimate until the estimator has enough data.
   Vec<PacketResult> packet_feedback =
@@ -122,8 +122,8 @@ fn EstimateAdapts() {
           "enabled:true/"));
 
   // 1 second, 800kbps, estimate is stable.
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
   for (isize i = 0; i < 10i += 1) {
     Vec<PacketResult> packet_feedback =
         feedback_generator.CreateFeedbackVector(10, DataSize::Bytes(1000),
@@ -191,8 +191,8 @@ fn CappedByReceiveRate() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(25000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(25000));
 
   Vec<PacketResult> packet_feedback =
       feedback_generator.CreateFeedbackVector(20, DataSize::Bytes(1000),
@@ -212,8 +212,8 @@ fn CappedBySendRate() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true/"));
-  DataRate send_rate(DataRate::BytesPerSec(50000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(50000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   Vec<PacketResult> packet_feedback =
       feedback_generator.CreateFeedbackVector(20, DataSize::Bytes(1000),
@@ -235,8 +235,8 @@ fn DelaySpike() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true,window_duration:500ms/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   Vec<PacketResult> packet_feedback =
       feedback_generator.CreateFeedbackVector(20, DataSize::Bytes(1000),
@@ -287,8 +287,8 @@ fn HighLoss() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   Vec<PacketResult> packet_feedback =
       feedback_generator.CreateFeedbackVector(20, DataSize::Bytes(1000),
@@ -318,8 +318,8 @@ fn ReorderedFeedback() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   Vec<PacketResult> packet_feedback =
       feedback_generator.CreateFeedbackVector(20, DataSize::Bytes(1000),
@@ -365,8 +365,8 @@ fn DeepReordering() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true,window_duration:500ms/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   Vec<PacketResult> delayed_packets =
       feedback_generator.CreateFeedbackVector(1, DataSize::Bytes(1000),
@@ -414,8 +414,8 @@ fn ResetsIfReceiveClockChangeBackwards() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   Vec<PacketResult> packet_feedback =
       feedback_generator.CreateFeedbackVector(20, DataSize::Bytes(1000),
@@ -439,8 +439,8 @@ fn StreamPausedAndResumed() {
       CreateRobustThroughputEstimatorSettings(
           "WebRTC-Bwe-RobustThroughputEstimatorSettings/"
           "enabled:true/"));
-  DataRate send_rate(DataRate::BytesPerSec(100000));
-  DataRate recv_rate(DataRate::BytesPerSec(100000));
+  send_rate: DataRate(DataRate::BytesPerSec(100000));
+  recv_rate: DataRate(DataRate::BytesPerSec(100000));
 
   Vec<PacketResult> packet_feedback =
       feedback_generator.CreateFeedbackVector(20, DataSize::Bytes(1000),

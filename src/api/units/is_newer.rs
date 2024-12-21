@@ -41,13 +41,13 @@ const fn IsNewer32(value: u32, prev_value: u32) -> bool {
 // NB: Doesn't fulfill strict weak ordering requirements.
 //     Mustn't be used as std::map Compare function.
 pub const fn IsNewerSequenceNumber(sequence_number: u16, prev_sequence_number: u16) -> bool {
-    return IsNewer16(sequence_number, prev_sequence_number);
+    IsNewer16(sequence_number, prev_sequence_number)
 }
 
 // NB: Doesn't fulfill strict weak ordering requirements.
 //     Mustn't be used as std::map Compare function.
 pub const fn IsNewerTimestamp(timestamp: u32, prev_timestamp: u32) -> bool {
-    return IsNewer32(timestamp, prev_timestamp);
+    IsNewer32(timestamp, prev_timestamp)
 }
 
 pub const fn LatestSequenceNumber(sequence_number1: u16, sequence_number2: u16) -> u16 {

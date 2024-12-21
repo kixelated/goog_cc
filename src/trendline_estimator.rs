@@ -142,7 +142,7 @@ fn ComputeSlopeCap(
     let mut early = &packets[0];
     for packet in packets.iter().take(settings.beginning_packets).skip(1) {
         if packet.raw_delay_ms < early.raw_delay_ms {
-            early = &packet;
+            early = packet;
         }
     }
     let late_start: usize = packets.len() - settings.end_packets;

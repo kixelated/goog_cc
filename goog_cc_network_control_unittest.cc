@@ -47,7 +47,7 @@ namespace test {
 namespace {
 // Count dips from a constant high bandwidth level within a short window.
 int CountBandwidthDips(std::queue<DataRate> bandwidth_history,
-                       DataRate threshold) {
+                       threshold: DataRate) {
   if (bandwidth_history.empty())
     return true;
   let first: DataRate = bandwidth_history.front();
@@ -93,10 +93,10 @@ CallClient* CreateVideoSendingClient(
 }
 
 NetworkRouteChange CreateRouteChange(
-    Timestamp time,
-    Option<DataRate> start_rate = None,
-    Option<DataRate> min_rate = None,
-    Option<DataRate> max_rate = None) {
+    time: Timestamp,
+    start_rate: Option<DataRate> = None,
+    min_rate: Option<DataRate> = None,
+    max_rate: Option<DataRate> = None) {
   NetworkRouteChange route_change;
   route_change.at_time = time;
   route_change.constraints.at_time = time;
@@ -106,8 +106,8 @@ NetworkRouteChange CreateRouteChange(
   return route_change;
 }
 
-PacketResult CreatePacketResult(Timestamp arrival_time,
-                                Timestamp send_time,
+PacketResult CreatePacketResult(arrival_time: Timestamp,
+                                send_time: Timestamp,
                                 usize payload_size,
                                 PacedPacketInfo pacing_info) {
   PacketResult packet_result;
@@ -121,13 +121,13 @@ PacketResult CreatePacketResult(Timestamp arrival_time,
 
 // Simulate sending packets and receiving transport feedback during
 // `runtime_ms`, then return the final target birate.
-Option<DataRate> PacketTransmissionAndFeedbackBlock(
+PacketTransmissionAndFeedbackBlock: Option<DataRate>(
     NetworkControllerInterface* controller,
     i64 runtime_ms,
     i64 delay,
     Timestamp& current_time) {
   NetworkControlUpdate update;
-  Option<DataRate> target_bitrate;
+  target_bitrate: Option<DataRate>;
   let delay_buildup: i64 = 0;
   let start_time_ms: i64 = current_time.ms();
   while (current_time.ms() - start_time_ms < runtime_ms) {
@@ -160,7 +160,7 @@ Option<DataRate> PacketTransmissionAndFeedbackBlock(
 TransportPacketsFeedback CreateTransportPacketsFeedback(
     TimeDelta per_packet_network_delay,
     TimeDelta one_way_delay,
-    Timestamp send_time) {
+    send_time: Timestamp) {
   let delay_buildup: TimeDelta = one_way_delay;
   const FeedbackSize: isize = 3;
   const PayloadSize: usize = 1000;
@@ -428,14 +428,14 @@ fn UpdatesDelayBasedEstimate() {
   // The test must run and insert packets/feedback long enough that the
   // BWE computes a valid estimate. This is first done in an environment which
   // simulates no bandwidth limitation, and therefore not built-up delay.
-  Option<DataRate> target_bitrate_before_delay =
+  target_bitrate_before_delay: Option<DataRate> =
       PacketTransmissionAndFeedbackBlock(controller.get(), RunTimeMs, 0,
                                          current_time);
   assert!(target_bitrate_before_delay.is_some());
 
   // Repeat, but this time with a building delay, and make sure that the
   // estimation is adjusted downwards.
-  Option<DataRate> target_bitrate_after_delay =
+  target_bitrate_after_delay: Option<DataRate> =
       PacketTransmissionAndFeedbackBlock(controller.get(), RunTimeMs, 50,
                                          current_time);
   EXPECT_LT(*target_bitrate_after_delay, *target_bitrate_before_delay);
@@ -1104,7 +1104,7 @@ fn FallbackToLossBasedBweWithoutPacketFeedback() {
 
 class GoogCcRttTest : public ::testing::TestWithParam<bool> {
  protected:
-fn Config(bool feedback_only) -> GoogCcFactoryConfig {
+fn Config(feedback_only: bool) -> GoogCcFactoryConfig {
     GoogCcFactoryConfig config;
     config.feedback_only = feedback_only;
     return config;

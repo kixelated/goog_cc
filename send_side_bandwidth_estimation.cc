@@ -110,8 +110,8 @@ bool ReadBweLossExperimentParameters(const FieldTrialsView& field_trials,
 }  // namespace
 
 fn UpdateDelayBasedEstimate(&self /* LinkCapacityTracker */,
-    Timestamp at_time,
-    DataRate delay_based_bitrate) {
+    at_time: Timestamp,
+    delay_based_bitrate: DataRate) {
   if (delay_based_bitrate < self.last_delay_based_estimate) {
     self.capacity_estimate_bps =
         std::cmp::min(self.capacity_estimate_bps, delay_based_bitrate.bps<f64>());
@@ -120,14 +120,14 @@ fn UpdateDelayBasedEstimate(&self /* LinkCapacityTracker */,
   self.last_delay_based_estimate = delay_based_bitrate;
 }
 
-fn OnStartingRate(&self /* LinkCapacityTracker */,DataRate start_rate) {
+fn OnStartingRate(&self /* LinkCapacityTracker */,start_rate: DataRate) {
   if (self.last_link_capacity_update.IsInfinite())
     self.capacity_estimate_bps = start_rate.bps<f64>();
 }
 
-fn OnRateUpdate(&self /* LinkCapacityTracker */,Option<DataRate> acknowledged,
-                                       DataRate target,
-                                       Timestamp at_time) {
+fn OnRateUpdate(&self /* LinkCapacityTracker */,acknowledged: Option<DataRate>,
+                                       target: DataRate,
+                                       at_time: Timestamp) {
   if (!acknowledged)
     return;
   let acknowledged_target: DataRate = std::cmp::min(*acknowledged, target);
@@ -141,8 +141,8 @@ fn OnRateUpdate(&self /* LinkCapacityTracker */,Option<DataRate> acknowledged,
   self.last_link_capacity_update = at_time;
 }
 
-fn OnRttBackoff(&self /* LinkCapacityTracker */,DataRate backoff_rate,
-                                       Timestamp at_time) {
+fn OnRttBackoff(&self /* LinkCapacityTracker */,backoff_rate: DataRate,
+                                       at_time: Timestamp) {
   self.capacity_estimate_bps =
       std::cmp::min(self.capacity_estimate_bps, backoff_rate.bps<f64>());
   self.last_link_capacity_update = at_time;
@@ -172,8 +172,8 @@ RttBasedBackoff::RttBasedBackoff(const FieldTrialsView* key_value_config)
   }
 }
 
-fn UpdatePropagationRtt(&self /* RttBasedBackoff */,Timestamp at_time,
-                                           TimeDelta propagation_rtt) {
+fn UpdatePropagationRtt(&self /* RttBasedBackoff */,at_time: Timestamp,
+                                           propagation_rtt: TimeDelta) {
   self.last_propagation_rtt_update = at_time;
   self.last_propagation_rtt = propagation_rtt;
 }
@@ -278,10 +278,10 @@ fn OnRouteChange(&self /* SendSideBandwidthEstimation */) {
 }
 
 fn SetBitrates(&self /* SendSideBandwidthEstimation */,
-    Option<DataRate> send_bitrate,
-    DataRate min_bitrate,
-    DataRate max_bitrate,
-    Timestamp at_time) {
+    send_bitrate: Option<DataRate>,
+    min_bitrate: DataRate,
+    max_bitrate: DataRate,
+    at_time: Timestamp) {
   SetMinMaxBitrate(min_bitrate, max_bitrate);
   if (send_bitrate) {
     self.link_capacity.OnStartingRate(*send_bitrate);
@@ -289,8 +289,8 @@ fn SetBitrates(&self /* SendSideBandwidthEstimation */,
   }
 }
 
-fn SetSendBitrate(&self /* SendSideBandwidthEstimation */,DataRate bitrate,
-                                                 Timestamp at_time) {
+fn SetSendBitrate(&self /* SendSideBandwidthEstimation */,bitrate: DataRate,
+                                                 at_time: Timestamp) {
   assert!_GT(bitrate, DataRate::Zero());
   // Reset to avoid being capped by the estimate.
   self.delay_based_limit = DataRate::PlusInfinity();
@@ -300,8 +300,8 @@ fn SetSendBitrate(&self /* SendSideBandwidthEstimation */,DataRate bitrate,
   self.min_bitrate_history.clear();
 }
 
-fn SetMinMaxBitrate(&self /* SendSideBandwidthEstimation */,DataRate min_bitrate,
-                                                   DataRate max_bitrate) {
+fn SetMinMaxBitrate(&self /* SendSideBandwidthEstimation */,min_bitrate: DataRate,
+                                                   max_bitrate: DataRate) {
   self.min_bitrate_configured =
       std::cmp::max(min_bitrate, CongestionControllerMinBitrate);
   if (max_bitrate > DataRate::Zero() && max_bitrate.IsFinite()) {
@@ -317,7 +317,7 @@ int GetMinBitrate(&self /* SendSideBandwidthEstimation */) {
   return self.min_bitrate_configured.bps<isize>();
 }
 
-DataRate target_rate(&self /* SendSideBandwidthEstimation */) {
+target_rate: DataRate(&self /* SendSideBandwidthEstimation */) {
   let target: DataRate = self.current_target;
   if (!self.disable_receiver_limit_caps_only)
     target = std::cmp::min(target, self.receiver_limit);
@@ -336,16 +336,16 @@ DataRate GetEstimatedLinkCapacity(&self /* SendSideBandwidthEstimation */) {
   return self.link_capacity.estimate();
 }
 
-fn UpdateReceiverEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at_time,
-                                                         DataRate bandwidth) {
+fn UpdateReceiverEstimate(&self /* SendSideBandwidthEstimation */,at_time: Timestamp,
+                                                         bandwidth: DataRate) {
   // TODO(srte): Ensure caller passes PlusInfinity, not zero, to represent no
   // limitation.
   self.receiver_limit = bandwidth.IsZero() ? DataRate::PlusInfinity() : bandwidth;
   ApplyTargetLimits(at_time);
 }
 
-fn UpdateDelayBasedEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at_time,
-                                                           DataRate bitrate) {
+fn UpdateDelayBasedEstimate(&self /* SendSideBandwidthEstimation */,at_time: Timestamp,
+                                                           bitrate: DataRate) {
   self.link_capacity.UpdateDelayBasedEstimate(at_time, bitrate);
   // TODO(srte): Ensure caller passes PlusInfinity, not zero, to represent no
   // limitation.
@@ -354,8 +354,8 @@ fn UpdateDelayBasedEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at
 }
 
 fn SetAcknowledgedRate(&self /* SendSideBandwidthEstimation */,
-    Option<DataRate> acknowledged_rate,
-    Timestamp at_time) {
+    acknowledged_rate: Option<DataRate>,
+    at_time: Timestamp) {
   self.acknowledged_rate = acknowledged_rate;
   if (!acknowledged_rate.is_some()) {
     return;
@@ -374,7 +374,7 @@ fn UpdateLossBasedEstimator(&self /* SendSideBandwidthEstimation */,
     const TransportPacketsFeedback& report,
     BandwidthUsage /* delay_detector_state */,
     Option<DataRate> /* probe_bitrate */,
-    bool in_alr) {
+    in_alr: bool) {
   if (LossBasedBandwidthEstimatorV1Enabled()) {
     self.loss_based_bandwidth_estimator_v1.UpdateLossStatistics(
         report.packet_feedbacks, report.feedback_time);
@@ -388,7 +388,7 @@ fn UpdateLossBasedEstimator(&self /* SendSideBandwidthEstimation */,
 
 fn UpdatePacketsLost(&self /* SendSideBandwidthEstimation */,i64 packets_lost,
                                                     i64 number_of_packets,
-                                                    Timestamp at_time) {
+                                                    at_time: Timestamp) {
   self.last_loss_feedback = at_time;
   if (self.first_report_time.IsInfinite())
     self.first_report_time = at_time;
@@ -423,7 +423,7 @@ fn UpdatePacketsLost(&self /* SendSideBandwidthEstimation */,i64 packets_lost,
   UpdateUmaStatsPacketsLost(at_time, packets_lost);
 }
 
-fn UpdateUmaStatsPacketsLost(&self /* SendSideBandwidthEstimation */,Timestamp at_time,
+fn UpdateUmaStatsPacketsLost(&self /* SendSideBandwidthEstimation */,at_time: Timestamp,
                                                             isize packets_lost) {
   let bitrate_kbps: DataRate =
       DataRate::KilobitsPerSec((self.current_target.bps() + 500) / 1000);
@@ -454,7 +454,7 @@ fn UpdateUmaStatsPacketsLost(&self /* SendSideBandwidthEstimation */,Timestamp a
   }
 }
 
-fn UpdateRtt(&self /* SendSideBandwidthEstimation */,TimeDelta rtt, Timestamp at_time) {
+fn UpdateRtt(&self /* SendSideBandwidthEstimation */,TimeDelta rtt, at_time: Timestamp) {
   // Update RTT if we were able to compute an RTT based on this RTCP.
   // FlexFEC doesn't send RTCP SR, which means we won't be able to compute RTT.
   if (rtt > TimeDelta::Zero())
@@ -466,7 +466,7 @@ fn UpdateRtt(&self /* SendSideBandwidthEstimation */,TimeDelta rtt, Timestamp at
   }
 }
 
-fn UpdateEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
+fn UpdateEstimate(&self /* SendSideBandwidthEstimation */,at_time: Timestamp) {
   if (self.rtt_backoff.IsRttAboveLimit()) {
     if (at_time - self.time_last_decrease >= self.rtt_backoff.self.drop_interval &&
         self.current_target > self.rtt_backoff.self.bandwidth_floor) {
@@ -591,8 +591,8 @@ fn UpdateEstimate(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
 }
 
 fn UpdatePropagationRtt(&self /* SendSideBandwidthEstimation */,
-    Timestamp at_time,
-    TimeDelta propagation_rtt) {
+    at_time: Timestamp,
+    propagation_rtt: TimeDelta) {
   self.rtt_backoff.UpdatePropagationRtt(at_time, propagation_rtt);
 }
 
@@ -601,12 +601,12 @@ fn OnSentPacket(&self /* SendSideBandwidthEstimation */,const SentPacket& sent_p
   self.rtt_backoff.self.last_packet_sent = sent_packet.send_time;
 }
 
-bool IsInStartPhase(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
+bool IsInStartPhase(&self /* SendSideBandwidthEstimation */,at_time: Timestamp) {
   return self.first_report_time.IsInfinite() ||
          at_time - self.first_report_time < StartPhase;
 }
 
-fn UpdateMinHistory(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
+fn UpdateMinHistory(&self /* SendSideBandwidthEstimation */,at_time: Timestamp) {
   // Remove old data points from history.
   // Since history precision is in ms, add one so it is able to increase
   // bitrate if it is off by as little as 0.5ms.
@@ -633,8 +633,8 @@ DataRate GetUpperLimit(&self /* SendSideBandwidthEstimation */) {
   return std::cmp::min(upper_limit, self.max_bitrate_configured);
 }
 
-fn MaybeLogLowBitrateWarning(&self /* SendSideBandwidthEstimation */,DataRate bitrate,
-                                                            Timestamp at_time) {
+fn MaybeLogLowBitrateWarning(&self /* SendSideBandwidthEstimation */,bitrate: DataRate,
+                                                            at_time: Timestamp) {
   if (at_time - self.last_low_bitrate_log > LowBitrateLogPeriod) {
     tracing::warn!( << "Estimated available bandwidth " << ToString(bitrate)
                         << " is below configured min bitrate "
@@ -643,7 +643,7 @@ fn MaybeLogLowBitrateWarning(&self /* SendSideBandwidthEstimation */,DataRate bi
   }
 }
 
-fn MaybeLogLossBasedEvent(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
+fn MaybeLogLossBasedEvent(&self /* SendSideBandwidthEstimation */,at_time: Timestamp) {
   if (self.current_target != self.last_logged_target ||
       self.last_fraction_loss != self.last_logged_fraction_loss ||
       at_time - self.last_rtc_event_log > RtcEventLogPeriod) {
@@ -656,8 +656,8 @@ fn MaybeLogLossBasedEvent(&self /* SendSideBandwidthEstimation */,Timestamp at_t
   }
 }
 
-fn UpdateTargetBitrate(&self /* SendSideBandwidthEstimation */,DataRate new_bitrate,
-                                                      Timestamp at_time) {
+fn UpdateTargetBitrate(&self /* SendSideBandwidthEstimation */,new_bitrate: DataRate,
+                                                      at_time: Timestamp) {
   new_bitrate = std::cmp::min(new_bitrate, GetUpperLimit());
   if (new_bitrate < self.min_bitrate_configured) {
     MaybeLogLowBitrateWarning(new_bitrate, at_time);
@@ -668,7 +668,7 @@ fn UpdateTargetBitrate(&self /* SendSideBandwidthEstimation */,DataRate new_bitr
   self.link_capacity.OnRateUpdate(self.acknowledged_rate, self.current_target, at_time);
 }
 
-fn ApplyTargetLimits(&self /* SendSideBandwidthEstimation */,Timestamp at_time) {
+fn ApplyTargetLimits(&self /* SendSideBandwidthEstimation */,at_time: Timestamp) {
   UpdateTargetBitrate(self.current_target, at_time);
 }
 

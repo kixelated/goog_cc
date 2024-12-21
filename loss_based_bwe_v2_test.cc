@@ -36,7 +36,7 @@ const PacketSize: isize = 15_000;
 
 class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
  protected:
-fn Config(bool enabled, bool valid) -> std::string {
+fn Config(enabled: bool, valid: bool) -> std::string {
     char buffer[1024];
     rtc::SimpleStringBuilder config_string(buffer);
 
@@ -90,7 +90,7 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
   }
 
   Vec<PacketResult> CreatePacketResultsWithReceivedPackets(
-      Timestamp first_packet_timestamp) {
+      first_packet_timestamp: Timestamp) {
     let enough_feedback= vec![PacketResult::default(); 2];
     enough_feedback[0].sent_packet.sequence_number =
         self.transport_sequence_number += 1;
@@ -109,7 +109,7 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
   }
 
   Vec<PacketResult> CreatePacketResultsWith10pPacketLossRate(
-      Timestamp first_packet_timestamp,
+      first_packet_timestamp: Timestamp,
       let lost_packet_size: DataSize = DataSize::Bytes(PacketSize)) {
     let enough_feedback= vec![PacketResult::default(); 10];
     for (unsigned i = 0; i < enough_feedback.len()i += 1) {
@@ -129,7 +129,7 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
   }
 
   Vec<PacketResult> CreatePacketResultsWith50pPacketLossRate(
-      Timestamp first_packet_timestamp) {
+      first_packet_timestamp: Timestamp) {
     let enough_feedback= vec![PacketResult::default(); 2];
     enough_feedback[0].sent_packet.sequence_number =
         self.transport_sequence_number += 1;
@@ -147,7 +147,7 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
   }
 
   Vec<PacketResult> CreatePacketResultsWith100pLossRate(
-      Timestamp first_packet_timestamp, unsigned num_packets = 2) {
+      first_packet_timestamp: Timestamp, unsigned num_packets = 2) {
     Vec<PacketResult> enough_feedback(num_packets);
     for (unsigned i = 0; i < num_packets - 1i += 1) {
       enough_feedback[i].sent_packet.sequence_number =

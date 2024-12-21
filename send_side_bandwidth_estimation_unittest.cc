@@ -40,7 +40,7 @@ let bwe_event = static_cast<RtcEventBweUpdateLossBased*>(arg);
   return bwe_event.bitrate_bps() > 0 && bwe_event.fraction_loss() > 0;
 }
 
-fn TestProbing(bool use_delay_based) {
+fn TestProbing(use_delay_based: bool) {
   ::testing::NiceMock<MockRtcEventLog> event_log;
   test::ExplicitKeyValueConfig key_value_config("");
   SendSideBandwidthEstimation bwe(&key_value_config, &event_log);
@@ -108,7 +108,7 @@ fn DoesntReapplyBitrateDecreaseWithoutFollowingRemb() {
   bwe.SetSendBitrate(DataRate::BitsPerSec(InitialBitrateBps),
                      Timestamp::Millis(now_ms));
 
-  static const FractionLoss: uint8_t = 128;
+  static const FractionLoss: u8 = 128;
   static const RttMs: i64 = 50;
   now_ms += 10000;
 

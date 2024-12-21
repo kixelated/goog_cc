@@ -64,7 +64,7 @@ fn event_log_(event_log) -> : {}
 
 ProbeBitrateEstimator::~ProbeBitrateEstimator() = default;
 
-Option<DataRate> HandleProbeAndEstimateBitrate(&self /* ProbeBitrateEstimator */,
+HandleProbeAndEstimateBitrate: Option<DataRate>(&self /* ProbeBitrateEstimator */,
     const PacketResult& packet_feedback) {
   let cluster_id: isize = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
   assert!_NE(cluster_id, PacedPacketInfo::kNotAProbe);
@@ -189,12 +189,12 @@ Option<DataRate> HandleProbeAndEstimateBitrate(&self /* ProbeBitrateEstimator */
 
 Option<DataRate>
 ProbeBitrateEstimator::FetchAndResetLastEstimatedBitrate() {
-  Option<DataRate> estimated_data_rate = self.estimated_data_rate;
+  estimated_data_rate: Option<DataRate> = self.estimated_data_rate;
   self.estimated_data_rate.reset();
   return estimated_data_rate;
 }
 
-fn EraseOldClusters(&self /* ProbeBitrateEstimator */,Timestamp timestamp) {
+fn EraseOldClusters(&self /* ProbeBitrateEstimator */,timestamp: Timestamp) {
   for (auto it = self.clusters.begin(); it != self.clusters.end();) {
     if (it.second.last_receive + MaxClusterHistory < timestamp) {
       it = self.clusters.erase(it);

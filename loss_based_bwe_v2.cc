@@ -38,23 +38,23 @@ namespace {
 const InitHoldDuration: TimeDelta = TimeDelta::Millis(300);
 const MaxHoldDuration: TimeDelta = TimeDelta::Seconds(60);
 
-fn IsValid(DataRate datarate) -> bool {
+fn IsValid(datarate: DataRate) -> bool {
   return datarate.IsFinite();
 }
 
-fn IsValid(Option<DataRate> datarate) -> bool {
+fn IsValid(datarate: Option<DataRate>) -> bool {
   return datarate.is_some() && IsValid(datarate.value());
 }
 
-fn IsValid(Timestamp timestamp) -> bool {
+fn IsValid(timestamp: Timestamp) -> bool {
   return timestamp.IsFinite();
 }
 
 fn ToKiloBytes(DataSize datasize) -> f64 { return datasize.bytes() / 1000.0; }
 
 f64 GetLossProbability(f64 inherent_loss,
-                          DataRate loss_limited_bandwidth,
-                          DataRate sending_rate) {
+                          loss_limited_bandwidth: DataRate,
+                          sending_rate: DataRate) {
   if (inherent_loss < 0.0 || inherent_loss > 1.0) {
     tracing::warn!( << "The inherent loss must be in [0,1]: "
                         << inherent_loss;
@@ -142,7 +142,7 @@ LossBasedBweV2::Result GetLossBasedResult(&self /* LossBasedBweV2 */) {
   return loss_based_result;
 }
 
-fn SetAcknowledgedBitrate(&self /* LossBasedBweV2 */,DataRate acknowledged_bitrate) {
+fn SetAcknowledgedBitrate(&self /* LossBasedBweV2 */,acknowledged_bitrate: DataRate) {
   if (IsValid(acknowledged_bitrate)) {
     self.acknowledged_bitrate = acknowledged_bitrate;
     CalculateInstantLowerBound();
@@ -152,7 +152,7 @@ fn SetAcknowledgedBitrate(&self /* LossBasedBweV2 */,DataRate acknowledged_bitra
   }
 }
 
-fn SetBandwidthEstimate(&self /* LossBasedBweV2 */,DataRate bandwidth_estimate) {
+fn SetBandwidthEstimate(&self /* LossBasedBweV2 */,bandwidth_estimate: DataRate) {
   if (IsValid(bandwidth_estimate)) {
     self.current_best_estimate.loss_limited_bandwidth = bandwidth_estimate;
     self.loss_based_result = {.bandwidth_estimate = bandwidth_estimate,
@@ -163,8 +163,8 @@ fn SetBandwidthEstimate(&self /* LossBasedBweV2 */,DataRate bandwidth_estimate) 
   }
 }
 
-fn SetMinMaxBitrate(&self /* LossBasedBweV2 */,DataRate min_bitrate,
-                                      DataRate max_bitrate) {
+fn SetMinMaxBitrate(&self /* LossBasedBweV2 */,min_bitrate: DataRate,
+                                      max_bitrate: DataRate) {
   if (IsValid(min_bitrate)) {
     self.min_bitrate = min_bitrate;
     CalculateInstantLowerBound();
@@ -182,9 +182,9 @@ fn SetMinMaxBitrate(&self /* LossBasedBweV2 */,DataRate min_bitrate,
 }
 
 fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
-    rtc::ArrayView<const PacketResult> packet_results,
-    DataRate delay_based_estimate,
-    bool in_alr) {
+    packet_results: &[PacketResult],
+    delay_based_estimate: DataRate,
+    in_alr: bool) {
   self.delay_based_estimate = delay_based_estimate;
   if (!IsEnabled()) {
     tracing::warn!( "The estimator must be enabled before it can be used.");
@@ -381,7 +381,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
 }
 
 bool IsEstimateIncreasingWhenLossLimited(&self /* LossBasedBweV2 */,
-    DataRate old_estimate, DataRate new_estimate) {
+    old_estimate: DataRate, new_estimate: DataRate) {
   return (old_estimate < new_estimate ||
           (old_estimate == new_estimate &&
            (self.loss_based_result.state == LossBasedState::kIncreasing ||
@@ -881,7 +881,7 @@ DataRate GetCandidateBandwidthUpperBound(&self /* LossBasedBweV2 */) {
 }
 
 Vec<LossBasedBweV2::ChannelParameters> GetCandidates(&self /* LossBasedBweV2 */,
-    bool in_alr) {
+    in_alr: bool) {
   let best_estimate: ChannelParameters = self.current_best_estimate;
   Vec<DataRate> bandwidths;
   for (f64 candidate_factor : self.config.candidate_factors) {
@@ -929,7 +929,7 @@ Vec<LossBasedBweV2::ChannelParameters> GetCandidates(&self /* LossBasedBweV2 */,
 }
 
 LossBasedBweV2::Derivatives GetDerivatives(&self /* LossBasedBweV2 */,
-    const ChannelParameters& channel_parameters) {
+    const channel_parameters: &ChannelParameters) {
   Derivatives derivatives;
 
   for (const Observation& observation : self.observations) {
@@ -979,14 +979,14 @@ LossBasedBweV2::Derivatives GetDerivatives(&self /* LossBasedBweV2 */,
 }
 
 f64 GetFeasibleInherentLoss(&self /* LossBasedBweV2 */,
-    const ChannelParameters& channel_parameters) {
+    const channel_parameters: &ChannelParameters) {
   return std::cmp::min(
       std::cmp::max(channel_parameters.inherent_loss,
                self.config.inherent_loss_lower_bound),
       GetInherentLossUpperBound(channel_parameters.loss_limited_bandwidth));
 }
 
-f64 GetInherentLossUpperBound(&self /* LossBasedBweV2 */,DataRate bandwidth) {
+f64 GetInherentLossUpperBound(&self /* LossBasedBweV2 */,bandwidth: DataRate) {
   if (bandwidth.IsZero()) {
     return 1.0;
   }
@@ -1006,7 +1006,7 @@ f64 AdjustBiasFactor(&self /* LossBasedBweV2 */,f64 loss_rate,
                    loss_rate));
 }
 
-f64 GetHighBandwidthBias(&self /* LossBasedBweV2 */,DataRate bandwidth) {
+f64 GetHighBandwidthBias(&self /* LossBasedBweV2 */,bandwidth: DataRate) {
   if (IsValid(bandwidth)) {
     return AdjustBiasFactor(self.average_reported_loss_ratio,
                             self.config.higher_bandwidth_bias_factor) *
@@ -1019,7 +1019,7 @@ f64 GetHighBandwidthBias(&self /* LossBasedBweV2 */,DataRate bandwidth) {
 }
 
 f64 GetObjective(&self /* LossBasedBweV2 */,
-    const ChannelParameters& channel_parameters) {
+    const channel_parameters: &ChannelParameters) {
   let objective: f64 = 0.0;
 
   let high_bandwidth_bias: f64 =
@@ -1059,7 +1059,7 @@ f64 GetObjective(&self /* LossBasedBweV2 */,
 }
 
 DataRate GetSendingRate(&self /* LossBasedBweV2 */,
-    DataRate instantaneous_sending_rate) {
+    instantaneous_sending_rate: DataRate) {
   if (self.num_observations <= 0) {
     return instantaneous_sending_rate;
   }
@@ -1119,7 +1119,7 @@ fn CalculateTemporalWeights(&self /* LossBasedBweV2 */) {
 }
 
 fn NewtonsMethodUpdate(&self /* LossBasedBweV2 */,
-    ChannelParameters& channel_parameters) {
+    channel_parameters: &ChannelParameters) {
   if (self.num_observations <= 0) {
     return;
   }
@@ -1134,7 +1134,7 @@ fn NewtonsMethodUpdate(&self /* LossBasedBweV2 */,
 }
 
 bool PushBackObservation(&self /* LossBasedBweV2 */,
-    rtc::ArrayView<const PacketResult> packet_results) {
+    packet_results: &[PacketResult]) {
   if (packet_results.empty()) {
     return false;
   }
@@ -1197,7 +1197,7 @@ bool IsInLossLimitedState(&self /* LossBasedBweV2 */) {
   return self.loss_based_result.state != LossBasedState::kDelayBasedEstimate;
 }
 
-bool CanKeepIncreasingState(&self /* LossBasedBweV2 */,DataRate estimate) {
+bool CanKeepIncreasingState(&self /* LossBasedBweV2 */,estimate: DataRate) {
   if (self.config.padding_duration == TimeDelta::Zero() ||
       self.loss_based_result.state != LossBasedState::kIncreaseUsingPadding)
     return true;
