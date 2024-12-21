@@ -135,7 +135,7 @@ LossBasedBweV2::Result GetLossBasedResult(&self /* LossBasedBweV2 */) {
       }
     }
     return {.bandwidth_estimate = IsValid(self.delay_based_estimate)
-                                      ? delay_based_estimate_
+                                      ? self.delay_based_estimate
                                       : DataRate::PlusInfinity(),
             .state = LossBasedState::DelayBasedEstimate};
   }
@@ -191,7 +191,7 @@ fn UpdateBandwidthEstimate(&self /* LossBasedBweV2 */,
     return;
   }
 
-  if (packet_results.empty()) {
+  if (packet_results.is_empty()) {
     RTC_LOG(LS_VERBOSE)
         << "The estimate cannot be updated without any loss statistics.";
     return;
@@ -1135,7 +1135,7 @@ fn NewtonsMethodUpdate(&self /* LossBasedBweV2 */,
 
 bool PushBackObservation(&self /* LossBasedBweV2 */,
     packet_results: &[PacketResult]) {
-  if (packet_results.empty()) {
+  if (packet_results.is_empty()) {
     return false;
   }
 
@@ -1224,7 +1224,7 @@ DataRate GetMedianSendingRate(&self /* LossBasedBweV2 */) {
     }
     sending_rates.push_back(observation.sending_rate);
   }
-  if (sending_rates.empty()) {
+  if (sending_rates.is_empty()) {
     return DataRate::Zero();
   }
   absl::c_sort(sending_rates);

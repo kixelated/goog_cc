@@ -237,7 +237,7 @@ let probes = self.probe_controller.Process(msg.at_time);
                                       probes.begin(), probes.end());
 
   if (self.rate_control_settings.UseCongestionWindow() &&
-      !self.feedback_max_rtts.empty()) {
+      !self.feedback_max_rtts.is_empty()) {
     UpdateCongestionWindowlen();
   }
   if (self.congestion_window_pushback_controller && self.current_data_window) {
@@ -421,7 +421,7 @@ fn UpdateCongestionWindowSize(&self /* GoogCcNetworkController */) {
 
 NetworkControlUpdate OnTransportPacketsFeedback(&self /* GoogCcNetworkController */,
     TransportPacketsFeedback report) {
-  if (report.packet_feedbacks.empty()) {
+  if (report.packet_feedbacks.is_empty()) {
     // TODO(bugs.webrtc.org/10125): Design a better mechanism to safe-guard
     // against building very large network queues.
     return NetworkControlUpdate();
@@ -458,7 +458,7 @@ NetworkControlUpdate OnTransportPacketsFeedback(&self /* GoogCcNetworkController
                                                 min_propagation_rtt);
   }
   if (self.packet_feedback_only) {
-    if (!self.feedback_max_rtts.empty()) {
+    if (!self.feedback_max_rtts.is_empty()) {
       let sum_rtt_ms: i64 =
           std::accumulate(self.feedback_max_rtts.begin(), self.feedback_max_rtts.end(),
                           (0) as i64);

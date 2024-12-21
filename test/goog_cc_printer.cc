@@ -89,7 +89,7 @@ GoogCcStatePrinter::GoogCcStatePrinter() {
 VecDeque<FieldLogger*> CreateLoggers(&self /* GoogCcStatePrinter */) {
 let stable_estimate = [this] {
     return DataRate::KilobitsPerSec(
-        self.controller.self.delay_based_bwe.self.rate_control.link_capacity_
+        self.controller.self.delay_based_bwe.self.rate_control.self.link_capacity
             .self.estimate_kbps.unwrap_or(-INFINITY));
   };
 let rate_control_state = [this] {
@@ -104,7 +104,7 @@ let acknowledged_rate = [this] {
     return self.controller.self.acknowledged_bitrate_estimator.bitrate();
   };
 let loss_cont = [&] {
-    return &self.controller.bandwidth_estimation_
+    return &self.controller.self.bandwidth_estimation
                 .self.loss_based_bandwidth_estimator_v1;
   };
   VecDeque<FieldLogger*> loggers({

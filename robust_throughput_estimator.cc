@@ -38,7 +38,7 @@ RobustThroughputEstimator::RobustThroughputEstimator(
 RobustThroughputEstimator::~RobustThroughputEstimator() {}
 
 bool FirstPacketOutsideWindow(&self /* RobustThroughputEstimator */) {
-  if (self.window.empty())
+  if (self.window.is_empty())
     return false;
   if (self.window.len() > self.settings.max_window_packets)
     return true;
@@ -102,7 +102,7 @@ fn IncomingPacketFeedbackVector(&self /* RobustThroughputEstimator */,
 }
 
 bitrate: Option<DataRate>(&self /* RobustThroughputEstimator */) {
-  if (self.window.empty() || self.window.len() < self.settings.required_packets)
+  if (self.window.is_empty() || self.window.len() < self.settings.required_packets)
     return None;
 
   TimeDelta largest_recv_gap(TimeDelta::Zero());

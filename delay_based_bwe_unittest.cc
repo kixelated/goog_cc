@@ -50,7 +50,7 @@ fn ProbeDetection() {
   }
 
   assert!((self.bitrate_observer.updated());
-  EXPECT_GT(self.bitrate_observer.latest_bitrate(), 1500000u);
+  EXPECT_GT(self.bitrate_observer.latest_bitrate(), 1500000);
 }
 
 #[test]
@@ -68,7 +68,7 @@ fn ProbeDetectionNonPacedPackets() {
   }
 
   assert!((self.bitrate_observer.updated());
-  EXPECT_GT(self.bitrate_observer.latest_bitrate(), 800000u);
+  EXPECT_GT(self.bitrate_observer.latest_bitrate(), 800000);
 }
 
 #[test]
@@ -104,7 +104,7 @@ fn ProbeDetectionSlowerArrival() {
 
   assert!((self.bitrate_observer.updated());
   assert_relative_eq!(self.bitrate_observer.latest_bitrate(),
-              TargetUtilizationFraction * 1140000u, 10000u);
+              TargetUtilizationFraction * 1140000, 10000);
 }
 
 #[test]
@@ -124,7 +124,7 @@ fn ProbeDetectionSlowerArrivalHighBitrate() {
 
   assert!((self.bitrate_observer.updated());
   assert_relative_eq!(self.bitrate_observer.latest_bitrate(),
-              TargetUtilizationFraction * 4000000u, 10000u);
+              TargetUtilizationFraction * 4000000, 10000);
 }
 
 #[test]

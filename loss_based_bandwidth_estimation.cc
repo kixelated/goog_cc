@@ -139,7 +139,7 @@ LossBasedBandwidthEstimation::LossBasedBandwidthEstimation(
 fn UpdateLossStatistics(&self /* LossBasedBandwidthEstimation */,
     packet_results: &[PacketResult],
     at_time: Timestamp) {
-  if (packet_results.empty()) {
+  if (packet_results.is_empty()) {
     assert!_NOTREACHED();
     return;
   }
@@ -149,7 +149,7 @@ fn UpdateLossStatistics(&self /* LossBasedBandwidthEstimation */,
   }
   self.last_loss_ratio = (loss_count) as f64 / packet_results.len();
   const time_passed: TimeDelta = self.last_loss_packet_report.IsFinite()
-                                    ? at_time - last_loss_packet_report_
+                                    ? at_time - self.last_loss_packet_report
                                     : TimeDelta::Seconds(1);
   self.last_loss_packet_report = at_time;
   self.has_decreased_since_last_loss_report = false;
@@ -170,7 +170,7 @@ fn UpdateAcknowledgedBitrate(&self /* LossBasedBandwidthEstimation */,
     at_time: Timestamp) {
   const time_passed: TimeDelta =
       self.acknowledged_bitrate_last_update.IsFinite()
-          ? at_time - acknowledged_bitrate_last_update_
+          ? at_time - self.acknowledged_bitrate_last_update
           : TimeDelta::Seconds(1);
   self.acknowledged_bitrate_last_update = at_time;
   if (acknowledged_bitrate > self.acknowledged_bitrate_max) {

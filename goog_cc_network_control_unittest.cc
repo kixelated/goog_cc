@@ -48,14 +48,14 @@ namespace {
 // Count dips from a constant high bandwidth level within a short window.
 int CountBandwidthDips(std::queue<DataRate> bandwidth_history,
                        threshold: DataRate) {
-  if (bandwidth_history.empty())
+  if (bandwidth_history.is_empty())
     return true;
   let first: DataRate = bandwidth_history.front();
   bandwidth_history.pop();
 
   let dips: isize = 0;
   let state_high: bool = true;
-  while (!bandwidth_history.empty()) {
+  while (!bandwidth_history.is_empty()) {
     if (bandwidth_history.front() + threshold < first && state_high) {
       dips += 1;
       state_high = false;
@@ -148,7 +148,7 @@ PacketTransmissionAndFeedbackBlock: Option<DataRate>(
       target_bitrate = update.target_rate.target_rate;
     }
     current_time += TimeDelta::Millis(50);
-    update = controller.OnProcessInterval({.at_time = current_time});
+    update = controller.OnProcessInterval({at_time: current_time});
     if (update.target_rate) {
       target_bitrate = update.target_rate.target_rate;
     }
@@ -298,10 +298,9 @@ TEST(GoogCcNetworkControllerTest,
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
 
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = Timestamp::Millis(123456), .network_available = true});
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: Timestamp::Millis(123456), network_available:  true});
   update =
-      controller.OnProcessInterval({.at_time = Timestamp::Millis(123456)});
+      controller.OnProcessInterval({at_time: Timestamp::Millis(123456)});
 
   assert_eq!(update.target_rate.target_rate, InitialBitrate);
   assert_eq!(update.pacer_config.data_rate(),
@@ -318,14 +317,13 @@ fn ReactsToChangedNetworkConditions() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = true});
-  update = controller.OnProcessInterval({.at_time = current_time});
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  true});
+  update = controller.OnProcessInterval({at_time: current_time});
   update = controller.OnRemoteBitrateReport(
       {.receive_time = current_time, .bandwidth = InitialBitrate * 2});
 
   current_time += TimeDelta::Millis(25);
-  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({at_time: current_time});
   assert_eq!(update.target_rate.target_rate, InitialBitrate * 2);
   assert_eq!(update.pacer_config.data_rate(),
             InitialBitrate * 2 * DefaultPacingRate);
@@ -333,7 +331,7 @@ fn ReactsToChangedNetworkConditions() {
   update = controller.OnRemoteBitrateReport(
       {.receive_time = current_time, .bandwidth = InitialBitrate});
   current_time += TimeDelta::Millis(25);
-  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({at_time: current_time});
   assert_eq!(update.target_rate.target_rate, InitialBitrate);
   assert_eq!(update.pacer_config.data_rate(),
             InitialBitrate * DefaultPacingRate);
@@ -345,15 +343,14 @@ fn OnNetworkRouteChanged() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = true});
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  true});
   let new_bitrate: DataRate = DataRate::BitsPerSec(200000);
 
   update = controller.OnNetworkRouteChange(
       CreateRouteChange(current_time, new_bitrate));
   assert_eq!(update.target_rate.target_rate, new_bitrate);
   assert_eq!(update.pacer_config.data_rate(), new_bitrate * DefaultPacingRate);
-  assert_eq!(update.probe_cluster_configs.len(), 2u);
+  assert_eq!(update.probe_cluster_configs.len(), 2);
 
   // If the bitrate is reset to -1, the new starting bitrate will be
   // the minimum default bitrate.
@@ -362,7 +359,7 @@ fn OnNetworkRouteChanged() {
   assert_eq!(update.target_rate.target_rate, DefaultMinBitrate);
   assert_relative_eq!(update.pacer_config.data_rate().bps<f64>(),
               DefaultMinBitrate.bps<f64>() * DefaultPacingRate, 10);
-  assert_eq!(update.probe_cluster_configs.len(), 2u);
+  assert_eq!(update.probe_cluster_configs.len(), 2);
 }
 
 #[test]
@@ -371,8 +368,7 @@ fn ProbeOnRouteChange() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = true});
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  true});
   current_time += TimeDelta::Seconds(3);
 
   update = controller.OnNetworkRouteChange(
@@ -381,13 +377,13 @@ fn ProbeOnRouteChange() {
 
   assert!((update.pacer_config.is_some());
   assert_eq!(update.target_rate.target_rate, InitialBitrate * 2);
-  assert_eq!(update.probe_cluster_configs.len(), 2u);
+  assert_eq!(update.probe_cluster_configs.len(), 2);
   assert_eq!(update.probe_cluster_configs[0].target_data_rate,
             InitialBitrate * 6);
   assert_eq!(update.probe_cluster_configs[1].target_data_rate,
             InitialBitrate * 12);
 
-  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({at_time: current_time});
 }
 
 #[test]
@@ -397,19 +393,17 @@ fn ProbeAfterRouteChangeWhenTransportWritable() {
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
 
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = false});
-  EXPECT_THAT(update.probe_cluster_configs, IsEmpty());
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  false});
+  EXPECT_THAT(update.probe_cluster_configs.is_empty());
 
   update = controller.OnNetworkRouteChange(
       CreateRouteChange(current_time, 2 * InitialBitrate, DataRate::Zero(),
                         20 * InitialBitrate));
   // Transport is not writable. So not point in sending a probe.
-  EXPECT_THAT(update.probe_cluster_configs, IsEmpty());
+  EXPECT_THAT(update.probe_cluster_configs.is_empty());
 
   // Probe is sent when transport becomes writable.
-  update = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = true});
+  update = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  true});
   EXPECT_THAT(update.probe_cluster_configs, Not(IsEmpty()));
 }
 
@@ -422,8 +416,7 @@ fn UpdatesDelayBasedEstimate() {
       fixture.CreateController();
   const RunTimeMs: i64 = 6000;
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = true});
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  true});
 
   // The test must run and insert packets/feedback long enough that the
   // BWE computes a valid estimate. This is first done in an environment which
@@ -449,9 +442,8 @@ fn PaceAtMaxOfLowerLinkCapacityAndBwe() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = true});
-  update = controller.OnProcessInterval({.at_time = current_time});
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  true});
+  update = controller.OnProcessInterval({at_time: current_time});
   current_time += TimeDelta::Millis(100);
   let network_estimate: NetworkStateEstimate = {.link_capacity_lower =
                                                10 * InitialBitrate};
@@ -465,7 +457,7 @@ fn PaceAtMaxOfLowerLinkCapacityAndBwe() {
   loss_report.packets_received_delta = 50;
   loss_report.packets_lost_delta = 1;
   update = controller.OnTransportLossReport(loss_report);
-  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({at_time: current_time});
   assert!(update.pacer_config);
   assert!(update.target_rate);
   ASSERT_LT(update.target_rate.target_rate,
@@ -486,7 +478,7 @@ fn PaceAtMaxOfLowerLinkCapacityAndBwe() {
   loss_report.packets_received_delta = 50;
   loss_report.packets_lost_delta = 0;
   update = controller.OnTransportLossReport(loss_report);
-  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({at_time: current_time});
   assert!(update.target_rate);
   ASSERT_GT(update.target_rate.target_rate,
             network_estimate.link_capacity_lower);
@@ -502,9 +494,8 @@ fn LimitPacingFactorToUpperLinkCapacity() {
   std::unique_ptr<NetworkControllerInterface> controller =
       fixture.CreateController();
   let current_time: Timestamp = Timestamp::Millis(123);
-  let update: NetworkControlUpdate = controller.OnNetworkAvailability(
-      {.at_time = current_time, .network_available = true});
-  update = controller.OnProcessInterval({.at_time = current_time});
+  let update: NetworkControlUpdate = controller.OnNetworkAvailability(NetworkAvailability{at_time: current_time, network_available:  true});
+  update = controller.OnProcessInterval({at_time: current_time});
   current_time += TimeDelta::Millis(100);
   let network_estimate: NetworkStateEstimate = {
       .link_capacity_upper = InitialBitrate * DefaultPacingRate / 2};
@@ -518,7 +509,7 @@ fn LimitPacingFactorToUpperLinkCapacity() {
   loss_report.packets_received_delta = 50;
   loss_report.packets_lost_delta = 1;
   update = controller.OnTransportLossReport(loss_report);
-  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({at_time: current_time});
   assert!(update.pacer_config);
   assert!(update.target_rate);
   EXPECT_GE(update.target_rate.target_rate, InitialBitrate);
@@ -1132,7 +1123,7 @@ TEST_P(GoogCcRttTest, CalculatesRttFromTransporFeedback) {
   let update: NetworkControlUpdate =
       controller.OnTransportPacketsFeedback(feedback);
   current_time += TimeDelta::Millis(50);
-  update = controller.OnProcessInterval({.at_time = current_time});
+  update = controller.OnProcessInterval({at_time: current_time});
   if (update.target_rate) {
     rtt = update.target_rate.network_estimate.round_trip_time;
   }

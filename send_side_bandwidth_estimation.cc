@@ -233,7 +233,7 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
             *self.key_value_config, &self.low_loss_threshold, &self.high_loss_threshold,
             &bitrate_threshold_kbps)) {
       tracing::info!("Enabled BweLossExperiment with parameters "
-                       << self.low_loss_threshold << ", " << high_loss_threshold_
+                       << self.low_loss_threshold << ", " << self.high_loss_threshold
                        << ", " << bitrate_threshold_kbps;
       self.bitrate_threshold = DataRate::KilobitsPerSec(bitrate_threshold_kbps);
     }
@@ -610,7 +610,7 @@ fn UpdateMinHistory(&self /* SendSideBandwidthEstimation */,at_time: Timestamp) 
   // Remove old data points from history.
   // Since history precision is in ms, add one so it is able to increase
   // bitrate if it is off by as little as 0.5ms.
-  while (!self.min_bitrate_history.empty() &&
+  while (!self.min_bitrate_history.is_empty() &&
          at_time - self.min_bitrate_history.front().first + TimeDelta::Millis(1) >
              BweIncreaseInterval) {
     self.min_bitrate_history.pop_front();
@@ -618,7 +618,7 @@ fn UpdateMinHistory(&self /* SendSideBandwidthEstimation */,at_time: Timestamp) 
 
   // Typical minimum sliding-window algorithm: Pop values higher than current
   // bitrate before pushing it.
-  while (!self.min_bitrate_history.empty() &&
+  while (!self.min_bitrate_history.is_empty() &&
          self.current_target <= self.min_bitrate_history.back().second) {
     self.min_bitrate_history.pop_back();
   }

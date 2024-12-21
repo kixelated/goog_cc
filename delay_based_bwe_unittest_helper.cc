@@ -61,7 +61,7 @@ i64 GenerateFrame(&self /* RtpStream */,i64 time_now_us,
   RTC_CHECK(packets != NULL);
   let bits_per_frame: usize = (self.bitrate_bps + self.fps / 2) / self.fps;
   let n_packets: usize =
-      std::cmp::max<usize>((bits_per_frame + 4 * Mtu) / (8 * Mtu), 1u);
+      std::cmp::max<usize>((bits_per_frame + 4 * Mtu) / (8 * Mtu), 1);
   let payload_size: usize = (bits_per_frame + 4 * n_packets) / (8 * n_packets);
   let i: for = 0; i < n_packetsi += 1) {
     PacketResult packet;
@@ -113,7 +113,7 @@ fn set_capacity_bps(&self /* StreamGenerator */,int capacity_bps) {
 // Divides `bitrate_bps` among all streams. The allocated bitrate per stream
 // is decided by the current allocation ratios.
 fn SetBitrateBps(&self /* StreamGenerator */,int bitrate_bps) {
-  ASSERT_GE(self.streams.len(), 0u);
+  ASSERT_GE(self.streams.len(), 0);
   let total_bitrate_before: isize = 0;
   for stream in &self.streams {
     total_bitrate_before += stream.bitrate_bps();
@@ -138,7 +138,7 @@ i64 GenerateFrame(&self /* StreamGenerator */,i64 time_now_us,
                                        i64* next_sequence_number,
                                        Vec<PacketResult>* packets) {
   RTC_CHECK(packets != NULL);
-  RTC_CHECK(packets.empty());
+  RTC_CHECK(packets.is_empty());
   RTC_CHECK_GT(self.capacity, 0);
 let it =
       std::cmp::min_element(self.streams.begin(), self.streams.end(), RtpStream::Compare);
@@ -239,7 +239,7 @@ bool GenerateAndProcessFrame(&self /* DelayBasedBweTest */,u32 /* ssrc */,
 
   let next_time_us: i64 = self.stream_generator.GenerateFrame(
       self.clock.TimeInMicroseconds(), &self.next_sequence_number, &packets);
-  if (packets.empty())
+  if (packets.is_empty())
     return false;
 
   let overuse: bool = false;
@@ -317,7 +317,7 @@ fn InitialBehaviorTestHelper(&self /* DelayBasedBweTest */,
   let send_time_ms: i64 = 0;
   Vec<u32> ssrcs;
   assert!(!(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
-  assert_eq!(0u, ssrcs.len());
+  assert_eq!(0, ssrcs.len());
   self.clock.AdvanceTimeMilliseconds(1000);
   assert!(!(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
   assert!(!(self.bitrate_observer.updated());
@@ -332,7 +332,7 @@ fn InitialBehaviorTestHelper(&self /* DelayBasedBweTest */,
 
     if (i == NumInitialPackets) {
       assert!(!(self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
-      assert_eq!(0u, ssrcs.len());
+      assert_eq!(0, ssrcs.len());
       assert!(!(self.bitrate_observer.updated());
       self.bitrate_observer.Reset();
     }
@@ -342,7 +342,7 @@ fn InitialBehaviorTestHelper(&self /* DelayBasedBweTest */,
     send_time_ms += FrameIntervalMs;
   }
   assert!((self.bitrate_estimator.LatestEstimate(&ssrcs, &bitrate));
-  assert_eq!(1u, ssrcs.len());
+  assert_eq!(1, ssrcs.len());
   assert_eq!(DefaultSsrc, ssrcs.front());
   assert_relative_eq!(expected_converge_bitrate, bitrate.bps(),
               AcceptedBitrateErrorBps);
@@ -455,7 +455,7 @@ fn CapacityDropTestHelper(&self /* DelayBasedBweTest */,
   let bitrate_bps: u32 = SteadyStateRun(
       DefaultSsrc, steady_state_time * Framerate, StartBitrate,
       MinExpectedBitrate, MaxExpectedBitrate, InitialCapacityBps);
-  assert_relative_eq!(InitialCapacityBps, bitrate_bps, 180000u);
+  assert_relative_eq!(InitialCapacityBps, bitrate_bps, 180000);
   self.bitrate_observer.Reset();
 
   // Add an offset to make sure the BWE can handle it.
@@ -492,7 +492,7 @@ fn TestTimestampGroupingTestHelper(&self /* DelayBasedBweTest */) {
     send_time_ms += FrameIntervalMs;
   }
   assert!((self.bitrate_observer.updated());
-  EXPECT_GE(self.bitrate_observer.latest_bitrate(), 400000u);
+  EXPECT_GE(self.bitrate_observer.latest_bitrate(), 400000);
 
   // Insert batches of frames which were sent very close in time. Also simulate
   // capacity over-use to see that we back off correctly.
@@ -511,7 +511,7 @@ fn TestTimestampGroupingTestHelper(&self /* DelayBasedBweTest */) {
   }
   assert!((self.bitrate_observer.updated());
   // Should have reduced the estimate.
-  EXPECT_LT(self.bitrate_observer.latest_bitrate(), 400000u);
+  EXPECT_LT(self.bitrate_observer.latest_bitrate(), 400000);
 }
 
 fn TestWrappingHelper(&self /* DelayBasedBweTest */,int silence_time_s) {
