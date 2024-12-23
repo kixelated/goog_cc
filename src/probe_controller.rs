@@ -13,20 +13,23 @@ use crate::api::{
     units::{DataRate, TimeDelta, Timestamp},
 };
 
+// NOTE: These have been renamed to match the field trials.
+// WebRTC-Bwe-ProbingConfiguration
+#[derive(Debug, Clone)]
 pub struct ProbeControllerConfig {
     // These parameters configure the initial probes. First we send one or two
     // probes of sizes p1 * self.start_bitrate and p2 * self.start_bitrate.
     // Then whenever we get a bitrate estimate of at least further_probe_threshold
     // times the size of the last sent probe we'll send another one of size
     // step_size times the new estimate.
-    pub first_exponential_probe_scale: f64,
-    pub second_exponential_probe_scale: f64,
-    pub further_exponential_probe_scale: f64,
+    pub p1: f64,
+    pub p2: f64,
+    pub step_size: f64,
     pub further_probe_threshold: f64,
-    pub abort_further_probe_if_max_lower_than_current: bool,
+    pub abort_further: bool,
     // Duration of time from the first initial probe where repeated initial probes
     // are sent if repeated initial probing is enabled.
-    pub repeated_initial_probing_time_period: TimeDelta,
+    pub initial_probing: TimeDelta,
     // The minimum probing duration of an individual probe during
     // the repeated_initial_probing_time_period.
     pub initial_probe_duration: TimeDelta,
@@ -34,15 +37,15 @@ pub struct ProbeControllerConfig {
     // the repeated_initial_probing_time_period.
     pub initial_min_probe_delta: TimeDelta,
     // Configures how often we send ALR probes and how big they are.
-    pub alr_probing_interval: TimeDelta,
-    pub alr_probe_scale: f64,
+    pub alr_interval: TimeDelta,
+    pub alr_scale: f64,
     // Configures how often we send probes if NetworkStateEstimate is available.
-    pub network_state_estimate_probing_interval: TimeDelta,
+    pub network_state_interval: TimeDelta,
     // Periodically probe as long as the ratio between current estimate and
     // NetworkStateEstimate is lower then this.
-    pub probe_if_estimate_lower_than_network_state_estimate_ratio: f64,
-    pub estimate_lower_than_network_state_estimate_probing_interval: TimeDelta,
-    pub network_state_probe_scale: f64,
+    pub est_lower_than_network_ratio: f64,
+    pub est_lower_than_network_interval: TimeDelta,
+    pub network_state_scale: f64,
     // Overrides min_probe_duration if network_state_estimate_probing_interval
     // is set and a network state estimate is known and equal or higher than the
     // probe target.
@@ -53,10 +56,10 @@ pub struct ProbeControllerConfig {
     pub network_state_min_probe_delta: TimeDelta,
 
     // Configures the probes emitted by changed to the allocated bitrate.
-    pub probe_on_max_allocated_bitrate_change: bool,
-    pub first_allocation_probe_scale: f64,
-    pub second_allocation_probe_scale: f64,
-    pub allocation_probe_limit_by_current_scale: f64,
+    pub probe_max_allocation: bool,
+    pub alloc_p1: f64,
+    pub alloc_p2: f64,
+    pub alloc_current_bwe_limit: f64,
 
     // The minimum number probing packets used.
     pub min_probe_packets_sent: i32,
@@ -64,44 +67,44 @@ pub struct ProbeControllerConfig {
     pub min_probe_duration: TimeDelta,
     // Delta time between sent bursts of packets in a probe.
     pub min_probe_delta: TimeDelta,
-    pub loss_limited_probe_scale: f64,
+    pub loss_limited_scale: f64,
     // Don't send a probe if min(estimate, network state estimate) is larger than
     // this fraction of the set max or max allocated bitrate.
-    pub skip_if_estimate_larger_than_fraction_of_max: f64,
+    pub skip_if_est_larger_than_fraction_of_max: f64,
     // Scale factor of the max allocated bitrate. Used when deciding if a probe
     // can be skiped due to that the estimate is already high enough.
-    pub skip_probe_max_allocated_scale: f64,
+    pub skip_max_allocated_scale: f64,
 }
 
 impl Default for ProbeControllerConfig {
     fn default() -> Self {
         Self {
-            first_exponential_probe_scale: 3.0,
-            second_exponential_probe_scale: 6.0,
-            further_exponential_probe_scale: 2.0,
+            p1: 3.0,
+            p2: 6.0,
+            step_size: 2.0,
             further_probe_threshold: 0.7,
-            abort_further_probe_if_max_lower_than_current: false,
-            repeated_initial_probing_time_period: TimeDelta::Seconds(5),
+            abort_further: false,
+            initial_probing: TimeDelta::Seconds(5),
             initial_probe_duration: TimeDelta::Millis(100),
             initial_min_probe_delta: TimeDelta::Millis(20),
-            alr_probing_interval: TimeDelta::Seconds(5),
-            alr_probe_scale: 2.0,
-            network_state_estimate_probing_interval: TimeDelta::PlusInfinity(),
-            probe_if_estimate_lower_than_network_state_estimate_ratio: 0.0,
-            estimate_lower_than_network_state_estimate_probing_interval: TimeDelta::Seconds(3),
-            network_state_probe_scale: 1.0,
+            alr_interval: TimeDelta::Seconds(5),
+            alr_scale: 2.0,
+            network_state_interval: TimeDelta::PlusInfinity(),
+            est_lower_than_network_ratio: 0.0,
+            est_lower_than_network_interval: TimeDelta::Seconds(3),
+            network_state_scale: 1.0,
             network_state_probe_duration: TimeDelta::Millis(15),
             network_state_min_probe_delta: TimeDelta::Millis(20),
-            probe_on_max_allocated_bitrate_change: true,
-            first_allocation_probe_scale: 1.0,
-            second_allocation_probe_scale: 2.0,
-            allocation_probe_limit_by_current_scale: 2.0,
+            probe_max_allocation: true,
+            alloc_p1: 1.0,
+            alloc_p2: 2.0,
+            alloc_current_bwe_limit: 2.0,
             min_probe_packets_sent: 5,
             min_probe_duration: TimeDelta::Millis(15),
             min_probe_delta: TimeDelta::Millis(2),
-            loss_limited_probe_scale: 1.5,
-            skip_if_estimate_larger_than_fraction_of_max: 0.0,
-            skip_probe_max_allocated_scale: 1.0,
+            loss_limited_scale: 1.5,
+            skip_if_est_larger_than_fraction_of_max: 0.0,
+            skip_max_allocated_scale: 1.0,
         }
     }
 }
@@ -276,7 +279,7 @@ impl ProbeController {
     ) -> Vec<ProbeClusterConfig> {
         let in_alr: bool = self.alr_start_time.is_some();
         let allow_allocation_probe: bool = in_alr;
-        if self.config.probe_on_max_allocated_bitrate_change
+        if self.config.probe_max_allocation
             && matches!(self.state, State::ProbingComplete)
             && max_total_allocated_bitrate != self.max_total_allocated_bitrate
             && self.estimated_bitrate < self.max_bitrate
@@ -285,23 +288,23 @@ impl ProbeController {
         {
             self.max_total_allocated_bitrate = max_total_allocated_bitrate;
 
-            if self.config.first_allocation_probe_scale == 0.0 {
+            if self.config.alloc_p1 == 0.0 {
                 return vec![];
             }
 
             let mut first_probe_rate: DataRate =
-                max_total_allocated_bitrate * self.config.first_allocation_probe_scale;
+                max_total_allocated_bitrate * self.config.alloc_p1;
             let current_bwe_limit: DataRate =
-                self.config.allocation_probe_limit_by_current_scale * self.estimated_bitrate;
+                self.config.alloc_current_bwe_limit * self.estimated_bitrate;
             let mut limited_by_current_bwe: bool = current_bwe_limit < first_probe_rate;
             if limited_by_current_bwe {
                 first_probe_rate = current_bwe_limit;
             }
 
             let mut probes: Vec<DataRate> = vec![first_probe_rate];
-            if self.config.second_allocation_probe_scale > 0.0 && !limited_by_current_bwe {
+            if self.config.alloc_p2 > 0.0 && !limited_by_current_bwe {
                 let mut second_probe_rate: DataRate =
-                    max_total_allocated_bitrate * self.config.second_allocation_probe_scale;
+                    max_total_allocated_bitrate * self.config.alloc_p2;
                 limited_by_current_bwe = current_bwe_limit < second_probe_rate;
                 if limited_by_current_bwe {
                     second_probe_rate = current_bwe_limit;
@@ -356,7 +359,7 @@ impl ProbeController {
         if matches!(self.state, State::WaitingForProbingResult) {
             // Continue probing if probing results indicate channel has greater
             // capacity unless we already reached the needed bitrate.
-            if self.config.abort_further_probe_if_max_lower_than_current
+            if self.config.abort_further
                 && (bitrate > self.max_bitrate
                     || (!self.max_total_allocated_bitrate.IsZero()
                         && bitrate > 2 * self.max_total_allocated_bitrate))
@@ -368,7 +371,7 @@ impl ProbeController {
                 Some(network_estimate)
                     if self
                         .config
-                        .network_state_estimate_probing_interval
+                        .network_state_interval
                         .IsFinite()
                         && network_estimate.link_capacity_upper.IsFinite() =>
                 {
@@ -388,7 +391,7 @@ impl ProbeController {
             {
                 return self.InitiateProbing(
                     at_time,
-                    &[self.config.further_exponential_probe_scale * bitrate],
+                    &[self.config.step_size * bitrate],
                     true,
                 );
             }
@@ -484,14 +487,14 @@ impl ProbeController {
         if self.TimeForNextRepeatedInitialProbe(at_time) {
             return self.InitiateProbing(
                 at_time,
-                &[self.estimated_bitrate * self.config.first_exponential_probe_scale],
+                &[self.estimated_bitrate * self.config.p1],
                 true,
             );
         }
         if self.TimeForAlrProbe(at_time) || self.TimeForNetworkStateProbe(at_time) {
             return self.InitiateProbing(
                 at_time,
-                &[self.estimated_bitrate * self.config.alr_probe_scale],
+                &[self.estimated_bitrate * self.config.alr_scale],
                 true,
             );
         }
@@ -520,14 +523,14 @@ impl ProbeController {
         // When probing at 1.8 Mbps ( 6x 300), this represents a threshold of
         // 1.2 Mbps to continue probing.
         let mut probes: Vec<DataRate> =
-            vec![self.config.first_exponential_probe_scale * self.start_bitrate];
-        if self.config.second_exponential_probe_scale > 0.0 {
-            probes.push(self.config.second_exponential_probe_scale * self.start_bitrate);
+            vec![self.config.p1 * self.start_bitrate];
+        if self.config.p2 > 0.0 {
+            probes.push(self.config.p2 * self.start_bitrate);
         }
 
         if self.repeated_initial_probing_enabled && self.max_total_allocated_bitrate.IsZero() {
             self.last_allowed_repeated_initial_probe =
-                at_time + self.config.repeated_initial_probing_time_period;
+                at_time + self.config.initial_probing;
             tracing::info!(
                 "Repeated initial probing enabled, last allowed probe: {:?} now: {:?}",
                 self.last_allowed_repeated_initial_probe,
@@ -543,7 +546,7 @@ impl ProbeController {
         bitrates_to_probe: &[DataRate],
         mut probe_further: bool,
     ) -> Vec<ProbeClusterConfig> {
-        if self.config.skip_if_estimate_larger_than_fraction_of_max > 0.0 {
+        if self.config.skip_if_est_larger_than_fraction_of_max > 0.0 {
             let network_estimate: DataRate = self
                 .network_estimate
                 .map(|x| x.link_capacity_upper)
@@ -552,12 +555,12 @@ impl ProbeController {
                 self.max_bitrate
             } else {
                 std::cmp::min(
-                    self.config.skip_probe_max_allocated_scale * self.max_total_allocated_bitrate,
+                    self.config.skip_max_allocated_scale * self.max_total_allocated_bitrate,
                     self.max_bitrate,
                 )
             };
             if std::cmp::min(network_estimate, self.estimated_bitrate)
-                > self.config.skip_if_estimate_larger_than_fraction_of_max * max_probe_rate
+                > self.config.skip_if_est_larger_than_fraction_of_max * max_probe_rate
             {
                 self.UpdateState(State::ProbingComplete);
                 return vec![];
@@ -589,7 +592,7 @@ impl ProbeController {
             BandwidthLimitedCause::LossLimitedBweIncreasing => {
                 max_probe_bitrate = std::cmp::min(
                     max_probe_bitrate,
-                    self.estimated_bitrate * self.config.loss_limited_probe_scale,
+                    self.estimated_bitrate * self.config.loss_limited_scale,
                 );
             }
             _ => (),
@@ -599,7 +602,7 @@ impl ProbeController {
             Some(network_estimate) if network_estimate.link_capacity_upper.IsFinite() => {
                 if self
                     .config
-                    .network_state_estimate_probing_interval
+                    .network_state_interval
                     .IsFinite()
                 {
                     if network_estimate.link_capacity_upper.IsZero() {
@@ -611,7 +614,7 @@ impl ProbeController {
                         std::cmp::max(
                             self.estimated_bitrate,
                             network_estimate.link_capacity_upper
-                                * self.config.network_state_probe_scale,
+                                * self.config.network_state_scale,
                         ),
                     );
                 }
@@ -645,7 +648,7 @@ impl ProbeController {
             if self.enable_periodic_alr_probing {
                 let next_probe_time: Timestamp =
                     std::cmp::max(alr_start_time, self.time_last_probing_initiated)
-                        + self.config.alr_probing_interval;
+                        + self.config.alr_interval;
                 return at_time >= next_probe_time;
             }
         }
@@ -664,18 +667,18 @@ impl ProbeController {
             && self.estimated_bitrate
                 < self
                     .config
-                    .probe_if_estimate_lower_than_network_state_estimate_ratio
+                    .est_lower_than_network_ratio
                     * network_estimate.link_capacity_upper;
         if probe_due_to_low_estimate
             && self
                 .config
-                .estimate_lower_than_network_state_estimate_probing_interval
+                .est_lower_than_network_interval
                 .IsFinite()
         {
             let next_probe_time: Timestamp = self.time_last_probing_initiated
                 + self
                     .config
-                    .estimate_lower_than_network_state_estimate_probing_interval;
+                    .est_lower_than_network_interval;
             return at_time >= next_probe_time;
         }
 
@@ -683,11 +686,11 @@ impl ProbeController {
         if periodic_probe
             && self
                 .config
-                .network_state_estimate_probing_interval
+                .network_state_interval
                 .IsFinite()
         {
             let next_probe_time: Timestamp = self.time_last_probing_initiated
-                + self.config.network_state_estimate_probing_interval;
+                + self.config.network_state_interval;
             return at_time >= next_probe_time;
         }
 
@@ -852,8 +855,8 @@ mod test {
     fn CanConfigureInitialProbeRateFactor() {
         let clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            first_exponential_probe_scale: 2.0,
-            second_exponential_probe_scale: 3.0,
+            p1: 2.0,
+            p2: 3.0,
             ..Default::default()
         });
         assert!(probe_controller
@@ -872,8 +875,8 @@ mod test {
     fn DisableSecondInitialProbeIfRateFactorZero() {
         let clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            first_exponential_probe_scale: 2.0,
-            second_exponential_probe_scale: 0.0,
+            p1: 2.0,
+            p2: 0.0,
             ..Default::default()
         });
         assert!(probe_controller
@@ -1002,7 +1005,7 @@ mod test {
     fn CanDisableProbingOnMaxTotalAllocatedBitrateIncrease() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            probe_on_max_allocated_bitrate_change: false,
+            probe_max_allocation: false,
             ..Default::default()
         });
         assert!(probe_controller
@@ -1104,7 +1107,7 @@ mod test {
     fn ExponentialProbingStopIfMaxBitrateLow() {
         let clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            abort_further_probe_if_max_lower_than_current: true,
+            abort_further: true,
             ..Default::default()
         });
         assert!(probe_controller
@@ -1139,7 +1142,7 @@ mod test {
     fn ExponentialProbingStopIfMaxAllocatedBitrateLow() {
         let clock = Timestamp::Zero();
         let mut probe_controller: ProbeController = ProbeController::new(ProbeControllerConfig {
-            abort_further_probe_if_max_lower_than_current: true,
+            abort_further: true,
             ..Default::default()
         });
         assert!(probe_controller
@@ -1636,13 +1639,13 @@ mod test {
     fn ConfigurableProbingFieldTrial() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            first_exponential_probe_scale: 2.0,
-            second_exponential_probe_scale: 5.0,
-            further_exponential_probe_scale: 3.0,
+            p1: 2.0,
+            p2: 5.0,
+            step_size: 3.0,
             further_probe_threshold: 0.8,
-            first_allocation_probe_scale: 2.0,
-            allocation_probe_limit_by_current_scale: 1000.0,
-            second_allocation_probe_scale: 5.0,
+            alloc_p1: 2.0,
+            alloc_current_bwe_limit: 1000.0,
+            alloc_p2: 5.0,
             min_probe_packets_sent: 2,
             ..Default::default()
         });
@@ -1742,7 +1745,7 @@ mod test {
     fn PeriodicProbeAtUpperNetworkStateEstimate() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
@@ -1783,7 +1786,7 @@ mod test {
     fn LimitProbeAtUpperNetworkStateEstimateIfLossBasedLimited() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
@@ -1823,7 +1826,7 @@ mod test {
     fn AlrProbesLimitedByNetworkStateEstimate() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
@@ -1862,7 +1865,7 @@ mod test {
     fn CanSetLongerProbeDurationAfterNetworkStateEstimate() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             network_state_probe_duration: TimeDelta::Millis(100),
             ..Default::default()
         });
@@ -1991,7 +1994,7 @@ mod test {
     fn ProbeFurtherWhenLossBasedIsSameAsDelayBasedEstimate() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
@@ -2035,8 +2038,8 @@ mod test {
         // NetworkStateEstimate.
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            estimate_lower_than_network_state_estimate_probing_interval: TimeDelta::Seconds(1),
-            probe_if_estimate_lower_than_network_state_estimate_ratio: 0.5,
+            est_lower_than_network_interval: TimeDelta::Seconds(1),
+            est_lower_than_network_ratio: 0.5,
             // limit_probe_target_rate_to_loss_bwe: true,
             ..Default::default()
         });
@@ -2091,7 +2094,7 @@ mod test {
     fn DontProbeFurtherWhenLossLimited() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
@@ -2129,7 +2132,7 @@ mod test {
     fn ProbeFurtherWhenDelayBasedLimited() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
@@ -2171,9 +2174,9 @@ mod test {
     fn ProbeAfterTimeoutIfNetworkStateEstimateIncreaseAfterProbeSent() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
-            estimate_lower_than_network_state_estimate_probing_interval: TimeDelta::Seconds(3),
-            probe_if_estimate_lower_than_network_state_estimate_ratio: 0.7,
+            network_state_interval: TimeDelta::Seconds(5),
+            est_lower_than_network_interval: TimeDelta::Seconds(3),
+            est_lower_than_network_ratio: 0.7,
             ..Default::default()
         });
         assert!(probe_controller
@@ -2227,8 +2230,8 @@ mod test {
     fn SkipProbeFurtherIfAlreadyProbedToMaxRate() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(2),
-            skip_if_estimate_larger_than_fraction_of_max: 0.9,
+            network_state_interval: TimeDelta::Seconds(2),
+            skip_if_est_larger_than_fraction_of_max: 0.9,
             ..Default::default()
         });
         assert!(probe_controller
@@ -2299,7 +2302,7 @@ mod test {
     fn SkipAlrProbeIfEstimateLargerThanMaxProbe() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            skip_if_estimate_larger_than_fraction_of_max: 0.9,
+            skip_if_est_larger_than_fraction_of_max: 0.9,
             ..Default::default()
         });
         assert!(probe_controller
@@ -2333,7 +2336,7 @@ mod test {
     fn SkipAlrProbeIfEstimateLargerThanFractionOfMaxAllocated() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            skip_if_estimate_larger_than_fraction_of_max: 1.0,
+            skip_if_est_larger_than_fraction_of_max: 1.0,
             ..Default::default()
         });
         assert!(probe_controller
@@ -2370,8 +2373,8 @@ mod test {
     fn SkipNetworkStateProbeIfEstimateLargerThanMaxProbe() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(2),
-            skip_if_estimate_larger_than_fraction_of_max: 0.9,
+            network_state_interval: TimeDelta::Seconds(2),
+            skip_if_est_larger_than_fraction_of_max: 0.9,
             ..Default::default()
         });
         assert!(probe_controller
@@ -2403,8 +2406,8 @@ mod test {
     fn SendsProbeIfNetworkStateEstimateLowerThanMaxProbe() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(2),
-            skip_if_estimate_larger_than_fraction_of_max: 0.9,
+            network_state_interval: TimeDelta::Seconds(2),
+            skip_if_est_larger_than_fraction_of_max: 0.9,
             network_state_probe_duration: TimeDelta::Millis(100),
             network_state_min_probe_delta: TimeDelta::Millis(20),
             ..Default::default()
@@ -2454,7 +2457,7 @@ mod test {
     fn ProbeNotLimitedByNetworkStateEsimateIfLowerThantCurrent() {
         let mut clock = Timestamp::Zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_estimate_probing_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::Seconds(5),
             network_state_probe_duration: TimeDelta::Millis(100),
             network_state_min_probe_delta: TimeDelta::Millis(20),
             ..Default::default()

@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use crate::api::units::DataSize;
+use crate::{api::units::DataSize, experiments::RateControlSettings, FieldTrials};
 
 // This class enables pushback from congestion window directly to video encoder.
 // When the congestion window is filling up, the video encoder target bitrate
@@ -39,6 +39,18 @@ impl Default for CongestionWindowPushbackController {
 }
 
 impl CongestionWindowPushbackController {
+    pub fn new(field_trials: &FieldTrials) -> Self {
+        let rate_control_settings = RateControlSettings::new(field_trials);
+        Self {
+            add_pacing: field_trials.add_pacing_to_congestion_window_pushback,
+            min_pushback_target_bitrate_bps: rate_control_settings.CongestionWindowMinPushbackTargetBitrateBps(),
+            current_data_window: rate_control_settings.CongestionWindowInitialDataWindow(),
+            outstanding_bytes: 0,
+            pacing_bytes: 0,
+            encoding_rate_ratio: 1.0,
+        }
+    }
+
     pub fn UpdateOutstandingData(&mut self, outstanding_bytes: i64) {
         self.outstanding_bytes = outstanding_bytes;
     }

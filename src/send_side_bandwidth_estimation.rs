@@ -60,6 +60,28 @@ impl LinkCapacityTracker {
     }
 }
 
+// WebRTC-Bwe-MaxRttLimit
+#[derive(Clone, Debug)]
+pub struct RttBasedBackoffConfig {
+    disabled: bool, // Disabled
+    configured_limit: TimeDelta, // limit
+    drop_fraction: f64, // fraction
+    drop_interval: TimeDelta, // interval,
+    bandwidth_floor: DataRate, // floor
+}
+
+impl Default for RttBasedBackoffConfig {
+    fn default() -> Self {
+        Self {
+            disabled: false,
+            configured_limit: TimeDelta::Seconds(3),
+            drop_fraction: 0.8,
+            drop_interval: TimeDelta::Seconds(1),
+            bandwidth_floor: DataRate::KilobitsPerSec(5),
+        }
+    }
+}
+
 pub struct RttBasedBackoff {
     pub disabled: bool,
     pub configured_limit: TimeDelta,
@@ -72,12 +94,21 @@ pub struct RttBasedBackoff {
     pub last_packet_sent: Timestamp,
 }
 
-impl Default for RttBasedBackoff {
-    fn default() -> Self {
-        todo!()
-    }
-}
 impl RttBasedBackoff {
+    pub fn new(config: &RttBasedBackoffConfig) -> Self {
+        Self {
+            disabled: config.disabled,
+            configured_limit: config.configured_limit,
+            drop_fraction: config.drop_fraction,
+            drop_interval: config.drop_interval,
+            bandwidth_floor: config.bandwidth_floor,
+            rtt_limit: if !config.disabled { config.configured_limit } else { TimeDelta::Zero() },
+            last_propagation_rtt_update: Timestamp::PlusInfinity(),
+            last_propagation_rtt: TimeDelta::Zero(),
+            last_packet_sent: Timestamp::MinusInfinity(),
+        }
+    }
+
     pub fn UpdatePropagationRtt(&mut self, at_time: Timestamp, propagation_rtt: TimeDelta) {
         todo!();
     }

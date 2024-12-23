@@ -19,6 +19,54 @@ use crate::{
 
 use super::{CongestionControllerMinBitrate, RateControlInput};
 
+
+// WebRTC-BweBackOffFactor
+#[derive(Debug, Clone)]
+pub struct BweBackOffFactor {
+    pub backoff_factor: f64, // Enabled-*
+}
+
+impl Default for BweBackOffFactor {
+    fn default() -> Self {
+        Self {
+            backoff_factor: Self::DefaultBackoffFactor,
+        }
+    }
+}
+
+impl BweBackOffFactor {
+   const  DefaultBackoffFactor: f64 = 0.85;
+
+    pub fn validate(&mut self) {
+        if (self.backoff_factor >= 1.0) {
+            tracing::warn!("Back-off factor must be less than 1.");
+        } else if (self.backoff_factor <= 0.0) {
+            tracing::warn!("Back-off factor must be greater than 0.");
+        } else {
+            return;
+        }
+
+        tracing::warn!("Failed to parse parameters for AimdRateControl experiment from field trial string. Using default.");
+        self.backoff_factor = Self::DefaultBackoffFactor
+    }
+}
+
+// WebRTC-Bwe-EstimateBoundedIncrease
+#[derive(Debug, Clone)]
+pub struct EstimateBoundedIncrease {
+    pub disable_estimate_bounded_increase: bool,
+    pub use_current_estimate_as_min_upper_bound: bool,
+}
+
+impl Default for EstimateBoundedIncrease {
+    fn default() -> Self {
+        Self {
+            disable_estimate_bounded_increase: false,
+            use_current_estimate_as_min_upper_bound: true,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum RateControlState {
     Hold,

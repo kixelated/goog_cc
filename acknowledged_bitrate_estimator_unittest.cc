@@ -45,7 +45,7 @@ class MockBitrateEstimator : public BitrateEstimator {
               Update,
               (at_time: Timestamp, DataSize data_size, in_alr: bool),
               (override));
-  MOCK_METHOD(std::optional<DataRate>, bitrate, (), (const, override));
+  MOCK_METHOD(Option<DataRate>, bitrate, (), (const, override));
   MOCK_METHOD(void, ExpectFastRateChange, (), (override));
 };
 
@@ -135,7 +135,7 @@ fn ExpectFastRateChangeWhenLeftAlr() {
 #[test]
 fn ReturnBitrate() {
   let states= CreateTestStates();
-  std::optional<DataRate> return_value = DataRate::KilobitsPerSec(42);
+  Option<DataRate> return_value = DataRate::KilobitsPerSec(42);
   EXPECT_CALL(*states.mock_bitrate_estimator, bitrate())
       .Times(1)
       .WillOnce(Return(return_value));

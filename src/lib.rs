@@ -15,8 +15,10 @@ mod probe_controller;
 mod robust_throughput_estimator;
 mod send_side_bandwidth_estimation;
 mod trendline_estimator;
+mod field_trials;
 
 pub use acknowledged_bitrate_estimator::*;
+pub use field_trials::*;
 pub use acknowledged_bitrate_estimator_interface::*;
 pub use alr_detector::*;
 pub use bitrate_estimator::*;
@@ -34,6 +36,7 @@ pub use robust_throughput_estimator::*;
 pub use send_side_bandwidth_estimation::*;
 pub use trendline_estimator::*;
 
+pub mod experiments;
 pub mod api;
 pub mod pacing;
 pub mod remote_bitrate_estimator;

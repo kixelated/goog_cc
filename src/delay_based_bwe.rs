@@ -12,11 +12,11 @@ use crate::{
     api::{
         transport::{BandwidthUsage, NetworkStateEstimate, PacketResult, TransportPacketsFeedback},
         units::{DataRate, DataSize, TimeDelta, Timestamp},
-    },
-    remote_bitrate_estimator::{AimdRateControl, RateControlInput},
-    DelayIncreaseDetectorInterface, InterArrivalDelta, TrendlineEstimator,
+    }, remote_bitrate_estimator::{AimdRateControl, RateControlInput}, DelayIncreaseDetectorInterface, FieldTrials, InterArrivalDelta, TrendlineEstimator
 };
 
+// WebRTC-Bwe-SeparateAudioPackets
+#[derive(Clone, Debug)]
 pub struct BweSeparateAudioPacketsSettings {
     pub enabled: bool,
     pub packet_threshold: i64,
@@ -91,18 +91,19 @@ impl DelayBasedBwe {
     // after the API has been changed.
     const FixedSsrc: u32 = 0;
 
-    pub fn new(settings: BweSeparateAudioPacketsSettings) -> Self {
+    pub fn new(field_trials: &FieldTrials) -> Self {
+
         tracing::info!("Initialized DelayBasedBwe with separate audio overuse detection");
         Self {
-            separate_audio: settings,
+            separate_audio: field_trials.separate_audio_packets.clone(),
             audio_packets_since_last_video: 0,
             last_video_packet_recv_time: Timestamp::MinusInfinity(),
-            video_delay_detector: TrendlineEstimator::default(),
-            audio_delay_detector: TrendlineEstimator::default(),
+            video_delay_detector: TrendlineEstimator::new(field_trials.trendline_estimator_settings.clone()),
+            audio_delay_detector: TrendlineEstimator::new(field_trials.trendline_estimator_settings.clone()),
             active_delay_detector_type: DelayDetector::Video,
             last_seen_packet: Timestamp::MinusInfinity(),
             uma_recorded: false,
-            rate_control: AimdRateControl::new(true), // send_side
+            rate_control: AimdRateControl::new(field_trials, true), // send_side
             prev_bitrate: DataRate::Zero(),
             prev_state: BandwidthUsage::Normal,
 

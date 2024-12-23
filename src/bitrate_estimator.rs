@@ -10,6 +10,48 @@
 
 use crate::api::units::{DataRate, DataSize, TimeDelta, Timestamp};
 
+// WebRTC-BweThroughputWindowConfig
+pub struct BitrateEstimatorConfig {
+    pub initial_window_ms: i64,
+    pub window_ms: i64,
+    pub scale: f64,
+    pub scale_alr: f64,
+    pub scale_small: f64,
+    pub small_thresh: DataSize,
+    pub symmetry_cap: DataRate,
+    pub floor: DataRate,
+}
+
+impl BitrateEstimatorConfig {
+    const InitialRateWindowMs: i64= 500;
+    const RateWindowMs : i64= 150;
+    const MinRateWindowMs: i64= 150;
+    const MaxRateWindowMs: i64 = 1000;
+
+}
+
+impl Default for BitrateEstimatorConfig {
+    fn default() -> Self {
+        Self {
+            initial_window_ms: Self::InitialRateWindowMs,
+            window_ms: Self::RateWindowMs,
+            scale: 10.0,
+            scale_alr: 10.0, // scale
+            scale_small: 10.0, // scale
+            small_thresh: DataSize::Zero(),
+            symmetry_cap: DataRate::Zero(),
+            floor: DataRate::Zero(),
+        }
+    }
+}
+
+impl BitrateEstimatorConfig {
+    pub fn validate(&mut self) {
+        self.initial_window_ms = self.initial_window_ms.clamp(Self::MaxRateWindowMs, Self::MaxRateWindowMs);
+        self.window_ms = self.window_ms.clamp(Self::MinRateWindowMs, Self::MaxRateWindowMs);
+    }
+}
+
 // Computes a bayesian estimate of the throughput given acks containing
 // the arrival time and payload size. Samples which are far from the current
 // estimate or are based on few packets are given a smaller weight, as they
@@ -33,30 +75,30 @@ pub struct BitrateEstimator {
 
 impl Default for BitrateEstimator {
     fn default() -> Self {
+        Self::new(BitrateEstimatorConfig::default())
+    }
+}
+
+impl BitrateEstimator {
+    pub fn new(mut config: BitrateEstimatorConfig) -> Self {
+        config.validate();
         Self {
             sum: 0,
-            initial_window_ms: InitialRateWindowMs,
-            noninitial_window_ms: RateWindowMs,
-            uncertainty_scale: 10.0,
-            uncertainty_scale_in_alr: 10.0,
-            small_sample_uncertainty_scale: 10.0,
-            small_sample_threshold: DataSize::Zero(),
-            uncertainty_symmetry_cap: DataRate::Zero(),
-            estimate_floor: DataRate::Zero(),
+            initial_window_ms: config.initial_window_ms,
+            noninitial_window_ms: config.window_ms,
+            uncertainty_scale: config.scale,
+            uncertainty_scale_in_alr: config.scale_alr,
+            small_sample_uncertainty_scale: config.scale_small,
+            small_sample_threshold: config.small_thresh,
+            uncertainty_symmetry_cap: config.symmetry_cap,
+            estimate_floor: config.floor,
             current_window_ms: 0,
             prev_time_ms: -1,
             bitrate_estimate_kbps: -1.0,
             bitrate_estimate_var: 50.0,
         }
     }
-}
 
-const InitialRateWindowMs: i64 = 500;
-const RateWindowMs: i64 = 150;
-//const MinRateWindowMs: i64 = 150;
-//const MaxRateWindowMs: i64 = 1000;
-
-impl BitrateEstimator {
     pub fn Update(&mut self, at_time: Timestamp, amount: DataSize, in_alr: bool) {
         let mut rate_window_ms: i64 = self.noninitial_window_ms;
         // We use a larger window at the beginning to get a more stable sample that

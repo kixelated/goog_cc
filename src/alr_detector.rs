@@ -8,8 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use crate::{pacing::IntervalBudget, rtc};
+use crate::{experiments::AlrExperimentSettings, pacing::IntervalBudget, rtc, FieldTrials};
 
+
+#[derive(Clone, Debug)]
 pub struct AlrDetectorConfig {
     // Sent traffic ratio as a function of network capacity used to determine
     // application-limited region. ALR region start when bandwidth usage drops
@@ -23,10 +25,13 @@ pub struct AlrDetectorConfig {
 
 impl Default for AlrDetectorConfig {
     fn default() -> Self {
+        // The ALR experiment seems hard-coded on.
+        // TODO Technically, WebRTC-AlrDetectorParameters could override these values.
+      let settings = AlrExperimentSettings::default();
         Self {
-            bandwidth_usage_ratio: 0.65,
-            start_budget_level_ratio: 0.80,
-            stop_budget_level_ratio: 0.50,
+            bandwidth_usage_ratio: settings.alr_bandwidth_usage_percent as f64 / 100.0,
+            start_budget_level_ratio: settings.alr_start_budget_level_percent as f64 / 100.0,
+            stop_budget_level_ratio: settings.alr_stop_budget_level_percent as f64 / 100.0,
         }
     }
 }
@@ -45,6 +50,12 @@ pub struct AlrDetector {
 
     alr_budget: IntervalBudget,
     alr_started_time_ms: Option<i64>,
+}
+
+impl Default for AlrDetector {
+    fn default() -> Self {
+        Self::new(AlrDetectorConfig::default())
+    }
 }
 
 impl AlrDetector {
@@ -96,12 +107,6 @@ impl AlrDetector {
     // started or empty result if the sender is currently not application-limited.
     pub fn GetApplicationLimitedRegionStartTime(&self) -> Option<i64> {
         self.alr_started_time_ms
-    }
-}
-
-impl Default for AlrDetector {
-    fn default() -> Self {
-        Self::new(AlrDetectorConfig::default())
     }
 }
 

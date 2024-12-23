@@ -12,7 +12,8 @@ use std::collections::VecDeque;
 
 use crate::{api::transport::BandwidthUsage, DelayIncreaseDetectorInterface};
 
-#[derive(Debug)]
+// WebRTC-Bwe-TrendlineEstimatorSettings
+#[derive(Debug, Clone)]
 pub struct TrendlineEstimatorSettings {
     // Sort the packets in the window. Should be redundant,
     // but then almost no cost.
@@ -28,6 +29,38 @@ pub struct TrendlineEstimatorSettings {
     // Size (in packets) of the window.
     pub window_size: usize,
 }
+
+impl TrendlineEstimatorSettings {
+    const DefaultTrendlineWindowSize: usize = 20;
+
+    pub fn validate(&mut self) {
+        if (self.window_size < 10 || 200 < self.window_size) {
+            tracing::warn!("Window size must be between 10 and 200 packets");
+            self.window_size = Self::DefaultTrendlineWindowSize;
+          }
+          if (self.enable_cap) {
+            if (self.beginning_packets < 1 || self.end_packets < 1 ||
+                self.beginning_packets > self.window_size || self.end_packets > self.window_size) {
+                    tracing::warn!("Size of beginning and end must be between 1 and {}", self.window_size);
+              self.enable_cap = false;
+              self.beginning_packets = 0;
+              self.end_packets = 0;
+              self.cap_uncertainty = 0.0;
+            }
+            if (self.beginning_packets + self.end_packets > self.window_size) {
+                tracing::warn!("Size of beginning plus end can't exceed the window size");
+              self.enable_cap = false;
+              self.beginning_packets = 0;
+              self.end_packets = 0;
+              self.cap_uncertainty = 0.0;
+            }
+            if (self.cap_uncertainty < 0.0 || 0.025 < self.cap_uncertainty) {
+              tracing::warn!("Cap uncertainty must be between 0 and 0.025");
+              self.cap_uncertainty = 0.0;
+            }
+          }
+        }
+    }
 
 impl Default for TrendlineEstimatorSettings {
     fn default() -> Self {
@@ -169,7 +202,9 @@ impl TrendlineEstimator {
     const MinNumDeltas: isize = 60;
     const DeltaCounterMax: isize = 1000;
 
-    pub fn new(settings: TrendlineEstimatorSettings) -> Self {
+    pub fn new(mut settings: TrendlineEstimatorSettings) -> Self {
+        settings.validate();
+
         tracing::info!("Using Trendline filter for delay change estimation with settings {:?} and no network state predictor", settings);
         Self {
             settings,
