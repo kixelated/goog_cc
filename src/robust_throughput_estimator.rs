@@ -120,6 +120,7 @@ impl Default for RobustThroughputEstimator {
 impl RobustThroughputEstimator {
     pub fn new(mut settings: RobustThroughputEstimatorSettings) -> Self {
         settings.validate();
+
         Self {
             settings,
             window: VecDeque::new(),

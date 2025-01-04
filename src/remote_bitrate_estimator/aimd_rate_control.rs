@@ -12,9 +12,7 @@ use crate::{
     api::{
         transport::{BandwidthUsage, NetworkStateEstimate},
         units::{DataRate, DataSize, TimeDelta, Timestamp},
-    },
-    remote_bitrate_estimator::BitrateWindow,
-    LinkCapacityEstimator,
+    }, remote_bitrate_estimator::BitrateWindow, FieldTrials, LinkCapacityEstimator
 };
 
 use super::{CongestionControllerMinBitrate, RateControlInput};
@@ -136,9 +134,13 @@ impl AimdRateControl {
     const DefaultRtt: TimeDelta = TimeDelta::Millis(200);
     const DefaultBackoffFactor: f64 = 0.85;
 
-    pub fn new(send_side: bool) -> Self {
+    pub fn new(field_trials: &FieldTrials, send_side: bool) -> Self {
         Self {
             send_side,
+            beta: field_trials.bwe_back_off_factor.backoff_factor,
+            no_bitrate_increase_in_alr: field_trials.no_bitrate_increase_in_alr,
+            use_current_estimate_as_min_upper_bound: field_trials.estimate_bounded_increase.use_current_estimate_as_min_upper_bound,
+            disable_estimate_bounded_increase: field_trials.estimate_bounded_increase.disable_estimate_bounded_increase,
             ..Default::default()
         }
     }
@@ -689,8 +691,11 @@ mod test {
         // bwe since there will be no feedback from the network if the new estimate
         // is correct.
         // WebRTC-DontIncreaseDelayBasedBweInAlr/Enabled/
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
-        aimd_rate_control.no_bitrate_increase_in_alr = true;
+        let field_trials = FieldTrials {
+            no_bitrate_increase_in_alr: true,
+            ..Default::default()
+        };
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials, true);
         let mut now: Timestamp = InitialTime;
         const InitialBitrate: DataRate = DataRate::BitsPerSec(123_000);
         aimd_rate_control.SetEstimate(InitialBitrate, now);
@@ -710,9 +715,11 @@ mod test {
 
     #[test]
     fn SetEstimateIncreaseBweInAlr() {
-        // "WebRTC-DontIncreaseDelayBasedBweInAlr/Enabled/"
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
-        aimd_rate_control.no_bitrate_increase_in_alr = true;
+        let field_trials = FieldTrials {
+            no_bitrate_increase_in_alr: true,
+            ..Default::default()
+        };
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials, true);
 
         const InitialBitrate: DataRate = DataRate::BitsPerSec(123_000);
         aimd_rate_control.SetEstimate(InitialBitrate, InitialTime);
@@ -724,7 +731,8 @@ mod test {
 
     #[test]
     fn SetEstimateUpperLimitedByNetworkEstimate() {
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
+        let field_trials = Default::default();
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials,  true);
         aimd_rate_control.SetEstimate(DataRate::BitsPerSec(300_000), InitialTime);
         let mut network_estimate = NetworkStateEstimate::default();
         network_estimate.link_capacity_upper = DataRate::BitsPerSec(400_000);
@@ -738,7 +746,8 @@ mod test {
 
     #[test]
     fn SetEstimateDefaultUpperLimitedByCurrentBitrateIfNetworkEstimateIsLow() {
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
+        let field_trials = Default::default();
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials,  true);
         aimd_rate_control.SetEstimate(DataRate::BitsPerSec(500_000), InitialTime);
         assert_eq!(
             aimd_rate_control.LatestEstimate(),
@@ -758,8 +767,14 @@ mod test {
     #[test]
     fn SetEstimateNotUpperLimitedByCurrentBitrateIfNetworkEstimateIsLowIf() {
         // WebRTC-Bwe-EstimateBoundedIncrease/c_upper:false/
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
-        aimd_rate_control.use_current_estimate_as_min_upper_bound = false;
+        let field_trials = FieldTrials {
+            estimate_bounded_increase: EstimateBoundedIncrease {
+                use_current_estimate_as_min_upper_bound: false,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials,  true);
 
         aimd_rate_control.SetEstimate(DataRate::BitsPerSec(500_000), InitialTime);
         assert_eq!(
@@ -779,7 +794,8 @@ mod test {
 
     #[test]
     fn SetEstimateLowerLimitedByNetworkEstimate() {
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
+        let field_trials = Default::default();
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials,  true);
         let mut network_estimate = NetworkStateEstimate::default();
         network_estimate.link_capacity_lower = DataRate::BitsPerSec(400_000);
         aimd_rate_control.SetNetworkStateEstimate(Some(network_estimate));
@@ -793,7 +809,8 @@ mod test {
 
     #[test]
     fn SetEstimateIgnoredIfLowerThanNetworkEstimateAndCurrent() {
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
+        let field_trials = Default::default();
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials,  true);
         aimd_rate_control.SetEstimate(DataRate::KilobitsPerSec(200), InitialTime);
         assert_eq!(aimd_rate_control.LatestEstimate().kbps(), 200);
         let mut network_estimate = NetworkStateEstimate::default();
@@ -810,7 +827,11 @@ mod test {
         // Allow the estimate to increase as long as alr is not detected to ensure
         // tha BWE can not get stuck at a certain bitrate.
         // WebRTC-DontIncreaseDelayBasedBweInAlr/Enabled/
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
+        let field_trials = FieldTrials {
+            no_bitrate_increase_in_alr: true,
+            ..Default::default()
+        };
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials,  true);
         aimd_rate_control.no_bitrate_increase_in_alr = true;
         let mut now: Timestamp = InitialTime;
         const InitialBitrate: DataRate = DataRate::BitsPerSec(123_000);
@@ -830,7 +851,14 @@ mod test {
     #[test]
     fn EstimateNotLimitedByNetworkEstimateIfDisabled() {
         // WebRTC-Bwe-EstimateBoundedIncrease/Disabled/
-        let mut aimd_rate_control = AimdRateControl::new(/*send_side=*/ true);
+        let field_trials = FieldTrials {
+            estimate_bounded_increase: EstimateBoundedIncrease {
+                disable_estimate_bounded_increase: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut aimd_rate_control = AimdRateControl::new(&field_trials,  true);
         aimd_rate_control.disable_estimate_bounded_increase = true;
 
         let mut now: Timestamp = InitialTime;
