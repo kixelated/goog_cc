@@ -34,15 +34,15 @@ impl TrendlineEstimatorSettings {
     const DefaultTrendlineWindowSize: usize = 20;
 
     pub fn validate(&mut self) {
-        if (self.window_size < 10 || 200 < self.window_size) {
+        if self.window_size < 10 || 200 < self.window_size {
             tracing::warn!("Window size must be between 10 and 200 packets");
             self.window_size = Self::DefaultTrendlineWindowSize;
         }
-        if (self.enable_cap) {
-            if (self.beginning_packets < 1
+        if self.enable_cap {
+            if self.beginning_packets < 1
                 || self.end_packets < 1
                 || self.beginning_packets > self.window_size
-                || self.end_packets > self.window_size)
+                || self.end_packets > self.window_size
             {
                 tracing::warn!(
                     "Size of beginning and end must be between 1 and {}",
@@ -53,14 +53,14 @@ impl TrendlineEstimatorSettings {
                 self.end_packets = 0;
                 self.cap_uncertainty = 0.0;
             }
-            if (self.beginning_packets + self.end_packets > self.window_size) {
+            if self.beginning_packets + self.end_packets > self.window_size {
                 tracing::warn!("Size of beginning plus end can't exceed the window size");
                 self.enable_cap = false;
                 self.beginning_packets = 0;
                 self.end_packets = 0;
                 self.cap_uncertainty = 0.0;
             }
-            if (self.cap_uncertainty < 0.0 || 0.025 < self.cap_uncertainty) {
+            if self.cap_uncertainty < 0.0 || 0.025 < self.cap_uncertainty {
                 tracing::warn!("Cap uncertainty must be between 0 and 0.025");
                 self.cap_uncertainty = 0.0;
             }

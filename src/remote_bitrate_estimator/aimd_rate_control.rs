@@ -37,9 +37,9 @@ impl BweBackOffFactor {
     const DefaultBackoffFactor: f64 = 0.85;
 
     pub fn validate(&mut self) {
-        if (self.backoff_factor >= 1.0) {
+        if self.backoff_factor >= 1.0 {
             tracing::warn!("Back-off factor must be less than 1.");
-        } else if (self.backoff_factor <= 0.0) {
+        } else if self.backoff_factor <= 0.0 {
             tracing::warn!("Back-off factor must be greater than 0.");
         } else {
             return;

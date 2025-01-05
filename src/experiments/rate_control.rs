@@ -99,34 +99,34 @@ impl RateControlSettings {
         self.congestion_window_config.queue_size_ms
     }
     pub fn UseCongestionWindowPushback(&self) -> bool {
-        return self.congestion_window_config.queue_size_ms > 0
-            && self.congestion_window_config.min_bitrate_bps > 0;
+        self.congestion_window_config.queue_size_ms > 0
+            && self.congestion_window_config.min_bitrate_bps > 0
     }
     pub fn UseCongestionWindowDropFrameOnly(&self) -> bool {
-        return self.congestion_window_config.drop_frame_only;
+        self.congestion_window_config.drop_frame_only
     }
     pub fn CongestionWindowMinPushbackTargetBitrateBps(&self) -> u32 {
-        return self.congestion_window_config.min_bitrate_bps as _;
+        self.congestion_window_config.min_bitrate_bps as _
     }
     pub fn CongestionWindowInitialDataWindow(&self) -> Option<DataSize> {
-        return self.congestion_window_config.initial_data_window;
+        self.congestion_window_config.initial_data_window
     }
 
     pub fn GetPacingFactor(&self) -> Option<f64> {
-        return self.video_config.pacing_factor;
+        self.video_config.pacing_factor
     }
     pub fn UseAlrProbing(&self) -> bool {
-        return self.video_config.alr_probing;
+        self.video_config.alr_probing
     }
 
     pub fn LibvpxVp8QpMax(&self) -> Option<i64> {
         if let Some(vp8_qp_max) = self.video_config.vp8_qp_max {
-            if vp8_qp_max < 0 || vp8_qp_max > 63 {
+            if !(0..=63).contains(&vp8_qp_max) {
                 tracing::warn!("Unsupported vp8_qp_max_ value, ignored.");
                 return None;
             }
         }
-        return self.video_config.vp8_qp_max;
+        self.video_config.vp8_qp_max
     }
     pub fn LibvpxVp8MinPixels(&self) -> Option<i64> {
         if let Some(vp8_min_pixels) = self.video_config.vp8_min_pixels {
@@ -135,32 +135,32 @@ impl RateControlSettings {
                 return None;
             }
         }
-        return self.video_config.vp8_min_pixels;
+        self.video_config.vp8_min_pixels
     }
     pub fn LibvpxVp8TrustedRateController(&self) -> bool {
-        return self.video_config.trust_vp8;
+        self.video_config.trust_vp8
     }
     pub fn Vp8BoostBaseLayerQuality(&self) -> bool {
-        return self.video_config.vp8_s0_boost;
+        self.video_config.vp8_s0_boost
     }
     pub fn Vp8DynamicRateSettings(&self) -> bool {
         todo!();
     }
     pub fn LibvpxVp9TrustedRateController(&self) -> bool {
-        return self.video_config.trust_vp9;
+        self.video_config.trust_vp9
     }
     pub fn Vp9DynamicRateSettings(&self) -> bool {
         todo!();
     }
 
     pub fn Vp8BaseHeavyTl3RateAllocation(&self) -> bool {
-        return self.video_config.vp8_base_heavy_tl3_alloc;
+        self.video_config.vp8_base_heavy_tl3_alloc
     }
 
     pub fn UseEncoderBitrateAdjuster(&self) -> bool {
-        return self.video_config.bitrate_adjuster;
+        self.video_config.bitrate_adjuster
     }
     pub fn BitrateAdjusterCanUseNetworkHeadroom(&self) -> bool {
-        return self.video_config.adjuster_use_headroom;
+        self.video_config.adjuster_use_headroom
     }
 }
