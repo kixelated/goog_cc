@@ -43,7 +43,7 @@ fn IsValid(datarate: DataRate) -> bool {
 }
 
 fn IsValid(datarate: Option<DataRate>) -> bool {
-  return datarate.is_some() && IsValid(datarate.value());
+  return datarate.is_some() && IsValid(datarate.unwrap());
 }
 
 fn IsValid(timestamp: Timestamp) -> bool {
@@ -1101,7 +1101,7 @@ fn CalculateInstantLowerBound(&self /* LossBasedBweV2 */) {
   if (IsValid(self.acknowledged_bitrate) &&
       self.config.lower_bound_by_acked_rate_factor > 0.0) {
     instance_lower_bound = self.config.lower_bound_by_acked_rate_factor *
-                           self.acknowledged_bitrate.value();
+                           self.acknowledged_bitrate.unwrap();
   }
 
   if (IsValid(self.min_bitrate)) {

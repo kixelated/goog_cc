@@ -262,7 +262,7 @@ impl AimdRateControl {
         // Approximate the over-use estimator delay to 100 ms.
         let mut response_time: TimeDelta = self.rtt + TimeDelta::Millis(100);
 
-        response_time = response_time * 2;
+        response_time *= 2;
         let increase_rate_bps_per_second: f64 = (avg_packet_size / response_time).bps_float();
         const MinIncreaseRateBpsPerSecond: f64 = 4000.0;
         increase_rate_bps_per_second.max(MinIncreaseRateBpsPerSecond)

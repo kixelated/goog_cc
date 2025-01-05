@@ -339,6 +339,36 @@ macro_rules! relative_unit {
                 rhs * self
             }
         }
+
+        impl ::std::ops::MulAssign<i64> for $ty {
+            fn mul_assign(&mut self, rhs: i64) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl ::std::ops::MulAssign<i32> for $ty {
+            fn mul_assign(&mut self, rhs: i32) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl ::std::ops::MulAssign<usize> for $ty {
+            fn mul_assign(&mut self, rhs: usize) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl ::std::ops::MulAssign<f64> for $ty {
+            fn mul_assign(&mut self, rhs: f64) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl ::std::ops::MulAssign<f32> for $ty {
+            fn mul_assign(&mut self, rhs: f32) {
+                *self = *self * rhs;
+            }
+        }
     };
 }
 

@@ -9,9 +9,9 @@
  */
 
 use crate::api::{
-        transport::PacketResult,
-        units::{DataRate, Timestamp},
-    };
+    transport::PacketResult,
+    units::{DataRate, Timestamp},
+};
 
 pub trait AcknowledgedBitrateEstimatorInterface {
     fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]);

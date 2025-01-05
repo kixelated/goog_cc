@@ -487,8 +487,7 @@ impl NetworkControllerInterface for GoogCcNetworkController {
     fn OnProcessInterval(&mut self, msg: ProcessInterval) -> NetworkControlUpdate {
         let mut update = NetworkControlUpdate::default();
         if let Some(initial_config) = self.initial_config.clone() {
-            update.probe_cluster_configs =
-                self.ResetConstraints(initial_config.constraints);
+            update.probe_cluster_configs = self.ResetConstraints(initial_config.constraints);
             update.pacer_config = Some(self.GetPacingRates(msg.at_time));
 
             if let Some(requests_alr_probing) =
@@ -529,8 +528,7 @@ impl NetworkControllerInterface for GoogCcNetworkController {
         let mut probes = self.probe_controller.Process(msg.at_time);
         update.probe_cluster_configs.append(&mut probes);
 
-        if self.rate_control_settings.UseCongestionWindow() && !self.feedback_max_rtts.is_empty()
-        {
+        if self.rate_control_settings.UseCongestionWindow() && !self.feedback_max_rtts.is_empty() {
             self.UpdateCongestionWindowSize();
         }
 
@@ -819,7 +817,6 @@ impl NetworkControllerInterface for GoogCcNetworkController {
         let mut update = NetworkControlUpdate::default();
         let mut recovered_from_overuse: bool = false;
 
-        
         let result: DelayBasedBweResult = self.delay_based_bwe.IncomingPacketFeedbackVector(
             &report,
             acknowledged_bitrate,
@@ -885,8 +882,7 @@ fn GetBandwidthLimitedCause(
     is_rtt_above_limit: bool,
     bandwidth_usage: BandwidthUsage,
 ) -> BandwidthLimitedCause {
-    if bandwidth_usage == BandwidthUsage::Overusing
-        || bandwidth_usage == BandwidthUsage::Underusing
+    if bandwidth_usage == BandwidthUsage::Overusing || bandwidth_usage == BandwidthUsage::Underusing
     {
         return BandwidthLimitedCause::DelayBasedLimitedDelayIncreased;
     } else if is_rtt_above_limit {

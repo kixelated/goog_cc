@@ -75,6 +75,10 @@ pub struct LossBasedBandwidthEstimation {
 }
 
 impl LossBasedBandwidthEstimation {
+    // Expecting RTCP feedback to be sent with roughly 1s intervals, a 5s gap
+    // indicates a channel outage.
+    const MaxRtcpFeedbackInterval: TimeDelta = TimeDelta::Millis(5000);
+
     pub fn new(config: LossBasedControlConfig) -> Self {
         Self {
             config,
@@ -98,17 +102,81 @@ impl LossBasedBandwidthEstimation {
         wanted_bitrate: DataRate,
         last_round_trip_time: TimeDelta,
     ) -> DataRate {
-        todo!();
+        if self.loss_based_bitrate.IsZero() {
+            self.loss_based_bitrate = wanted_bitrate;
+        }
+
+        // Only increase if loss has been low for some time.
+        let loss_estimate_for_increase: f64 = self.average_loss_max;
+        // Avoid multiple decreases from averaging over one loss spike.
+        let loss_estimate_for_decrease: f64 = self.average_loss.min(self.last_loss_ratio);
+        let allow_decrease: bool = !self.has_decreased_since_last_loss_report
+            && (at_time - self.time_last_decrease
+                >= last_round_trip_time + self.config.decrease_interval);
+        // If packet lost reports are too old, dont increase bitrate.
+        let loss_report_valid: bool =
+            at_time - self.last_loss_packet_report < 1.2 * Self::MaxRtcpFeedbackInterval;
+
+        if loss_report_valid
+            && self.config.allow_resets
+            && loss_estimate_for_increase < self.loss_reset_threshold()
+        {
+            self.loss_based_bitrate = wanted_bitrate;
+        } else if loss_report_valid && loss_estimate_for_increase < self.loss_increase_threshold()
+        {
+            // Increase bitrate by RTT-adaptive ratio.
+            let new_increased_bitrate: DataRate = min_bitrate
+                * GetIncreaseFactor(&self.config, last_round_trip_time)
+                + self.config.increase_offset;
+            // The bitrate that would make the loss "just high enough".
+            let new_increased_bitrate_cap: DataRate = BitrateFromLoss(
+                loss_estimate_for_increase,
+                self.config.loss_bandwidth_balance_increase,
+                self.config.loss_bandwidth_balance_exponent,
+            );
+            let new_increased_bitrate =
+                std::cmp::min(new_increased_bitrate, new_increased_bitrate_cap);
+            self.loss_based_bitrate = std::cmp::max(new_increased_bitrate, self.loss_based_bitrate);
+        } else if loss_estimate_for_decrease > self.loss_decrease_threshold() && allow_decrease {
+            // The bitrate that would make the loss "just acceptable".
+            let new_decreased_bitrate_floor: DataRate = BitrateFromLoss(
+                loss_estimate_for_decrease,
+                self.config.loss_bandwidth_balance_decrease,
+                self.config.loss_bandwidth_balance_exponent,
+            );
+            let new_decreased_bitrate: DataRate =
+                std::cmp::max(self.decreased_bitrate(), new_decreased_bitrate_floor);
+            if new_decreased_bitrate < self.loss_based_bitrate {
+                self.time_last_decrease = at_time;
+                self.has_decreased_since_last_loss_report = true;
+                self.loss_based_bitrate = new_decreased_bitrate;
+            }
+        }
+        self.loss_based_bitrate
     }
     pub fn UpdateAcknowledgedBitrate(
         &mut self,
         acknowledged_bitrate: DataRate,
         at_time: Timestamp,
     ) {
-        todo!();
+        let time_passed: TimeDelta = if self.acknowledged_bitrate_last_update.IsFinite() {
+            at_time - self.acknowledged_bitrate_last_update
+        } else {
+            TimeDelta::Seconds(1)
+        };
+        self.acknowledged_bitrate_last_update = at_time;
+        if acknowledged_bitrate > self.acknowledged_bitrate_max {
+            self.acknowledged_bitrate_max = acknowledged_bitrate;
+        } else {
+            self.acknowledged_bitrate_max -=
+                ExponentialUpdate(self.config.acknowledged_rate_max_window, time_passed)
+                    * (self.acknowledged_bitrate_max - acknowledged_bitrate);
+        }
     }
     pub fn Initialize(&mut self, bitrate: DataRate) {
-        todo!();
+        self.loss_based_bitrate = bitrate;
+        self.average_loss = 0.0;
+        self.average_loss_max = 0.0;
     }
     pub fn Enabled(&self) -> bool {
         self.config.enabled
@@ -119,26 +187,104 @@ impl LossBasedBandwidthEstimation {
         self.Enabled() && self.last_loss_packet_report.IsFinite()
     }
     pub fn UpdateLossStatistics(&mut self, packet_results: &[PacketResult], at_time: Timestamp) {
-        todo!();
+        if packet_results.is_empty() {
+            unreachable!();
+            return;
+        }
+        let mut loss_count: isize = 0;
+        for pkt in packet_results {
+            loss_count += if !pkt.IsReceived() { 1 } else { 0 };
+        }
+        self.last_loss_ratio = (loss_count) as f64 / packet_results.len() as f64;
+        let time_passed: TimeDelta = if self.last_loss_packet_report.IsFinite() {
+            at_time - self.last_loss_packet_report
+        } else {
+            TimeDelta::Seconds(1)
+        };
+        self.last_loss_packet_report = at_time;
+        self.has_decreased_since_last_loss_report = false;
+
+        self.average_loss += ExponentialUpdate(self.config.loss_window, time_passed)
+            * (self.last_loss_ratio - self.average_loss);
+        if self.average_loss > self.average_loss_max {
+            self.average_loss_max = self.average_loss;
+        } else {
+            self.average_loss_max += ExponentialUpdate(self.config.loss_max_window, time_passed)
+                * (self.average_loss - self.average_loss_max);
+        }
     }
     pub fn GetEstimate(&self) -> DataRate {
         self.loss_based_bitrate
     }
 
-    fn Reset(&mut self, bitrate: DataRate) {
-        todo!();
-    }
     fn loss_increase_threshold(&self) -> f64 {
-        todo!();
+        LossFromBitrate(
+            self.loss_based_bitrate,
+            self.config.loss_bandwidth_balance_increase,
+            self.config.loss_bandwidth_balance_exponent,
+        )
     }
     fn loss_decrease_threshold(&self) -> f64 {
-        todo!();
+        LossFromBitrate(
+            self.loss_based_bitrate,
+            self.config.loss_bandwidth_balance_decrease,
+            self.config.loss_bandwidth_balance_exponent,
+        )
     }
     fn loss_reset_threshold(&self) -> f64 {
-        todo!();
+        LossFromBitrate(
+            self.loss_based_bitrate,
+            self.config.loss_bandwidth_balance_reset,
+            self.config.loss_bandwidth_balance_exponent,
+        )
     }
 
     fn decreased_bitrate(&self) -> DataRate {
-        todo!();
+        self.config.decrease_factor * self.acknowledged_bitrate_max
     }
+}
+
+// Increase slower when RTT is high.
+fn GetIncreaseFactor(config: &LossBasedControlConfig, mut rtt: TimeDelta) -> f64 {
+    // Clamp the RTT
+    if rtt < config.increase_low_rtt {
+        rtt = config.increase_low_rtt;
+    } else if rtt > config.increase_high_rtt {
+        rtt = config.increase_high_rtt;
+    }
+    let rtt_range = config.increase_high_rtt - config.increase_low_rtt;
+    if rtt_range <= TimeDelta::Zero() {
+        unreachable!(); // Only on misconfiguration.
+    }
+    let rtt_offset = rtt - config.increase_low_rtt;
+    let relative_offset = (rtt_offset / rtt_range).min(1.0).max(0.0);
+    let factor_range = config.max_increase_factor - config.min_increase_factor;
+    config.min_increase_factor + (1.0 - relative_offset) * factor_range
+}
+
+fn LossFromBitrate(bitrate: DataRate, loss_bandwidth_balance: DataRate, exponent: f64) -> f64 {
+    if loss_bandwidth_balance >= bitrate {
+        return 1.0;
+    }
+    (loss_bandwidth_balance / bitrate).powf(exponent)
+}
+
+fn BitrateFromLoss(loss: f64, loss_bandwidth_balance: DataRate, exponent: f64) -> DataRate {
+    if exponent <= 0.0 {
+        unreachable!();
+    }
+    if loss < 1e-5 {
+        return DataRate::Infinity();
+    }
+    loss_bandwidth_balance * loss.powf(-1.0 / exponent)
+}
+
+fn ExponentialUpdate(window: TimeDelta, interval: TimeDelta) -> f64 {
+    // Use the convention that exponential window length (which is really
+    // infinite) is the time it takes to dampen to 1/e.
+    if window <= TimeDelta::Zero() {
+        unreachable!();
+    }
+
+    1.0 - (interval / window * -1.0).exp()
 }

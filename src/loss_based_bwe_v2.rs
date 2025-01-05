@@ -247,8 +247,7 @@ impl LossBasedBweV2Config {
             tracing::warn!("The inherent loss upper bound must be greater than or equal to the inherent loss lower bound, which is {}, and less than 1: {}", self.inherent_loss_lower_bound, self.inherent_loss_upper_bound_offset);
             valid = false;
         }
-        if self.initial_inherent_loss_estimate < 0.0 || self.initial_inherent_loss_estimate >= 1.0
-        {
+        if self.initial_inherent_loss_estimate < 0.0 || self.initial_inherent_loss_estimate >= 1.0 {
             tracing::warn!(
                 "The initial inherent loss estimate must be in [0, 1): {}",
                 self.initial_inherent_loss_estimate
@@ -306,8 +305,7 @@ impl LossBasedBweV2Config {
             );
             valid = false;
         }
-        if self.instant_upper_bound_loss_offset < 0.0
-            || self.instant_upper_bound_loss_offset >= 1.0
+        if self.instant_upper_bound_loss_offset < 0.0 || self.instant_upper_bound_loss_offset >= 1.0
         {
             tracing::warn!(
                 "The instant upper bound loss offset must be in [0, 1): {}",

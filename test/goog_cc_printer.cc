@@ -43,7 +43,7 @@ fn WriteTypedValue(RtcEventLogOutput* out, f64 value) {
   LogWriteFormat(out, "%.6f", value);
 }
 fn WriteTypedValue(RtcEventLogOutput* out, value: Option<DataRate>) {
-  LogWriteFormat(out, "%.0f", value ? value.bytes_per_sec<f64>() : NAN);
+  LogWriteFormat(out, "%.0f", value ? value.bytes_per_sec_float() : NAN);
 }
 fn WriteTypedValue(RtcEventLogOutput* out, Option<DataSize> value) {
   LogWriteFormat(out, "%.0f", value ? value.bytes<f64>() : NAN);
@@ -166,8 +166,8 @@ fn PrintState(&self /* GoogCcStatePrinter */,RtcEventLogOutput* log,
                                     at_time: Timestamp) {
   self.controller = controller;
 let state_update = self.controller.GetNetworkState(at_time);
-  self.target = state_update.target_rate.value();
-  self.pacing = state_update.pacer_config.value();
+  self.target = state_update.target_rate.unwrap();
+  self.pacing = state_update.pacer_config.unwrap();
   if (state_update.congestion_window)
     self.congestion_window = *state_update.congestion_window;
   if (self.controller.self.network_estimator) {
