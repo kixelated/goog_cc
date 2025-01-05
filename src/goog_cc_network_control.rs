@@ -147,7 +147,7 @@ impl GoogCcNetworkController {
                 .UseCongestionWindowPushback()
                 .then(|| CongestionWindowPushbackController::new(&field_trials)),
             rate_control_settings,
-            bandwidth_estimation: SendSideBandwidthEstimation::new(&field_trials),
+            bandwidth_estimation: SendSideBandwidthEstimation::new(field_trials.clone()),
             alr_detector: AlrDetector::new(field_trials.alr_detector_parameters.clone()),
             probe_bitrate_estimator: ProbeBitrateEstimator::default(),
             delay_based_bwe,

@@ -1,7 +1,7 @@
 use crate::{
     experiments::{AlrExperimentSettings, CongestionWindowConfig, VideoRateControlConfig},
     remote_bitrate_estimator::{BweBackOffFactor, EstimateBoundedIncrease},
-    AlrDetectorConfig, BitrateEstimatorConfig, BweSeparateAudioPacketsSettings,
+    AlrDetectorConfig, BitrateEstimatorConfig, BweLossExperiment, BweSeparateAudioPacketsSettings,
     LossBasedBweV2Config, LossBasedControlConfig, ProbeControllerConfig,
     RobustThroughputEstimatorSettings, RttBasedBackoffConfig, SafeResetOnRouteChange,
     TrendlineEstimatorSettings,
@@ -86,6 +86,12 @@ pub struct FieldTrials {
 
     // WebRTC-BweThroughputWindowConfig
     pub bwe_throughput_window_config: BitrateEstimatorConfig,
+
+    // WebRTC-BweLossExperiment
+    pub loss_experiment: BweLossExperiment,
+
+    // WebRTC-Bwe-ReceiverLimitCapsOnly
+    pub receiver_limit_caps_only: bool,
 }
 
 impl FieldTrials {

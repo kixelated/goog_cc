@@ -122,8 +122,7 @@ impl LossBasedBandwidthEstimation {
             && loss_estimate_for_increase < self.loss_reset_threshold()
         {
             self.loss_based_bitrate = wanted_bitrate;
-        } else if loss_report_valid && loss_estimate_for_increase < self.loss_increase_threshold()
-        {
+        } else if loss_report_valid && loss_estimate_for_increase < self.loss_increase_threshold() {
             // Increase bitrate by RTT-adaptive ratio.
             let new_increased_bitrate: DataRate = min_bitrate
                 * GetIncreaseFactor(&self.config, last_round_trip_time)
