@@ -10,9 +10,11 @@
 
 use crate::{
     api::{
-        transport::{BandwidthUsage, NetworkStateEstimate, PacketResult, TransportPacketsFeedback},
+        transport::{BandwidthUsage, PacketResult, TransportPacketsFeedback},
         units::{DataRate, DataSize, TimeDelta, Timestamp},
-    }, remote_bitrate_estimator::{AimdRateControl, RateControlInput}, DelayIncreaseDetectorInterface, FieldTrials, InterArrivalDelta, TrendlineEstimator
+    },
+    remote_bitrate_estimator::{AimdRateControl, RateControlInput},
+    DelayIncreaseDetectorInterface, FieldTrials, InterArrivalDelta, TrendlineEstimator,
 };
 
 // WebRTC-Bwe-SeparateAudioPackets
@@ -92,14 +94,17 @@ impl DelayBasedBwe {
     const FixedSsrc: u32 = 0;
 
     pub fn new(field_trials: &FieldTrials) -> Self {
-
         tracing::info!("Initialized DelayBasedBwe with separate audio overuse detection");
         Self {
             separate_audio: field_trials.separate_audio_packets.clone(),
             audio_packets_since_last_video: 0,
             last_video_packet_recv_time: Timestamp::MinusInfinity(),
-            video_delay_detector: TrendlineEstimator::new(field_trials.trendline_estimator_settings.clone()),
-            audio_delay_detector: TrendlineEstimator::new(field_trials.trendline_estimator_settings.clone()),
+            video_delay_detector: TrendlineEstimator::new(
+                field_trials.trendline_estimator_settings.clone(),
+            ),
+            audio_delay_detector: TrendlineEstimator::new(
+                field_trials.trendline_estimator_settings.clone(),
+            ),
             active_delay_detector_type: DelayDetector::Video,
             last_seen_packet: Timestamp::MinusInfinity(),
             uma_recorded: false,
@@ -125,7 +130,7 @@ impl DelayBasedBwe {
         msg: &TransportPacketsFeedback,
         acked_bitrate: Option<DataRate>,
         probe_bitrate: Option<DataRate>,
-        network_estimate: Option<NetworkStateEstimate>,
+        //network_estimate: Option<NetworkStateEstimate>,
         in_alr: bool,
     ) -> DelayBasedBweResult {
         let packet_feedback_vector = msg.SortedByReceiveTime();
@@ -160,11 +165,11 @@ impl DelayBasedBwe {
             return DelayBasedBweResult::default();
         }
         self.rate_control.SetInApplicationLimitedRegion(in_alr);
-        self.rate_control.SetNetworkStateEstimate(network_estimate);
+        //self.rate_control.SetNetworkStateEstimate(network_estimate);
         self.MaybeUpdateEstimate(
             acked_bitrate,
             probe_bitrate,
-            network_estimate,
+            //network_estimate,
             recovered_from_overuse,
             in_alr,
             msg.feedback_time,
@@ -298,7 +303,7 @@ impl DelayBasedBwe {
         &mut self,
         acked_bitrate: Option<DataRate>,
         probe_bitrate: Option<DataRate>,
-        _state_estimate: Option<NetworkStateEstimate>,
+        //_state_estimate: Option<NetworkStateEstimate>,
         recovered_from_overuse: bool,
         _in_alr: bool,
         at_time: Timestamp,

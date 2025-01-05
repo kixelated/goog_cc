@@ -10,7 +10,6 @@
 
 use crate::{experiments::AlrExperimentSettings, pacing::IntervalBudget, rtc, FieldTrials};
 
-
 #[derive(Clone, Debug)]
 pub struct AlrDetectorConfig {
     // Sent traffic ratio as a function of network capacity used to determine
@@ -27,7 +26,7 @@ impl Default for AlrDetectorConfig {
     fn default() -> Self {
         // The ALR experiment seems hard-coded on.
         // TODO Technically, WebRTC-AlrDetectorParameters could override these values.
-      let settings = AlrExperimentSettings::default();
+        let settings = AlrExperimentSettings::default();
         Self {
             bandwidth_usage_ratio: settings.alr_bandwidth_usage_percent as f64 / 100.0,
             start_budget_level_ratio: settings.alr_start_budget_level_percent as f64 / 100.0,

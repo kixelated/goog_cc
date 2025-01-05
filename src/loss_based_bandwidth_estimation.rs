@@ -15,23 +15,23 @@ use crate::api::{
 
 #[derive(Clone, Debug)]
 pub struct LossBasedControlConfig {
-    pub enabled: bool, // Enabled
-    pub min_increase_factor: f64, // min_incr
-    pub max_increase_factor: f64, // max_incr
-    pub increase_low_rtt: TimeDelta, // incr_low_rtt
-    pub increase_high_rtt: TimeDelta, // incr_high_rtt
-    pub decrease_factor: f64, // decr
-    pub loss_window: TimeDelta, // loss_win
-    pub loss_max_window: TimeDelta, // loss_max_win
-    pub acknowledged_rate_max_window: TimeDelta, // ackrate_max_win
-    pub increase_offset: DataRate, // incr_offset
+    pub enabled: bool,                             // Enabled
+    pub min_increase_factor: f64,                  // min_incr
+    pub max_increase_factor: f64,                  // max_incr
+    pub increase_low_rtt: TimeDelta,               // incr_low_rtt
+    pub increase_high_rtt: TimeDelta,              // incr_high_rtt
+    pub decrease_factor: f64,                      // decr
+    pub loss_window: TimeDelta,                    // loss_win
+    pub loss_max_window: TimeDelta,                // loss_max_win
+    pub acknowledged_rate_max_window: TimeDelta,   // ackrate_max_win
+    pub increase_offset: DataRate,                 // incr_offset
     pub loss_bandwidth_balance_increase: DataRate, // balance_incr
     pub loss_bandwidth_balance_decrease: DataRate, // balance_decr
-    pub loss_bandwidth_balance_reset: DataRate, // balance_reset
-    pub loss_bandwidth_balance_exponent: f64, // exponent
-    pub allow_resets: bool, // resets
-    pub decrease_interval: TimeDelta, // decr_intvl
-    pub loss_report_timeout: TimeDelta, // timeout
+    pub loss_bandwidth_balance_reset: DataRate,    // balance_reset
+    pub loss_bandwidth_balance_exponent: f64,      // exponent
+    pub allow_resets: bool,                        // resets
+    pub decrease_interval: TimeDelta,              // decr_intvl
+    pub loss_report_timeout: TimeDelta,            // timeout
 }
 
 impl Default for LossBasedControlConfig {

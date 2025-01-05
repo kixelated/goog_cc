@@ -10,7 +10,7 @@
 
 const fn IsNewer16(value: u16, prev_value: u16) -> bool {
     // kBreakpoint is the half-way mark for the type U. For instance, for a
-    // uint16_t it will be 0x8000, and for a uint32_t, it will be 0x8000000.
+    // u16 it will be 0x8000, and for a u32, it will be 0x8000000.
     const Breakpoint: u16 = (u16::MAX >> 1) + 1;
     // Distinguish between elements that are exactly kBreakpoint apart.
     // If t1>t2 and |t1-t2| = kBreakpoint: IsNewer(t1,t2)=true,
@@ -25,7 +25,7 @@ const fn IsNewer16(value: u16, prev_value: u16) -> bool {
 
 const fn IsNewer32(value: u32, prev_value: u32) -> bool {
     // kBreakpoint is the half-way mark for the type U. For instance, for a
-    // uint16_t it will be 0x8000, and for a uint32_t, it will be 0x8000000.
+    // u16 it will be 0x8000, and for a u32, it will be 0x8000000.
     const Breakpoint: u32 = (u32::MAX >> 1) + 1;
     // Distinguish between elements that are exactly kBreakpoint apart.
     // If t1>t2 and |t1-t2| = kBreakpoint: IsNewer(t1,t2)=true,

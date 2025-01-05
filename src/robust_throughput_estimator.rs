@@ -73,35 +73,39 @@ impl RobustThroughputEstimatorSettings {
         if (self.window_packets < 10 || 1000 < self.window_packets) {
             tracing::warn!("Window size must be between 10 and 1000 packets");
             self.window_packets = 20;
-          }
-          if (self.max_window_packets < 10 || 1000 < self.max_window_packets) {
+        }
+        if (self.max_window_packets < 10 || 1000 < self.max_window_packets) {
             tracing::warn!("Max window size must be between 10 and 1000 packets");
             self.max_window_packets = 500;
-          }
-          self.max_window_packets = self.max_window_packets.max(self.window_packets);
+        }
+        self.max_window_packets = self.max_window_packets.max(self.window_packets);
 
-          if self.required_packets < 10 || 1000 < self.required_packets {
-            tracing::warn!("Required number of initial packets must be between 10 and 1000 packets");
+        if self.required_packets < 10 || 1000 < self.required_packets {
+            tracing::warn!(
+                "Required number of initial packets must be between 10 and 1000 packets"
+            );
             self.required_packets = 10;
-          }
-          self.required_packets = self.required_packets.min(self.window_packets);
+        }
+        self.required_packets = self.required_packets.min(self.window_packets);
 
-          if (self.min_window_duration < TimeDelta::Millis(100) ||
-              TimeDelta::Millis(3000) < self.min_window_duration) {
+        if (self.min_window_duration < TimeDelta::Millis(100)
+            || TimeDelta::Millis(3000) < self.min_window_duration)
+        {
             tracing::warn!("Window duration must be between 100 and 3000 ms");
             self.min_window_duration = TimeDelta::Millis(750);
-          }
-          if (self.max_window_duration < TimeDelta::Seconds(1) ||
-              TimeDelta::Seconds(15) < self.max_window_duration) {
+        }
+        if (self.max_window_duration < TimeDelta::Seconds(1)
+            || TimeDelta::Seconds(15) < self.max_window_duration)
+        {
             tracing::warn!("Max window duration must be between 1 and 15 s");
             self.max_window_duration = TimeDelta::Seconds(5);
-          }
-          self.min_window_duration = self.min_window_duration.min(self.max_window_duration);
+        }
+        self.min_window_duration = self.min_window_duration.min(self.max_window_duration);
 
-          if (self.unacked_weight < 0.0 || 1.0 < self.unacked_weight) {
+        if (self.unacked_weight < 0.0 || 1.0 < self.unacked_weight) {
             tracing::warn!("Weight for prior unacked size must be between 0 and 1.");
             self.unacked_weight = 1.0;
-          }
+        }
     }
 }
 

@@ -8,6 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+use crate::FieldTrials;
+
 use super::{
     transport::*,
     units::{DataRate, TimeDelta},
@@ -24,8 +26,10 @@ pub trait TargetTransferRateObserver {
 
 // Configuration sent to factory create function. The parameters here are
 // optional to use for a network controller implementation.
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct NetworkControllerConfig {
+    pub field_trials: FieldTrials,
+
     // The initial constraints to start with, these can be changed at any later
     // time by calls to OnTargetRateConstraints. Note that the starting rate
     // has to be set initially to provide a starting state for the network
@@ -43,33 +47,31 @@ pub struct NetworkControllerConfig {
 // non-concurrent fashion.
 pub trait NetworkControllerInterface {
     // Called when network availabilty changes.
-    fn OnNetworkAvailability(&mut self, event: NetworkAvailability) -> NetworkControlUpdate;
+    fn OnNetworkAvailability(&mut self, msg: NetworkAvailability) -> NetworkControlUpdate;
     // Called when the receiving or sending endpoint changes address.
-    fn OnNetworkRouteChange(&mut self, event: NetworkRouteChange) -> NetworkControlUpdate;
+    fn OnNetworkRouteChange(&mut self, msg: NetworkRouteChange) -> NetworkControlUpdate;
     // Called periodically with a periodicy as specified by
     // NetworkControllerFactoryInterface::GetProcessInterval.
-    fn OnProcessInterval(&mut self, event: ProcessInterval) -> NetworkControlUpdate;
+    fn OnProcessInterval(&mut self, msg: ProcessInterval) -> NetworkControlUpdate;
     // Called when remotely calculated bitrate is received.
-    fn OnRemoteBitrateReport(&mut self, event: RemoteBitrateReport) -> NetworkControlUpdate;
+    fn OnRemoteBitrateReport(&mut self, msg: RemoteBitrateReport) -> NetworkControlUpdate;
     // Called round trip time has been calculated by protocol specific mechanisms.
-    fn OnRoundTripTimeUpdate(&mut self, event: RoundTripTimeUpdate) -> NetworkControlUpdate;
+    fn OnRoundTripTimeUpdate(&mut self, msg: RoundTripTimeUpdate) -> NetworkControlUpdate;
     // Called when a packet is sent on the network.
-    fn OnSentPacket(&mut self, event: SentPacket) -> NetworkControlUpdate;
+    fn OnSentPacket(&mut self, msg: SentPacket) -> NetworkControlUpdate;
     // Called when a packet is received from the remote client.
-    fn OnReceivedPacket(&mut self, event: ReceivedPacket) -> NetworkControlUpdate;
+    fn OnReceivedPacket(&mut self, msg: ReceivedPacket) -> NetworkControlUpdate;
     // Called when the stream specific configuration has been updated.
-    fn OnStreamsConfig(&mut self, event: StreamsConfig) -> NetworkControlUpdate;
+    fn OnStreamsConfig(&mut self, msg: StreamsConfig) -> NetworkControlUpdate;
     // Called when target transfer rate constraints has been changed.
-    fn OnTargetRateConstraints(&mut self, event: TargetRateConstraints) -> NetworkControlUpdate;
+    fn OnTargetRateConstraints(&mut self, msg: TargetRateConstraints) -> NetworkControlUpdate;
     // Called when a protocol specific calculation of packet loss has been made.
-    fn OnTransportLossReport(&mut self, event: TransportLossReport) -> NetworkControlUpdate;
+    fn OnTransportLossReport(&mut self, msg: TransportLossReport) -> NetworkControlUpdate;
     // Called with per packet feedback regarding receive time.
-    fn OnTransportPacketsFeedback(
-        &mut self,
-        event: TransportPacketsFeedback,
-    ) -> NetworkControlUpdate;
+    fn OnTransportPacketsFeedback(&mut self, msg: TransportPacketsFeedback)
+        -> NetworkControlUpdate;
     // Called with network state estimate updates.
-    fn OnNetworkStateEstimate(&mut self, event: NetworkStateEstimate) -> NetworkControlUpdate;
+    //fn OnNetworkStateEstimate(&mut self, msg: NetworkStateEstimate) -> NetworkControlUpdate;
 }
 
 // NetworkControllerFactoryInterface is an interface for creating a network
@@ -84,6 +86,7 @@ pub trait NetworkControllerFactoryInterface {
 }
 
 // Under development, subject to change without notice.
+/* Purposely removed because nothing implements it (except for secret Google stuff?)
 pub trait NetworkStateEstimator {
     // Gets the current best estimate according to the estimator.
     fn GetCurrentEstimate(&self) -> Option<NetworkStateEstimate>;
@@ -100,3 +103,4 @@ pub trait NetworkStateEstimator {
 pub trait NetworkStateEstimatorFactory {
     fn Create() -> impl NetworkStateEstimator;
 }
+*/

@@ -43,7 +43,8 @@ impl CongestionWindowPushbackController {
         let rate_control_settings = RateControlSettings::new(field_trials);
         Self {
             add_pacing: field_trials.add_pacing_to_congestion_window_pushback,
-            min_pushback_target_bitrate_bps: rate_control_settings.CongestionWindowMinPushbackTargetBitrateBps(),
+            min_pushback_target_bitrate_bps: rate_control_settings
+                .CongestionWindowMinPushbackTargetBitrateBps(),
             current_data_window: rate_control_settings.CongestionWindowInitialDataWindow(),
             outstanding_bytes: 0,
             pacing_bytes: 0,

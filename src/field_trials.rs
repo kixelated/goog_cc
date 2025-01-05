@@ -1,6 +1,13 @@
-use crate::{experiments::{AlrExperimentSettings, CongestionWindowConfig, VideoRateControlConfig}, remote_bitrate_estimator::{BweBackOffFactor, EstimateBoundedIncrease}, AlrDetectorConfig, BweSeparateAudioPacketsSettings, LossBasedBweV2Config, LossBasedControlConfig, ProbeControllerConfig, RobustThroughputEstimatorSettings, RttBasedBackoffConfig, TrendlineEstimatorSettings};
+use crate::{
+    experiments::{AlrExperimentSettings, CongestionWindowConfig, VideoRateControlConfig},
+    remote_bitrate_estimator::{BweBackOffFactor, EstimateBoundedIncrease},
+    AlrDetectorConfig, BitrateEstimatorConfig, BweSeparateAudioPacketsSettings,
+    LossBasedBweV2Config, LossBasedControlConfig, ProbeControllerConfig,
+    RobustThroughputEstimatorSettings, RttBasedBackoffConfig, SafeResetOnRouteChange,
+    TrendlineEstimatorSettings,
+};
 
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FieldTrials {
     // WebRTC-Bwe-RobustThroughputEstimatorSettings
     pub robust_throughput_estimator_settings: RobustThroughputEstimatorSettings,
@@ -58,6 +65,27 @@ pub struct FieldTrials {
 
     // WebRTC-Bwe-EstimateBoundedIncrease
     pub estimate_bounded_increase: EstimateBoundedIncrease,
+
+    // WebRTC-Bwe-MinAllocAsLowerBound
+    pub min_alloc_as_lower_bound: Option<bool>,
+
+    // WebRTC-Bwe-IgnoreProbesLowerThanNetworkStateEstimate
+    pub ignore_probes_lower_than_network_state_estimate: Option<bool>,
+
+    // WebRTC-Bwe-LimitProbesLowerThanThroughputEstimate
+    pub limit_probes_lower_than_throughput_estimate: Option<bool>,
+
+    // WebRTC-Bwe-PaceAtMaxOfBweAndLowerLinkCapacity
+    pub pace_at_max_of_bwe_and_lower_link_capacity: Option<bool>,
+
+    // WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate
+    pub limit_pacing_factor_by_upper_link_capacity_estimate: Option<bool>,
+
+    // WebRTC-Bwe-SafeResetOnRouteChange
+    pub safe_reset_on_route_change: SafeResetOnRouteChange,
+
+    // WebRTC-BweThroughputWindowConfig
+    pub bwe_throughput_window_config: BitrateEstimatorConfig,
 }
 
 impl FieldTrials {

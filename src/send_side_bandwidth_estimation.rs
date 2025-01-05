@@ -17,7 +17,7 @@ use crate::{
         transport::{BandwidthUsage, SentPacket, TransportPacketsFeedback},
         units::{DataRate, TimeDelta, Timestamp},
     },
-    LossBasedBandwidthEstimation, LossBasedBweV2, LossBasedState,
+    FieldTrials, LossBasedBandwidthEstimation, LossBasedBweV2, LossBasedState,
 };
 
 pub struct LinkCapacityTracker {
@@ -63,11 +63,11 @@ impl LinkCapacityTracker {
 // WebRTC-Bwe-MaxRttLimit
 #[derive(Clone, Debug)]
 pub struct RttBasedBackoffConfig {
-    disabled: bool, // Disabled
+    disabled: bool,              // Disabled
     configured_limit: TimeDelta, // limit
-    drop_fraction: f64, // fraction
-    drop_interval: TimeDelta, // interval,
-    bandwidth_floor: DataRate, // floor
+    drop_fraction: f64,          // fraction
+    drop_interval: TimeDelta,    // interval,
+    bandwidth_floor: DataRate,   // floor
 }
 
 impl Default for RttBasedBackoffConfig {
@@ -102,7 +102,11 @@ impl RttBasedBackoff {
             drop_fraction: config.drop_fraction,
             drop_interval: config.drop_interval,
             bandwidth_floor: config.bandwidth_floor,
-            rtt_limit: if !config.disabled { config.configured_limit } else { TimeDelta::Zero() },
+            rtt_limit: if !config.disabled {
+                config.configured_limit
+            } else {
+                TimeDelta::Zero()
+            },
             last_propagation_rtt_update: Timestamp::PlusInfinity(),
             last_propagation_rtt: TimeDelta::Zero(),
             last_packet_sent: Timestamp::MinusInfinity(),
@@ -180,6 +184,10 @@ impl Default for SendSideBandwidthEstimation {
 }
 
 impl SendSideBandwidthEstimation {
+    pub fn new(field_trials: &FieldTrials) -> Self {
+        todo!()
+    }
+
     pub fn OnRouteChange(&mut self) {
         todo!();
     }
@@ -254,7 +262,7 @@ impl SendSideBandwidthEstimation {
         todo!();
     }
 
-    pub fn GetMinBitrate(&self) -> isize {
+    pub fn GetMinBitrate(&self) -> i64 {
         todo!();
     }
 

@@ -1839,7 +1839,7 @@ fn UseByteLossRateIgnoreLossSpike() {
   loss_based_bandwidth_estimator.SetBandwidthEstimate(DelayBasedEstimate);
 
   // Fill the observation window.
-  for (isize i = 0; i < 5i += 1) {
+  for i in 0..5 {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1889,7 +1889,7 @@ fn UseByteLossRateDoesNotIgnoreLossSpikeOnSendBurst() {
   loss_based_bandwidth_estimator.SetBandwidthEstimate(DelayBasedEstimate);
 
   // Fill the observation window.
-  for (isize i = 0; i < 5i += 1) {
+  for i in 0..5 {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +

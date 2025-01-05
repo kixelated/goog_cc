@@ -63,7 +63,7 @@ fn AdvanceSendClock(TimeDelta delta) { self.send_clock += delta; }
  private:
   send_clock: Timestamp, = Timestamp::Millis(100000);
   recv_clock: Timestamp, = Timestamp::Millis(10000);
-  uint16_t self.sequence_number = 100;
+  u16 self.sequence_number = 100;
 };
 
 #[test]
@@ -124,7 +124,7 @@ fn EstimateAdapts() {
   // 1 second, 800kbps, estimate is stable.
   send_rate: DataRate(DataRate::BytesPerSec(100000));
   recv_rate: DataRate(DataRate::BytesPerSec(100000));
-  for (isize i = 0; i < 10i += 1) {
+  for i in 0..10 {
     Vec<PacketResult> packet_feedback =
         feedback_generator.CreateFeedbackVector(10, DataSize::Bytes(1000),
                                                 send_rate, recv_rate);
@@ -136,7 +136,7 @@ let throughput = throughput_estimator.bitrate();
   // 1 second, 1600kbps, estimate increases
   send_rate = DataRate::BytesPerSec(200000);
   recv_rate = DataRate::BytesPerSec(200000);
-  for (isize i = 0; i < 20i += 1) {
+  for i in 0..20 {
     Vec<PacketResult> packet_feedback =
         feedback_generator.CreateFeedbackVector(10, DataSize::Bytes(1000),
                                                 send_rate, recv_rate);
@@ -148,7 +148,7 @@ let throughput = throughput_estimator.bitrate();
   }
 
   // 1 second, 1600kbps, estimate is stable
-  for (isize i = 0; i < 20i += 1) {
+  for i in 0..20 {
     Vec<PacketResult> packet_feedback =
         feedback_generator.CreateFeedbackVector(10, DataSize::Bytes(1000),
                                                 send_rate, recv_rate);
@@ -160,7 +160,7 @@ let throughput = throughput_estimator.bitrate();
   // 1 second, 400kbps, estimate decreases
   send_rate = DataRate::BytesPerSec(50000);
   recv_rate = DataRate::BytesPerSec(50000);
-  for (isize i = 0; i < 5i += 1) {
+  for i in 0..5 {
     Vec<PacketResult> packet_feedback =
         feedback_generator.CreateFeedbackVector(10, DataSize::Bytes(1000),
                                                 send_rate, recv_rate);
@@ -174,7 +174,7 @@ let throughput = throughput_estimator.bitrate();
   // 1 second, 400kbps, estimate is stable
   send_rate = DataRate::BytesPerSec(50000);
   recv_rate = DataRate::BytesPerSec(50000);
-  for (isize i = 0; i < 5i += 1) {
+  for i in 0..5 {
     Vec<PacketResult> packet_feedback =
         feedback_generator.CreateFeedbackVector(10, DataSize::Bytes(1000),
                                                 send_rate, recv_rate);
@@ -253,7 +253,7 @@ let throughput = throughput_estimator.bitrate();
   // packets at 1000 bytes each in 50 ms, i.e. 600000 bytes per second).
   recv_rate = DataRate::BytesPerSec(600000);
   // Estimate should not drop.
-  for (isize i = 0; i < 30i += 1) {
+  for i in 0..30 {
     packet_feedback = feedback_generator.CreateFeedbackVector(
         1, DataSize::Bytes(1000), send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
@@ -268,7 +268,7 @@ let throughput = throughput_estimator.bitrate();
   // has left the estimator's window, the receive rate will be high, but the
   // estimate should be capped by the send rate.
   recv_rate = DataRate::BytesPerSec(100000);
-  for (isize i = 0; i < 20i += 1) {
+  for i in 0..20 {
     packet_feedback = feedback_generator.CreateFeedbackVector(
         5, DataSize::Bytes(1000), send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
@@ -347,7 +347,7 @@ let throughput = throughput_estimator.bitrate();
   assert_eq!(throughput, send_rate);
 
   // It should then remain stable (as if the feedbacks weren't reordered.)
-  for (isize i = 0; i < 10i += 1) {
+  for i in 0..10 {
     packet_feedback = feedback_generator.CreateFeedbackVector(
         15, DataSize::Bytes(1000), send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);
@@ -466,7 +466,7 @@ let throughput = throughput_estimator.bitrate();
   assert!(!(throughput.is_some());
 
   // But be back to the normal level once we have enough data.
-  for (isize i = 0; i < 4i += 1) {
+  for i in 0..4 {
     packet_feedback = feedback_generator.CreateFeedbackVector(
         5, DataSize::Bytes(1000), send_rate, recv_rate);
     throughput_estimator.IncomingPacketFeedbackVector(packet_feedback);

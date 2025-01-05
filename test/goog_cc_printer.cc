@@ -190,7 +190,7 @@ GoogCcDebugFactory::GoogCcDebugFactory()
     : GoogCcDebugFactory(GoogCcFactoryConfig()) {}
 
 GoogCcDebugFactory::GoogCcDebugFactory(GoogCcFactoryConfig config)
-    : GoogCcNetworkControllerFactory(std::move(config)) {}
+    : GoogCcNetworkControllerFactory(config) {}
 
 std::unique_ptr<NetworkControllerInterface> Create(&self /* GoogCcDebugFactory */,
     NetworkControllerConfig config) {
@@ -209,7 +209,7 @@ fn PrintState(&self /* GoogCcDebugFactory */,const at_time: Timestamp) {
 fn AttachWriter(&self /* GoogCcDebugFactory */,
     std::unique_ptr<RtcEventLogOutput> log_writer) {
   if (log_writer) {
-    self.log_writer = std::move(log_writer);
+    self.log_writer = log_writer;
     self.printer.PrintHeaders(self.log_writer.get());
   }
 }

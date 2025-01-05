@@ -21,6 +21,7 @@ pub struct BitrateAllocationLimits {
 // Use StreamsConfig for information about streams that is required for specific
 // adjustments to the algorithms in network controllers. Especially useful
 // for experiments.
+#[derive(Debug, Clone)]
 pub struct StreamsConfig {
     pub at_time: Timestamp,
     pub requests_alr_probing: Option<bool>,
@@ -50,10 +51,11 @@ impl Default for StreamsConfig {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct TargetRateConstraints {
     pub at_time: Timestamp,
-    pub min_data_rate: Option<f64>,
-    pub max_data_rate: Option<f64>,
+    pub min_data_rate: Option<DataRate>,
+    pub max_data_rate: Option<DataRate>,
     // The initial bandwidth estimate to base target rate on. This should be used
     // as the basis for initial OnTargetTransferRate and OnPacerConfig callbacks.
     pub starting_rate: Option<DataRate>,
@@ -439,6 +441,7 @@ impl Default for TargetTransferRate {
 // Contains updates of network controller comand state. Using optionals to
 // indicate whether a member has been updated. The array of probe clusters
 // should be used to send out probes if not empty.
+#[derive(Default)]
 pub struct NetworkControlUpdate {
     pub congestion_window: Option<DataSize>,
     pub pacer_config: Option<PacerConfig>,

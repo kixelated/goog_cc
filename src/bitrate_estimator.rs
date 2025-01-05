@@ -11,6 +11,7 @@
 use crate::api::units::{DataRate, DataSize, TimeDelta, Timestamp};
 
 // WebRTC-BweThroughputWindowConfig
+#[derive(Debug, Clone)]
 pub struct BitrateEstimatorConfig {
     pub initial_window_ms: i64,
     pub window_ms: i64,
@@ -23,11 +24,10 @@ pub struct BitrateEstimatorConfig {
 }
 
 impl BitrateEstimatorConfig {
-    const InitialRateWindowMs: i64= 500;
-    const RateWindowMs : i64= 150;
-    const MinRateWindowMs: i64= 150;
+    const InitialRateWindowMs: i64 = 500;
+    const RateWindowMs: i64 = 150;
+    const MinRateWindowMs: i64 = 150;
     const MaxRateWindowMs: i64 = 1000;
-
 }
 
 impl Default for BitrateEstimatorConfig {
@@ -36,7 +36,7 @@ impl Default for BitrateEstimatorConfig {
             initial_window_ms: Self::InitialRateWindowMs,
             window_ms: Self::RateWindowMs,
             scale: 10.0,
-            scale_alr: 10.0, // scale
+            scale_alr: 10.0,   // scale
             scale_small: 10.0, // scale
             small_thresh: DataSize::Zero(),
             symmetry_cap: DataRate::Zero(),
@@ -47,8 +47,12 @@ impl Default for BitrateEstimatorConfig {
 
 impl BitrateEstimatorConfig {
     pub fn validate(&mut self) {
-        self.initial_window_ms = self.initial_window_ms.clamp(Self::MaxRateWindowMs, Self::MaxRateWindowMs);
-        self.window_ms = self.window_ms.clamp(Self::MinRateWindowMs, Self::MaxRateWindowMs);
+        self.initial_window_ms = self
+            .initial_window_ms
+            .clamp(Self::MaxRateWindowMs, Self::MaxRateWindowMs);
+        self.window_ms = self
+            .window_ms
+            .clamp(Self::MinRateWindowMs, Self::MaxRateWindowMs);
     }
 }
 

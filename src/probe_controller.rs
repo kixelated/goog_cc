@@ -292,8 +292,7 @@ impl ProbeController {
                 return vec![];
             }
 
-            let mut first_probe_rate: DataRate =
-                max_total_allocated_bitrate * self.config.alloc_p1;
+            let mut first_probe_rate: DataRate = max_total_allocated_bitrate * self.config.alloc_p1;
             let current_bwe_limit: DataRate =
                 self.config.alloc_current_bwe_limit * self.estimated_bitrate;
             let mut limited_by_current_bwe: bool = current_bwe_limit < first_probe_rate;
@@ -369,10 +368,7 @@ impl ProbeController {
             }
             let network_state_estimate_probe_further_limit: DataRate = match self.network_estimate {
                 Some(network_estimate)
-                    if self
-                        .config
-                        .network_state_interval
-                        .IsFinite()
+                    if self.config.network_state_interval.IsFinite()
                         && network_estimate.link_capacity_upper.IsFinite() =>
                 {
                     network_estimate.link_capacity_upper * self.config.further_probe_threshold
@@ -389,11 +385,7 @@ impl ProbeController {
             if bitrate > self.min_bitrate_to_probe_further
                 && bitrate <= network_state_estimate_probe_further_limit
             {
-                return self.InitiateProbing(
-                    at_time,
-                    &[self.config.step_size * bitrate],
-                    true,
-                );
+                return self.InitiateProbing(at_time, &[self.config.step_size * bitrate], true);
             }
         }
         vec![]
@@ -432,7 +424,9 @@ impl ProbeController {
             _ => false,
         };
 
-        if (in_alr || alr_ended_recently || self.in_rapid_recovery_experiment) && matches!(self.state, State::ProbingComplete) {
+        if (in_alr || alr_ended_recently || self.in_rapid_recovery_experiment)
+            && matches!(self.state, State::ProbingComplete)
+        {
             let suggested_probe: DataRate =
                 Self::ProbeFractionAfterDrop * self.bitrate_before_last_large_drop;
             let min_expected_probe_result: DataRate =
@@ -477,7 +471,9 @@ impl ProbeController {
     }
 
     pub fn Process(&mut self, at_time: Timestamp) -> Vec<ProbeClusterConfig> {
-        if at_time - self.time_last_probing_initiated > Self::MaxWaitingTimeForProbingResult && matches!(self.state, State::WaitingForProbingResult) {
+        if at_time - self.time_last_probing_initiated > Self::MaxWaitingTimeForProbingResult
+            && matches!(self.state, State::WaitingForProbingResult)
+        {
             tracing::info!("kWaitingForProbingResult: timeout");
             self.UpdateState(State::ProbingComplete);
         }
@@ -485,11 +481,7 @@ impl ProbeController {
             return vec![];
         }
         if self.TimeForNextRepeatedInitialProbe(at_time) {
-            return self.InitiateProbing(
-                at_time,
-                &[self.estimated_bitrate * self.config.p1],
-                true,
-            );
+            return self.InitiateProbing(at_time, &[self.estimated_bitrate * self.config.p1], true);
         }
         if self.TimeForAlrProbe(at_time) || self.TimeForNetworkStateProbe(at_time) {
             return self.InitiateProbing(
@@ -522,15 +514,13 @@ impl ProbeController {
 
         // When probing at 1.8 Mbps ( 6x 300), this represents a threshold of
         // 1.2 Mbps to continue probing.
-        let mut probes: Vec<DataRate> =
-            vec![self.config.p1 * self.start_bitrate];
+        let mut probes: Vec<DataRate> = vec![self.config.p1 * self.start_bitrate];
         if self.config.p2 > 0.0 {
             probes.push(self.config.p2 * self.start_bitrate);
         }
 
         if self.repeated_initial_probing_enabled && self.max_total_allocated_bitrate.IsZero() {
-            self.last_allowed_repeated_initial_probe =
-                at_time + self.config.initial_probing;
+            self.last_allowed_repeated_initial_probe = at_time + self.config.initial_probing;
             tracing::info!(
                 "Repeated initial probing enabled, last allowed probe: {:?} now: {:?}",
                 self.last_allowed_repeated_initial_probe,
@@ -600,11 +590,7 @@ impl ProbeController {
 
         match self.network_estimate {
             Some(network_estimate) if network_estimate.link_capacity_upper.IsFinite() => {
-                if self
-                    .config
-                    .network_state_interval
-                    .IsFinite()
-                {
+                if self.config.network_state_interval.IsFinite() {
                     if network_estimate.link_capacity_upper.IsZero() {
                         tracing::info!("Not sending probe, Network state estimate is zero");
                         return vec![];
@@ -613,8 +599,7 @@ impl ProbeController {
                         max_probe_bitrate,
                         std::cmp::max(
                             self.estimated_bitrate,
-                            network_estimate.link_capacity_upper
-                                * self.config.network_state_scale,
+                            network_estimate.link_capacity_upper * self.config.network_state_scale,
                         ),
                     );
                 }
@@ -665,32 +650,17 @@ impl ProbeController {
         let probe_due_to_low_estimate: bool = self.bandwidth_limited_cause
             == BandwidthLimitedCause::DelayBasedLimited
             && self.estimated_bitrate
-                < self
-                    .config
-                    .est_lower_than_network_ratio
-                    * network_estimate.link_capacity_upper;
-        if probe_due_to_low_estimate
-            && self
-                .config
-                .est_lower_than_network_interval
-                .IsFinite()
-        {
-            let next_probe_time: Timestamp = self.time_last_probing_initiated
-                + self
-                    .config
-                    .est_lower_than_network_interval;
+                < self.config.est_lower_than_network_ratio * network_estimate.link_capacity_upper;
+        if probe_due_to_low_estimate && self.config.est_lower_than_network_interval.IsFinite() {
+            let next_probe_time: Timestamp =
+                self.time_last_probing_initiated + self.config.est_lower_than_network_interval;
             return at_time >= next_probe_time;
         }
 
         let periodic_probe: bool = self.estimated_bitrate < network_estimate.link_capacity_upper;
-        if periodic_probe
-            && self
-                .config
-                .network_state_interval
-                .IsFinite()
-        {
-            let next_probe_time: Timestamp = self.time_last_probing_initiated
-                + self.config.network_state_interval;
+        if periodic_probe && self.config.network_state_interval.IsFinite() {
+            let next_probe_time: Timestamp =
+                self.time_last_probing_initiated + self.config.network_state_interval;
             return at_time >= next_probe_time;
         }
 

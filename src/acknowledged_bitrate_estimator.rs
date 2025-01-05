@@ -13,7 +13,8 @@ use crate::{
         transport::PacketResult,
         units::{DataRate, Timestamp},
     },
-    AcknowledgedBitrateEstimatorInterface, BitrateEstimator,
+    AcknowledgedBitrateEstimatorInterface, BitrateEstimator, FieldTrials,
+    RobustThroughputEstimator,
 };
 
 pub struct AcknowledgedBitrateEstimator {
@@ -63,6 +64,19 @@ impl AcknowledgedBitrateEstimator {
             alr_ended_time: None,
             in_alr: false,
             bitrate_estimator,
+        }
+    }
+
+    pub fn create(field_trials: &FieldTrials) -> Box<dyn AcknowledgedBitrateEstimatorInterface> {
+        let simplified_estimator_settings = &field_trials.robust_throughput_estimator_settings;
+        if simplified_estimator_settings.enabled {
+            Box::new(RobustThroughputEstimator::new(
+                simplified_estimator_settings.clone(),
+            ))
+        } else {
+            Box::new(AcknowledgedBitrateEstimator::new(BitrateEstimator::new(
+                field_trials.bwe_throughput_window_config.clone(),
+            )))
         }
     }
 }

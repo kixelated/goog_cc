@@ -379,7 +379,7 @@ fn RateIncreaseReorderingTestHelper(&self /* DelayBasedBweTest */,
   assert!((self.bitrate_observer.updated());
   assert_relative_eq!(expected_bitrate_bps, self.bitrate_observer.latest_bitrate(),
               AcceptedBitrateErrorBps);
-  for (isize i = 0; i < 10i += 1) {
+  for i in 0..10 {
     self.clock.AdvanceTimeMilliseconds(2 * FrameIntervalMs);
     send_time_ms += 2 * FrameIntervalMs;
     IncomingFeedback(self.clock.TimeInMilliseconds(), send_time_ms, 1000);
@@ -497,7 +497,7 @@ fn TestTimestampGroupingTestHelper(&self /* DelayBasedBweTest */) {
   // Insert batches of frames which were sent very close in time. Also simulate
   // capacity over-use to see that we back off correctly.
   const TimestampGroupLength: isize = 15;
-  for (isize i = 0; i < 100i += 1) {
+  for i in 0..100 {
     for (isize j = 0; j < TimestampGroupLengthj += 1) {
       // Insert `kTimestampGroupLength` frames with just 1 timestamp ticks in
       // between. Should be treated as part of the same group by the estimator.

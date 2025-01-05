@@ -8,11 +8,13 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use crate::api::{
-    transport::PacketResult,
-    units::{DataRate, TimeDelta, Timestamp},
+use crate::{
+    api::{
+        transport::PacketResult,
+        units::{DataRate, TimeDelta, Timestamp},
+    },
+    AcknowledgedBitrateEstimator, FieldTrials, RobustThroughputEstimator,
 };
-
 
 pub trait AcknowledgedBitrateEstimatorInterface {
     fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]);

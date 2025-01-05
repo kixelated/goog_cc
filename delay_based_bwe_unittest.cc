@@ -216,7 +216,7 @@ fn TestInitialOveruse() {
   // Produce 40 frames (in 1/3 second) and give them to the estimator.
   let bitrate_bps: i64 = StartBitrate.bps();
   let seen_overuse: bool = false;
-  for (isize i = 0; i < 40i += 1) {
+  for i in 0..40 {
     let overuse: bool = GenerateAndProcessFrame(DummySsrc, bitrate_bps);
     if (overuse) {
       assert!((self.bitrate_observer.updated());
@@ -255,7 +255,7 @@ fn TestTimestampPrecisionHandling() {
   // all the send deltas would be equal to 10ms while some recv deltas would
   // round up to 11ms which would lead in a false illusion of delay build up.
   let last_bitrate: u32 = self.bitrate_observer.latest_bitrate();
-  for (isize i = 0; i < 1000i += 1) {
+  for i in 0..1000 {
     self.clock.AdvanceTimeMicroseconds(500);
     IncomingFeedback(self.clock.CurrentTime(),
                      self.clock.CurrentTime() - TimeDelta::Micros(500), 1000,
