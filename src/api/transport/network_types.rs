@@ -105,19 +105,19 @@ impl Default for NetworkRouteChange {
 #[derive(Debug, Copy, Clone)]
 pub struct PacedPacketInfo {
     pub send_bitrate: DataRate,
-    pub probe_cluster_id: isize,
-    pub probe_cluster_min_probes: isize,
-    pub probe_cluster_min_bytes: isize,
-    pub probe_cluster_bytes_sent: isize,
+    pub probe_cluster_id: i64,
+    pub probe_cluster_min_probes: i64,
+    pub probe_cluster_min_bytes: i64,
+    pub probe_cluster_bytes_sent: i64,
 }
 
 impl PacedPacketInfo {
-    pub const NotAProbe: isize = -1;
+    pub const NotAProbe: i64 = -1;
 
-    pub fn new(
-        probe_cluster_id: isize,
-        probe_cluster_min_probes: isize,
-        probe_cluster_min_bytes: isize,
+    pub const fn new(
+        probe_cluster_id: i64,
+        probe_cluster_min_probes: i64,
+        probe_cluster_min_bytes: i64,
     ) -> Self {
         Self {
             send_bitrate: DataRate::BitsPerSec(0),

@@ -16,7 +16,7 @@ use crate::api::{
 };
 
 struct AggregatedCluster {
-    pub num_probes: isize,
+    pub num_probes: i64,
     pub first_send: Timestamp,
     pub last_send: Timestamp,
     pub first_receive: Timestamp,
@@ -43,7 +43,7 @@ impl Default for AggregatedCluster {
 
 #[derive(Default)]
 pub struct ProbeBitrateEstimator {
-    clusters: HashMap<isize, AggregatedCluster>,
+    clusters: HashMap<i64, AggregatedCluster>,
     estimated_data_rate: Option<DataRate>,
 }
 
@@ -84,7 +84,7 @@ impl ProbeBitrateEstimator {
         &mut self,
         packet_feedback: &PacketResult,
     ) -> Option<DataRate> {
-        let cluster_id: isize = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
+        let cluster_id: i64 = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
         assert_ne!(cluster_id, PacedPacketInfo::NotAProbe);
 
         self.EraseOldClusters(packet_feedback.receive_time);
@@ -123,11 +123,11 @@ impl ProbeBitrateEstimator {
                 > 0
         );
 
-        let min_probes: isize = (packet_feedback
+        let min_probes: i64 = (packet_feedback
             .sent_packet
             .pacing_info
             .probe_cluster_min_probes as f64
-            * Self::MinReceivedProbesRatio) as isize;
+            * Self::MinReceivedProbesRatio) as i64;
         let min_size: DataSize = DataSize::Bytes(
             packet_feedback
                 .sent_packet
@@ -206,8 +206,8 @@ mod test {
 
     //use crate::api::transport::PacedPacketInfo;
 
-    const DefaultMinProbes: isize = 5;
-    const DefaultMinBytes: isize = 5000;
+    const DefaultMinProbes: i64 = 5;
+    const DefaultMinBytes: i64 = 5000;
     const TargetUtilizationFraction: f64 = 0.95;
 
     #[derive(Default)]
@@ -221,12 +221,12 @@ mod test {
         //                 to use that information.
         fn AddPacketFeedback(
             &mut self,
-            probe_cluster_id: isize,
+            probe_cluster_id: i64,
             size_bytes: usize,
             send_time_ms: i64,
             arrival_time_ms: i64,
-            min_probes: isize,
-            min_bytes: isize,
+            min_probes: i64,
+            min_bytes: i64,
         ) {
             const ReferenceTime: Timestamp = Timestamp::Seconds(1000);
             let mut feedback: PacketResult = PacketResult::default();
@@ -269,7 +269,7 @@ mod test {
     #[test]
     fn OneClusterTooFewBytes() {
         let mut test = TestProbeBitrateEstimator::default();
-        const MinBytes: isize = 6000;
+        const MinBytes: i64 = 6000;
         test.AddPacketFeedback(0, 800, 0, 10, DefaultMinProbes, MinBytes);
         test.AddPacketFeedback(0, 800, 10, 20, DefaultMinProbes, MinBytes);
         test.AddPacketFeedback(0, 800, 20, 30, DefaultMinProbes, MinBytes);
@@ -282,7 +282,7 @@ mod test {
     #[test]
     fn SmallCluster() {
         let mut test = TestProbeBitrateEstimator::default();
-        const MinBytes: isize = 1000;
+        const MinBytes: i64 = 1000;
         test.AddPacketFeedback(0, 150, 0, 10, DefaultMinProbes, MinBytes);
         test.AddPacketFeedback(0, 150, 10, 20, DefaultMinProbes, MinBytes);
         test.AddPacketFeedback(0, 150, 20, 30, DefaultMinProbes, MinBytes);
@@ -299,8 +299,8 @@ mod test {
     #[test]
     fn LargeCluster() {
         let mut test = TestProbeBitrateEstimator::default();
-        const MinProbes: isize = 30;
-        const MinBytes: isize = 312500;
+        const MinProbes: i64 = 30;
+        const MinBytes: i64 = 312500;
 
         let mut send_time: i64 = 0;
         let mut receive_time: i64 = 5;

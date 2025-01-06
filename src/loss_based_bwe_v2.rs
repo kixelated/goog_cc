@@ -426,7 +426,7 @@ struct Observation {
     pub sending_rate: DataRate,
     pub size: DataSize,
     pub lost_size: DataSize,
-    pub id: isize,
+    pub id: i64,
 }
 
 impl Default for Observation {
@@ -686,8 +686,7 @@ impl LossBasedBweV2 {
                 best_candidate = candidate;
             }
         }
-        if best_candidate.loss_limited_bandwidth
-            < self.current_best_estimate.loss_limited_bandwidth
+        if best_candidate.loss_limited_bandwidth < self.current_best_estimate.loss_limited_bandwidth
         {
             self.last_time_estimate_reduced = self.last_send_time_most_recent_observation;
         }
@@ -728,8 +727,7 @@ impl LossBasedBweV2 {
                     let mut rampup_factor: f64 = self.config.bandwidth_rampup_upper_bound_factor;
                     if self.last_hold_info.rate.IsFinite()
                         && acknowledged_bitrate
-                            < self.config.bandwidth_rampup_hold_threshold
-                                * self.last_hold_info.rate
+                            < self.config.bandwidth_rampup_hold_threshold * self.last_hold_info.rate
                     {
                         rampup_factor = self.config.bandwidth_rampup_upper_bound_factor_in_hold;
                     }
@@ -1001,16 +999,21 @@ impl LossBasedBweV2 {
         }
 
         if let Some(acknowledged_bitrate) = self.acknowledged_bitrate {
-            if self.config.append_acknowledged_rate_candidate && (!(self.config.not_use_acked_rate_in_alr && in_alr) || (self.config.padding_duration > TimeDelta::Zero()
+            if self.config.append_acknowledged_rate_candidate
+                && (!(self.config.not_use_acked_rate_in_alr && in_alr)
+                    || (self.config.padding_duration > TimeDelta::Zero()
                         && self.last_padding_info.padding_timestamp + self.config.padding_duration
-                            >= self.last_send_time_most_recent_observation)) {
-                bandwidths.push(
-                    acknowledged_bitrate * self.config.bandwidth_backoff_lower_bound_factor,
-                );
+                            >= self.last_send_time_most_recent_observation))
+            {
+                bandwidths
+                    .push(acknowledged_bitrate * self.config.bandwidth_backoff_lower_bound_factor);
             }
         }
 
-        if self.delay_based_estimate.IsFinite() && self.config.append_delay_based_estimate_candidate && self.delay_based_estimate > best_estimate.loss_limited_bandwidth {
+        if self.delay_based_estimate.IsFinite()
+            && self.config.append_delay_based_estimate_candidate
+            && self.delay_based_estimate > best_estimate.loss_limited_bandwidth
+        {
             bandwidths.push(self.delay_based_estimate);
         }
 

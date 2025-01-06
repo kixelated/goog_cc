@@ -87,7 +87,7 @@ pub struct TrendlineEstimator {
     smoothing_coef: f64,
     threshold_gain: f64,
     // Used by the existing threshold.
-    num_of_deltas: isize,
+    num_of_deltas: i64,
     // Keep the arrival times small by using the change from the first packet.
     first_arrival_time_ms: i64,
     // Exponential backoff filtering.
@@ -104,7 +104,7 @@ pub struct TrendlineEstimator {
     last_update_ms: i64,
     prev_trend: f64,
     time_over_using: f64,
-    overuse_counter: isize,
+    overuse_counter: i64,
     hypothesis: BandwidthUsage,
 }
 
@@ -205,8 +205,8 @@ impl TrendlineEstimator {
     const DefaultTrendlineThresholdGain: f64 = 4.0;
     const MaxAdaptOffsetMs: f64 = 15.0;
     const OverUsingTimeThreshold: f64 = 10.0;
-    const MinNumDeltas: isize = 60;
-    const DeltaCounterMax: isize = 1000;
+    const MinNumDeltas: i64 = 60;
+    const DeltaCounterMax: i64 = 1000;
 
     pub fn new(mut settings: TrendlineEstimatorSettings) -> Self {
         settings.validate();

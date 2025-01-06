@@ -36,7 +36,7 @@
 
 
 namespace {
-fn WriteTypedValue(RtcEventLogOutput* out, isize value) {
+fn WriteTypedValue(RtcEventLogOutput* out, i64 value) {
   LogWriteFormat(out, "%i", value);
 }
 fn WriteTypedValue(RtcEventLogOutput* out, f64 value) {
@@ -89,23 +89,23 @@ GoogCcStatePrinter::GoogCcStatePrinter() {
 VecDeque<FieldLogger*> CreateLoggers(&self /* GoogCcStatePrinter */) {
 let stable_estimate = [this] {
     return DataRate::KilobitsPerSec(
-        self.controller.self.delay_based_bwe.self.rate_control.self.link_capacity
-            .self.estimate_kbps.unwrap_or(-INFINITY));
+        self.controller.delay_based_bwe.rate_control.link_capacity
+            .estimate_kbps.unwrap_or(-INFINITY));
   };
 let rate_control_state = [this] {
-    return static_cast<isize>(
-        self.controller.self.delay_based_bwe.self.rate_control.self.rate_control_state);
+    return static_cast<i64>(
+        self.controller.delay_based_bwe.rate_control.rate_control_state);
   };
 let trend = [this] {
     return reinterpret_cast<TrendlineEstimator*>(
-        self.controller.self.delay_based_bwe.self.active_delay_detector);
+        self.controller.delay_based_bwe.active_delay_detector);
   };
 let acknowledged_rate = [this] {
-    return self.controller.self.acknowledged_bitrate_estimator.bitrate();
+    return self.controller.acknowledged_bitrate_estimator.bitrate();
   };
 let loss_cont = [&] {
-    return &self.controller.self.bandwidth_estimation
-                .self.loss_based_bandwidth_estimator_v1;
+    return &self.controller.bandwidth_estimation
+                .loss_based_bandwidth_estimator_v1;
   };
   VecDeque<FieldLogger*> loggers({
       Log("time", [this] { return self.target.at_time; }),
@@ -117,10 +117,10 @@ let loss_cont = [&] {
       Log("window", [this] { return self.congestion_window; }),
       Log("rate_control_state", [=] { return rate_control_state(); }),
       Log("stable_estimate", [=] { return stable_estimate(); }),
-      Log("trendline", [=] { return trend().self.prev_trend; }),
+      Log("trendline", [=] { return trend().prev_trend; }),
       Log("trendline_modified_offset",
-          [=] { return trend().self.prev_modified_trend; }),
-      Log("trendline_offset_threshold", [=] { return trend().self.threshold; }),
+          [=] { return trend().prev_modified_trend; }),
+      Log("trendline_offset_threshold", [=] { return trend().threshold; }),
       Log("acknowledged_rate", [=] { return acknowledged_rate(); }),
       Log("est_capacity", [this] { return self.est.link_capacity; }),
       Log("est_capacity_dev", [this] { return self.est.link_capacity_std_dev; }),
@@ -131,27 +131,27 @@ let loss_cont = [&] {
       Log("est_pre_buffer", [this] { return self.est.pre_link_buffer_delay; }),
       Log("est_post_buffer", [this] { return self.est.post_link_buffer_delay; }),
       Log("est_propagation", [this] { return self.est.propagation_delay; }),
-      Log("loss_ratio", [=] { return loss_cont().self.last_loss_ratio; }),
-      Log("loss_average", [=] { return loss_cont().self.average_loss; }),
-      Log("loss_average_max", [=] { return loss_cont().self.average_loss_max; }),
+      Log("loss_ratio", [=] { return loss_cont().last_loss_ratio; }),
+      Log("loss_average", [=] { return loss_cont().average_loss; }),
+      Log("loss_average_max", [=] { return loss_cont().average_loss_max; }),
       Log("loss_thres_inc",
           [=] { return loss_cont().loss_increase_threshold(); }),
       Log("loss_thres_dec",
           [=] { return loss_cont().loss_decrease_threshold(); }),
       Log("loss_dec_rate", [=] { return loss_cont().decreased_bitrate(); }),
-      Log("loss_based_rate", [=] { return loss_cont().self.loss_based_bitrate; }),
+      Log("loss_based_rate", [=] { return loss_cont().loss_based_bitrate; }),
       Log("loss_ack_rate",
-          [=] { return loss_cont().self.acknowledged_bitrate_max; }),
-      Log("data_window", [this] { return self.controller.self.current_data_window; }),
+          [=] { return loss_cont().acknowledged_bitrate_max; }),
+      Log("data_window", [this] { return self.controller.current_data_window; }),
       Log("pushback_target",
-          [this] { return self.controller.self.last_pushback_target_rate; }),
+          [this] { return self.controller.last_pushback_target_rate; }),
   });
   return loggers;
 }
 GoogCcStatePrinter::~GoogCcStatePrinter() = default;
 
 fn PrintHeaders(&self /* GoogCcStatePrinter */,RtcEventLogOutput* log) {
-  let ix: isize = 0;
+  let ix: i64 = 0;
   for logger in &self.loggers {
     if (ix++)
       log.Write(" ");
@@ -170,12 +170,12 @@ let state_update = self.controller.GetNetworkState(at_time);
   self.pacing = state_update.pacer_config.unwrap();
   if (state_update.congestion_window)
     self.congestion_window = *state_update.congestion_window;
-  if (self.controller.self.network_estimator) {
-    self.est = self.controller.self.network_estimator.GetCurrentEstimate().unwrap_or(
+  if (self.controller.network_estimator) {
+    self.est = self.controller.network_estimator.GetCurrentEstimate().unwrap_or(
         NetworkStateEstimate());
   }
 
-  let ix: isize = 0;
+  let ix: i64 = 0;
   for logger in &self.loggers {
     if (ix++)
       log.Write(" ");

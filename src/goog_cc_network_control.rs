@@ -912,13 +912,13 @@ mod test {
     use super::*;
 
     // Count dips from a constant high bandwidth level within a short window.
-    fn CountBandwidthDips(mut bandwidth_history: VecDeque<DataRate>, threshold: DataRate) -> isize {
+    fn CountBandwidthDips(mut bandwidth_history: VecDeque<DataRate>, threshold: DataRate) -> i64 {
         if bandwidth_history.is_empty() {
             return 1;
         }
         let first = bandwidth_history.pop_front().unwrap();
 
-        let mut dips: isize = 0;
+        let mut dips: i64 = 0;
         let mut state_high: bool = true;
         while let Some(front) = bandwidth_history.pop_front() {
             if front + threshold < first && state_high {
@@ -1034,7 +1034,7 @@ mod test {
         send_time: Timestamp,
     ) -> TransportPacketsFeedback {
         let mut delay_buildup: TimeDelta = one_way_delay;
-        const FeedbackSize: isize = 3;
+        const FeedbackSize: i64 = 3;
         const PayloadSize: usize = 1000;
         let mut feedback = TransportPacketsFeedback::default();
         for i in 0..FeedbackSize {
@@ -1617,8 +1617,8 @@ mod test {
       // Run for a few seconds to allow the controller to stabilize.
       s.RunFor(TimeDelta::Seconds(10));
       const BloatPacketSize: DataSize = DataSize::Bytes(1000);
-      const BloatPacketCount: isize =
-          (BufferBloatDuration * LinkCapacity / BloatPacketSize) as isize;
+      const BloatPacketCount: i64 =
+          (BufferBloatDuration * LinkCapacity / BloatPacketSize) as i64;
       // This will cause the RTT to be large for a while.
       s.TriggerPacketBurst({send_net}, BloatPacketCount, BloatPacketSize.bytes());
       // Wait to allow the high RTT to be detected and acted upon.

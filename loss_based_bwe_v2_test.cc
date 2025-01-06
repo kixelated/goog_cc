@@ -32,7 +32,7 @@ using ::webrtc::test::ExplicitKeyValueConfig;
 const ObservationDurationLowerBound: TimeDelta = TimeDelta::Millis(250);
 const DelayedIncreaseWindow: TimeDelta = TimeDelta::Millis(300);
 const MaxIncreaseFactor: f64 = 1.5;
-const PacketSize: isize = 15_000;
+const PacketSize: i64 = 15_000;
 
 class LossBasedBweV2Test : public ::testing::TestWithParam<bool> {
  protected:
@@ -67,10 +67,10 @@ fn Config(enabled: bool, valid: bool) -> std::string {
 
     config_string.AppendFormat(
         ",ObservationDurationLowerBound:%dms",
-        (ObservationDurationLowerBound.ms() as isize));
+        (ObservationDurationLowerBound.ms() as i64));
     config_string.AppendFormat(",MaxIncreaseFactor:%f", MaxIncreaseFactor);
     config_string.AppendFormat(",DelayedIncreaseWindow:%dms",
-                               (DelayedIncreaseWindow.ms() as isize));
+                               (DelayedIncreaseWindow.ms() as i64));
 
     config_string << "/";
 
@@ -118,10 +118,10 @@ fn ShortObservationConfig(std::string custom_config) -> std::string {
       enough_feedback[i].sent_packet.size = DataSize::Bytes(PacketSize);
       enough_feedback[i].sent_packet.send_time =
           first_packet_timestamp +
-          (i) as isize * ObservationDurationLowerBound;
+          (i) as i64 * ObservationDurationLowerBound;
       enough_feedback[i].receive_time =
           first_packet_timestamp +
-          (i + 1) as isize * ObservationDurationLowerBound;
+          (i + 1) as i64 * ObservationDurationLowerBound;
     }
     enough_feedback[9].receive_time = Timestamp::PlusInfinity();
     enough_feedback[9].sent_packet.size = lost_packet_size;
@@ -810,7 +810,7 @@ TEST_F(LossBasedBweV2Test,
 
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(estimate_1 * 0.9);
 
-  let feedback_count: isize = 1;
+  let feedback_count: i64 = 1;
   while (feedback_count < 5 && result.state != LossBasedState::Increasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
@@ -871,7 +871,7 @@ fn EnsureIncreaseEvenIfAckedBitrateBound() {
   // Set a low acked bitrate.
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(estimate_1 / 2);
 
-  let feedback_count: isize = 1;
+  let feedback_count: i64 = 1;
   while (feedback_count < 5 && result.state != LossBasedState::Increasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
@@ -1340,7 +1340,7 @@ TEST_F(LossBasedBweV2Test,
       loss_based_bandwidth_estimator.GetLossBasedResult();
   assert_eq!(result_after_loss.state, LossBasedState::Decreasing);
 
-  for (isize feedback_count = 1; feedback_count <= 3feedback_count += 1) {
+  for (i64 feedback_count = 1; feedback_count <= 3feedback_count += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWithReceivedPackets(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1385,7 +1385,7 @@ fn HasDelayBasedStateIfLossBasedBweIsMax() {
   ASSERT_LT(result.bandwidth_estimate, DataRate::KilobitsPerSec(1000));
 
   // Eventually  the estimator recovers to delay based state.
-  let feedback_count: isize = 2;
+  let feedback_count: i64 = 2;
   while (feedback_count < 5 &&
          result.state != LossBasedState::DelayBasedEstimate) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1473,7 +1473,7 @@ fn DecreaseToAckedCandidateIfPaddingInAlr() {
   LossBasedBweV2 loss_based_bandwidth_estimator(&key_value_config);
   loss_based_bandwidth_estimator.SetBandwidthEstimate(
       DataRate::KilobitsPerSec(1000));
-  let feedback_id: isize = 0;
+  let feedback_id: i64 = 0;
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state !=
          LossBasedState::Decreasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1537,7 +1537,7 @@ fn DecreaseAfterPadding() {
 
   acknowledged_bitrate = DataRate::KilobitsPerSec(26);
   loss_based_bandwidth_estimator.SetAcknowledgedBitrate(acknowledged_bitrate);
-  let feedback_id: isize = 1;
+  let feedback_id: i64 = 1;
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state !=
          LossBasedState::IncreaseUsingPadding) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
@@ -1658,7 +1658,7 @@ fn IncreaseEstimateAfterHoldDuration() {
 
   // In the hold duration, e.g. next 3s, the estimate cannot increase above the
   // hold rate. Get some lost packets to get lower estimate than the HOLD rate.
-  for (isize i = 4; i <= 6i += 1) {
+  for (i64 i = 4; i <= 6i += 1) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
         CreatePacketResultsWith100pLossRate(
             /*first_packet_timestamp=*/Timestamp::Zero() +
@@ -1672,7 +1672,7 @@ fn IncreaseEstimateAfterHoldDuration() {
         estimate_at_hold);
   }
 
-  let feedback_id: isize = 7;
+  let feedback_id: i64 = 7;
   while (loss_based_bandwidth_estimator.GetLossBasedResult().state !=
          LossBasedState::Increasing) {
     loss_based_bandwidth_estimator.UpdateBandwidthEstimate(

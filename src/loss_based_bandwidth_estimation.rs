@@ -190,7 +190,7 @@ impl LossBasedBandwidthEstimation {
             unreachable!();
             return;
         }
-        let mut loss_count: isize = 0;
+        let mut loss_count: i64 = 0;
         for pkt in packet_results {
             loss_count += if !pkt.IsReceived() { 1 } else { 0 };
         }

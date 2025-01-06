@@ -45,11 +45,11 @@ pub struct InterArrivalDelta {
     send_time_group_length: TimeDelta,
     current_timestamp_group: SendTimeGroup,
     prev_timestamp_group: SendTimeGroup,
-    num_consecutive_reordered_packets: isize,
+    num_consecutive_reordered_packets: i64,
 }
 
 impl InterArrivalDelta {
-    const ReorderedResetThreshold: isize = 3;
+    const ReorderedResetThreshold: i64 = 3;
     const ArrivalTimeOffsetThreshold: TimeDelta = TimeDelta::Seconds(3);
     const BurstDeltaThreshold: TimeDelta = TimeDelta::Millis(5);
     const MaxBurstDuration: TimeDelta = TimeDelta::Millis(100);
@@ -79,7 +79,7 @@ impl InterArrivalDelta {
         packet_size: usize,
         send_time_delta: &mut TimeDelta,
         arrival_time_delta: &mut TimeDelta,
-        packet_size_delta: &mut isize,
+        packet_size_delta: &mut i64,
     ) -> bool {
         let mut calculated_deltas: bool = false;
         if self.current_timestamp_group.IsFirstPacket() {
@@ -122,8 +122,8 @@ impl InterArrivalDelta {
                 } else {
                     self.num_consecutive_reordered_packets = 0;
                 }
-                *packet_size_delta = (self.current_timestamp_group.size) as isize
-                    - (self.prev_timestamp_group.size) as isize;
+                *packet_size_delta = (self.current_timestamp_group.size) as i64
+                    - (self.prev_timestamp_group.size) as i64;
                 calculated_deltas = true;
             }
             self.prev_timestamp_group = self.current_timestamp_group;
