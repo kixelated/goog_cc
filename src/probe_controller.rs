@@ -540,7 +540,7 @@ impl ProbeController {
             let network_estimate: DataRate = self
                 .network_estimate
                 .map(|x| x.link_capacity_upper)
-                .unwrap_or(DataRate::Zero());
+                .unwrap_or(DataRate::PlusInfinity());
             let max_probe_rate: DataRate = if self.max_total_allocated_bitrate.IsZero() {
                 self.max_bitrate
             } else {
@@ -1608,6 +1608,8 @@ mod test {
     #[test]
     fn ConfigurableProbingFieldTrial() {
         let mut clock = Timestamp::Zero();
+
+        // "WebRTC-Bwe-ProbingConfiguration/p1:2,p2:5,step_size:3,further_probe_threshold:0.8,alloc_p1:2,alloc_current_bwe_limit:1000.0,alloc_p2,min_probe_packets_sent:2/"
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             p1: 2.0,
             p2: 5.0,
@@ -1615,7 +1617,7 @@ mod test {
             further_probe_threshold: 0.8,
             alloc_p1: 2.0,
             alloc_current_bwe_limit: 1000.0,
-            alloc_p2: 5.0,
+            alloc_p2: 0.0,
             min_probe_packets_sent: 2,
             ..Default::default()
         });

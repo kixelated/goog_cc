@@ -94,7 +94,7 @@ impl DelayBasedBwe {
     const FixedSsrc: u32 = 0;
 
     pub fn new(field_trials: &FieldTrials) -> Self {
-        tracing::info!("Initialized DelayBasedBwe with separate audio overuse detection");
+        tracing::info!("Initialized DelayBasedBwe with separate audio overuse detection: {:?}", field_trials.separate_audio_packets);
         Self {
             separate_audio: field_trials.separate_audio_packets.clone(),
             audio_packets_since_last_video: 0,
@@ -387,6 +387,8 @@ mod test {
     };
     use approx::assert_relative_eq;
 
+    use test_trace::test;
+
     pub use super::*;
 
     const DefaultSsrc: u32 = 0;
@@ -577,7 +579,6 @@ mod test {
     }
 
     pub struct DelayBasedBweTest {
-        field_trials: FieldTrials,
         clock: Timestamp, // Time at the receiver.
         bitrate_observer: TestBitrateObserver,
         acknowledged_bitrate_estimator: Box<dyn AcknowledgedBitrateEstimatorInterface>,
@@ -611,7 +612,6 @@ mod test {
                 arrival_time_offset_ms: 0,
                 next_sequence_number: 0,
                 first_update: true,
-                field_trials,
                 clock,
                 bitrate_observer: TestBitrateObserver::new(),
             }
@@ -642,11 +642,13 @@ mod test {
 
         fn IncomingFeedback(
             &mut self,
-            receive_time: Timestamp,
+            arrival_time: Timestamp,
             send_time: Timestamp,
             payload_size: usize,
             pacing_info: PacedPacketInfo,
         ) {
+            let receive_time = arrival_time + TimeDelta::Millis(self.arrival_time_offset_ms);
+
             let mut packet = PacketResult::default();
             packet.receive_time = receive_time;
             packet.sent_packet.send_time = send_time;
@@ -776,7 +778,7 @@ mod test {
             let mut send_time_ms: i64 = 0;
             // Initial set of frames to increase the bitrate. 6 seconds to have enough
             // time for the first estimate to be generated and for Process() to be called.
-            for i in 0..=Framerate {
+            for i in 0..=(6*Framerate) {
                 self.IncomingFeedback(
                     self.clock,
                     Timestamp::Millis(send_time_ms),
@@ -784,7 +786,7 @@ mod test {
                     Default::default(),
                 );
 
-                self.clock + TimeDelta::Millis(FrameIntervalMs as _);
+                self.clock += TimeDelta::Millis(FrameIntervalMs as _);
                 send_time_ms += FrameIntervalMs;
             }
             assert!(self.bitrate_observer.updated());

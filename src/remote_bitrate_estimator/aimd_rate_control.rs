@@ -136,6 +136,8 @@ impl AimdRateControl {
     const DefaultBackoffFactor: f64 = 0.85;
 
     pub fn new(field_trials: &FieldTrials, send_side: bool) -> Self {
+        tracing::info!("Using aimd rate control with back off factor {}", field_trials.bwe_back_off_factor.backoff_factor);
+
         Self {
             send_side,
             beta: field_trials.bwe_back_off_factor.backoff_factor,

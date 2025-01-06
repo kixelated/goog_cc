@@ -7,3 +7,6 @@ edition = "2021"
 tracing = "0.1"
 approx = "0.5"
 lazy_static = "1.5"
+
+[dev-dependencies]
+test-trace = "0.3"

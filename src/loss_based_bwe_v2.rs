@@ -160,7 +160,7 @@ impl LossBasedBweV2Config {
         // other than the current estimate.
         if !self.acked_rate_candidate
             && !self.delay_based_candidate
-            && self.candidate_factors.iter().any(|cf| *cf != 1.0)
+            && !self.candidate_factors.iter().any(|cf| *cf != 1.0)
         {
             tracing::warn!("The configuration does not allow generating candidates. Specify a candidate factor other than 1.0, allow the acknowledged rate to be a candidate, and/or allow the delay based estimate to be a candidate.");
             valid = false;
@@ -483,46 +483,55 @@ impl LossBasedBweV2 {
     const MaxHoldDuration: TimeDelta = TimeDelta::Seconds(60);
 
     pub fn new(config: LossBasedBweV2Config) -> Self {
-        assert!(config.enabled);
-        assert!(config.is_valid());
-
-        let mut temporal_weights = Vec::with_capacity(config.observation_window_size);
-        let mut instant_upper_bound_temporal_weights =
-            Vec::with_capacity(config.observation_window_size);
-
-        for i in 0..config.observation_window_size {
-            temporal_weights[i] = config.temporal_weight_factor.powf(i as _);
-            instant_upper_bound_temporal_weights[i] = config
-                .instant_upper_bound_temporal_weight_factor
-                .powf(i as _);
-        }
-
-        let mut last_hold_info = HoldInfo::default();
-        last_hold_info.duration = Self::InitHoldDuration;
-
-        Self {
+        let mut this = Self {
             acknowledged_bitrate: None,
             current_best_estimate: ChannelParameters::default(),
             num_observations: 0,
-            observations: vec![Observation::default(); config.observation_window_size],
+            observations: Vec::new(),
             partial_observation: PartialObservation::default(),
             last_send_time_most_recent_observation: Timestamp::PlusInfinity(),
             last_time_estimate_reduced: Timestamp::MinusInfinity(),
             cached_instant_upper_bound: None,
             cached_instant_lower_bound: None,
-            temporal_weights,
-            instant_upper_bound_temporal_weights,
+            temporal_weights: Vec::new(),
+            instant_upper_bound_temporal_weights: Vec::new(),
             recovering_after_loss_timestamp: Timestamp::MinusInfinity(),
             bandwidth_limit_in_current_window: DataRate::PlusInfinity(),
             min_bitrate: DataRate::KilobitsPerSec(1),
             max_bitrate: DataRate::PlusInfinity(),
             delay_based_estimate: DataRate::PlusInfinity(),
             loss_based_result: LossBasedBweV2Result::default(),
-            last_hold_info,
+            last_hold_info: HoldInfo::default(),
             last_padding_info: PaddingInfo::default(),
             average_reported_loss_ratio: 0.0,
             config,
+        };
+
+        if !this.config.enabled {
+            tracing::debug!("The configuration does not specify that the estimator should be enabled, disabling it.");
+            return this;
         }
+
+        if !this.config.is_valid() {
+            tracing::warn!("The configuration is invalid, disabling the estimator.");
+            this.config.enabled = false;
+            return this;
+        }
+
+        this.current_best_estimate.inherent_loss = this.config.initial_inherent_loss_estimate;
+        this.observations.resize_with(this.config.observation_window_size, Observation::default);
+
+        for i in 0..this.config.observation_window_size {
+            this.temporal_weights.push(this.config.temporal_weight_factor.powf(i as _));
+
+            this.instant_upper_bound_temporal_weights.push(this.config
+                .instant_upper_bound_temporal_weight_factor
+                .powf(i as _));
+        }
+
+        this.last_hold_info.duration = Self::InitHoldDuration;
+
+        this
     }
 
     pub fn IsEnabled(&self) -> bool {
@@ -1251,10 +1260,10 @@ impl LossBasedBweV2 {
             observation.lost_size += *packet_size;
         }
         observation.size = self.partial_observation.size;
-        self.num_observations += 1;
         observation.id = self.num_observations as _;
         self.observations[self.num_observations % self.config.observation_window_size] =
             observation;
+        self.num_observations += 1;
 
         self.partial_observation = PartialObservation::default();
         self.UpdateAverageReportedLossRatio();
