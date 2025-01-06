@@ -867,11 +867,10 @@ impl NetworkControllerInterface for GoogCcNetworkController {
         update
     }
 
-    /*
-     fn OnNetworkStateEstimate(&mut self, msg: NetworkStateEstimate) -> NetworkControlUpdate {
-    return NetworkControlUpdate::default();
-     }
-     */
+    fn on_network_state_estimate(&mut self, estimate: NetworkStateEstimate) -> NetworkControlUpdate {
+        self.set_network_state_estimate(Some(estimate));
+        NetworkControlUpdate::default()
+    }
 }
 
 fn get_bandwidth_limited_cause(

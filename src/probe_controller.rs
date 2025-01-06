@@ -808,11 +808,10 @@ mod test {
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
-        let probes = probe_controller.on_network_availability(NetworkAvailability {
+        probe_controller.on_network_availability(NetworkAvailability {
             at_time: clock,
             network_available: false,
         });
-        assert!(probes.is_empty());
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(probes.is_empty());
         let probes = probe_controller.on_network_availability(NetworkAvailability {
@@ -904,14 +903,12 @@ mod test {
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
             MAX_BITRATE - DataRate::from_bits_per_sec(1),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         // Wait long enough to time out exponential probing.
         clock += EXPONENTIAL_PROBING_TIMEOUT;
@@ -987,14 +984,12 @@ mod test {
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
             MAX_BITRATE - DataRate::from_bits_per_sec(1),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         clock += EXPONENTIAL_PROBING_TIMEOUT;
         let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
@@ -1254,8 +1249,7 @@ mod test {
         clock += TimeDelta::from_millis(1100);
         let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        let probes = probe_controller.on_max_total_allocated_bitrate(MIN_BITRATE, clock);
-        assert!(probes.is_empty());
+        probe_controller.on_max_total_allocated_bitrate(MIN_BITRATE, clock);
         clock += TimeDelta::from_millis(1100);
         let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
@@ -1275,25 +1269,22 @@ mod test {
             .is_empty());
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(probes.len() >= 2);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         probe_controller.set_alr_start_time_ms(Some(clock.ms()));
         clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
-        let probes = probe_controller.process(clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.process(clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
-
         let probes = probe_controller.request_probe(clock);
+
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate.bps_float(), 0.85 * 500.0);
     }
@@ -1312,25 +1303,20 @@ mod test {
             .is_empty());
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         probe_controller.set_alr_start_time_ms(None);
         clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
-        let probes = probe_controller.process(clock);
-        assert!(probes.is_empty());
-
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.process(clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
-
         probe_controller.set_alr_ended_time_ms(clock.ms());
         clock += ALR_ENDED_TIMEOUT - TimeDelta::from_millis(1);
         let probes = probe_controller.request_probe(clock);
@@ -1353,23 +1339,20 @@ mod test {
             .is_empty());
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         probe_controller.set_alr_start_time_ms(None);
         clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
-        let probes = probe_controller.process(clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.process(clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         probe_controller.set_alr_ended_time_ms(clock.ms());
         clock += ALR_ENDED_TIMEOUT + TimeDelta::from_millis(1);
         let probes = probe_controller.request_probe(clock);
@@ -1390,23 +1373,20 @@ mod test {
             .is_empty());
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         probe_controller.set_alr_start_time_ms(Some(clock.ms()));
         clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
-        let probes = probe_controller.process(clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.process(clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         clock += BITRATE_DROP_TIMEOUT + TimeDelta::from_millis(1);
         let probes = probe_controller.request_probe(clock);
         assert!(probes.is_empty());
@@ -1427,12 +1407,11 @@ mod test {
         probe_controller.enable_periodic_alr_probing(true);
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         let start_time: Timestamp = clock;
 
@@ -1443,18 +1422,16 @@ mod test {
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate.bps(), 1000);
 
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         // The following probe should be sent at 10s into ALR.
         probe_controller.set_alr_start_time_ms(Some(start_time.ms()));
         clock += TimeDelta::from_seconds(4);
-        let probes = probe_controller.process(clock);
-        assert!(probes.is_empty());
+        probe_controller.process(clock);
         let probes = probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
@@ -1490,8 +1467,7 @@ mod test {
 
         probe_controller.set_alr_start_time_ms(Some(alr_start_time.ms()));
         probe_controller.enable_periodic_alr_probing(true);
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         probe_controller.reset(clock);
 
         clock += TimeDelta::from_seconds(10);
@@ -1556,13 +1532,12 @@ mod test {
             })
             .is_empty());
         const MBPS_MULTIPLIER: DataRate = DataRate::from_kilobits_per_sec(1000);
-        let probes = probe_controller.set_bitrates(
+        probe_controller.set_bitrates(
             MIN_BITRATE,
             10 * MBPS_MULTIPLIER,
             100 * MBPS_MULTIPLIER,
             clock,
         );
-        assert!(probes.is_empty());
         // Verify that probe bitrate is capped at the specified max bitrate.
         let probes = probe_controller.set_estimated_bitrate(
             60 * MBPS_MULTIPLIER,
@@ -1594,9 +1569,7 @@ mod test {
             .is_empty());
         const MBPS_MULTIPLIER: DataRate = DataRate::from_kilobits_per_sec(1000);
         const MAX_BITRATE: DataRate = DataRate::from_kilobits_per_sec(100 * 1000);
-        let probes =
             probe_controller.set_bitrates(MIN_BITRATE, 10 * MBPS_MULTIPLIER, MAX_BITRATE, clock);
-            assert!(probes.is_empty());
 
         // Configure ALR for periodic probing.
         probe_controller.enable_periodic_alr_probing(true);
@@ -1604,12 +1577,11 @@ mod test {
         probe_controller.set_alr_start_time_ms(Some(alr_start_time.ms()));
 
         let estimated_bitrate: DataRate = MAX_BITRATE / 10;
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             estimated_bitrate,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         // Set a max allocated bitrate below the current estimate.
         let max_allocated: DataRate = estimated_bitrate - 1 * MBPS_MULTIPLIER;
@@ -1685,8 +1657,7 @@ mod test {
         assert_eq!(probes[0].target_data_rate.bps(), 3 * 1250);
 
         clock += TimeDelta::from_seconds(5);
-        let probes = probe_controller.process(clock);
-        assert!(probes.is_empty());
+        probe_controller.process(clock);
 
         probe_controller.set_alr_start_time_ms(Some(clock.ms()));
         let probes =
@@ -1708,37 +1679,33 @@ mod test {
             })
             .is_empty());
         probe_controller.enable_periodic_alr_probing(true);
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         // Expect the controller to send a new probe after 5s has passed.
         probe_controller.set_alr_start_time_ms(Some(clock.ms()));
         clock += TimeDelta::from_seconds(5);
         let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
 
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::LossLimitedBweIncreasing,
             clock,
         );
-        assert!(probes.is_empty());
         clock += TimeDelta::from_seconds(6);
         let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate, 1.5 * DataRate::from_bits_per_sec(500));
 
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             1.5 * DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         clock += TimeDelta::from_seconds(6);
         let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
@@ -1759,14 +1726,12 @@ mod test {
             })
             .is_empty());
 
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(5000),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         // Expect the controller to send a new probe after 5s has passed.
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
         state_estimate.link_capacity_upper = DataRate::from_kilobits_per_sec(6);
@@ -1802,14 +1767,12 @@ mod test {
             })
             .is_empty());
 
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         // Expect the controller to send a new probe after 5s has passed.
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
         state_estimate.link_capacity_upper = DataRate::from_bits_per_sec(700);
@@ -1818,12 +1781,11 @@ mod test {
         let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
 
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::LossLimitedBweIncreasing,
             clock,
         );
-        assert!(probes.is_empty());
         // Expect the controller to send a new probe after 5s has passed.
         clock += TimeDelta::from_seconds(5);
         let probes = probe_controller.process(clock);
@@ -1845,14 +1807,12 @@ mod test {
             })
             .is_empty());
         probe_controller.enable_periodic_alr_probing(true);
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
             DataRate::from_kilobits_per_sec(6),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         probe_controller.set_alr_start_time_ms(Some(clock.ms()));
 
         clock += TimeDelta::from_seconds(5);
@@ -1887,8 +1847,7 @@ mod test {
             })
             .is_empty());
 
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         let probes = probe_controller.set_estimated_bitrate(
             DataRate::from_kilobits_per_sec(5),
             BandwidthLimitedCause::DelayBasedLimited,
@@ -1918,15 +1877,13 @@ mod test {
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         probe_controller.enable_periodic_alr_probing(true);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             START_BITRATE,
             BandwidthLimitedCause::LossLimitedBweIncreasing,
             clock,
         );
-        assert!(probes.is_empty());
 
         // Wait long enough to time out exponential probing.
         clock += EXPONENTIAL_PROBING_TIMEOUT;
@@ -1953,15 +1910,13 @@ mod test {
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         probe_controller.enable_periodic_alr_probing(true);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             START_BITRATE,
             BandwidthLimitedCause::LossLimitedBwe,
             clock,
         );
-        assert!(probes.is_empty());
 
         // Wait long enough to time out exponential probing.
         clock += EXPONENTIAL_PROBING_TIMEOUT;
@@ -1987,15 +1942,13 @@ mod test {
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         probe_controller.enable_periodic_alr_probing(true);
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             START_BITRATE,
             BandwidthLimitedCause::LossLimitedBweIncreasing,
             clock,
         );
-        assert!(probes.is_empty());
 
         // Wait long enough to time out exponential probing.
         clock += EXPONENTIAL_PROBING_TIMEOUT;
@@ -2068,14 +2021,12 @@ mod test {
             })
             .is_empty());
 
-        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
-        assert!(probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
             START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         // Need to wait at least one second before process can trigger a new probe.
         clock += TimeDelta::from_millis(1100);
         let probes = probe_controller.process(clock);
@@ -2099,12 +2050,11 @@ mod test {
         assert!(!probes.is_empty());
 
         // Stop probing if estimate increase. We might probe further here though.
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             2 * START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
         // No more periodic probes.
         clock += TimeDelta::from_millis(1100);
         let probes = probe_controller.process(clock);
@@ -2311,8 +2261,7 @@ mod test {
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
-        let probes = probe_controller.on_max_total_allocated_bitrate(START_BITRATE / 4, clock);
-        assert!(probes.is_empty());
+        probe_controller.on_max_total_allocated_bitrate(START_BITRATE / 4, clock);
         probe_controller.reset(clock);
 
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
@@ -2370,12 +2319,11 @@ mod test {
         probe_controller.enable_periodic_alr_probing(true);
         let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
-        let probes = probe_controller.set_estimated_bitrate(
+        probe_controller.set_estimated_bitrate(
             MAX_BITRATE / 2,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        assert!(probes.is_empty());
 
         clock += TimeDelta::from_seconds(10);
         probe_controller.set_alr_start_time_ms(Some(clock.ms()));

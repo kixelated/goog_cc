@@ -669,7 +669,7 @@ mod test {
         // Returns true if an over-use was seen, false otherwise.
         // The StreamGenerator::updated() should be used to check for any changes in
         // target bitrate after the call to this function.
-        fn generate_and_process_frame(&mut self, ssrc: u32, bitrate_bps: u32) -> bool {
+        fn generate_and_process_frame(&mut self, _ssrc: u32, bitrate_bps: u32) -> bool {
             self.stream_generator.set_bitrate_bps(bitrate_bps as _);
             let mut packets: Vec<PacketResult> = Vec::new();
 
@@ -986,7 +986,7 @@ mod test {
         fn capacity_drop_test_helper(
             &mut self,
             number_of_streams: i64,
-            wrap_time_stamp: bool,
+            _wrap_time_stamp: bool,
             expected_bitrate_drop_delta: u32,
             receiver_clock_offset_change_ms: i64,
         ) {
@@ -1287,7 +1287,7 @@ mod test {
                     bwe.bitrate_observer.latest_bitrate() as f64
                         > 0.8 * INITIAL_CAPACITY.bps_float()
                 );
-                bitrate_bps = bwe.bitrate_observer.latest_bitrate() as _;
+                //bitrate_bps = bwe.bitrate_observer.latest_bitrate() as _;
                 seen_overuse = true;
                 break;
             } else if bwe.bitrate_observer.updated() {

@@ -71,7 +71,7 @@ pub trait NetworkControllerInterface {
     fn on_transport_packets_feedback(&mut self, msg: TransportPacketsFeedback)
         -> NetworkControlUpdate;
     // Called with network state estimate updates.
-    //fn OnNetworkStateEstimate(&mut self, msg: NetworkStateEstimate) -> NetworkControlUpdate;
+    fn on_network_state_estimate(&mut self, msg: NetworkStateEstimate) -> NetworkControlUpdate;
 }
 
 // NetworkControllerFactoryInterface is an interface for creating a network
