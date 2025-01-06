@@ -8,7 +8,6 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-
 use crate::{
     api::{
         transport::{BandwidthUsage, PacketResult, TransportPacketsFeedback},
@@ -381,6 +380,8 @@ impl DelayBasedBwe {
 
 #[cfg(test)]
 mod test {
+    use approx::assert_relative_eq;
+
     pub use super::*;
 
     const DefaultSsrc: u32 = 0;
