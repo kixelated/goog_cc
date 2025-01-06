@@ -28,43 +28,43 @@ impl LinkCapacityEstimator {
             deviation_kbps: 0.4,
         }
     }
-    pub fn UpperBound(&self) -> DataRate {
+    pub fn upper_bound(&self) -> DataRate {
         if let Some(estimate_kbps) = self.estimate_kbps {
-            DataRate::KilobitsPerSecFloat(
+            DataRate::from_kilobits_per_sec_float(
                 estimate_kbps + 3.0 * self.deviation_estimate_kbps(estimate_kbps),
             )
         } else {
-            DataRate::Infinity()
+            DataRate::infinity()
         }
     }
 
-    pub fn LowerBound(&self) -> DataRate {
+    pub fn lower_bound(&self) -> DataRate {
         if let Some(estimate_kbps) = self.estimate_kbps {
-            DataRate::KilobitsPerSecFloat(
+            DataRate::from_kilobits_per_sec_float(
                 (estimate_kbps - 3.0 * self.deviation_estimate_kbps(estimate_kbps)).max(0.0),
             )
         } else {
-            DataRate::Zero()
+            DataRate::zero()
         }
     }
-    pub fn Reset(&mut self) {
+    pub fn reset(&mut self) {
         self.estimate_kbps.take();
     }
-    pub fn OnOveruseDetected(&mut self, acknowledged_rate: DataRate) {
-        self.Update(acknowledged_rate, 0.05);
+    pub fn on_overuse_detected(&mut self, acknowledged_rate: DataRate) {
+        self.update(acknowledged_rate, 0.05);
     }
-    pub fn OnProbeRate(&mut self, probe_rate: DataRate) {
-        self.Update(probe_rate, 0.5);
+    pub fn on_probe_rate(&mut self, probe_rate: DataRate) {
+        self.update(probe_rate, 0.5);
     }
     pub fn has_estimate(&self) -> bool {
         self.estimate_kbps.is_some()
     }
 
     pub fn estimate(&self) -> DataRate {
-        DataRate::KilobitsPerSecFloat(self.estimate_kbps.unwrap_or_default())
+        DataRate::from_kilobits_per_sec_float(self.estimate_kbps.unwrap_or_default())
     }
 
-    fn Update(&mut self, capacity_sample: DataRate, alpha: f64) {
+    fn update(&mut self, capacity_sample: DataRate, alpha: f64) {
         let sample_kbps: f64 = capacity_sample.kbps_float();
         let estimate_kbps = if let Some(estimate_kbps) = self.estimate_kbps {
             (1.0 - alpha) * estimate_kbps + alpha * sample_kbps

@@ -18,10 +18,10 @@ use super::{
 pub trait TargetTransferRateObserver {
     // Called to indicate target transfer rate as well as giving information about
     // the current estimate of network parameters.
-    fn OnTargetTransferRate(target_transfer_rate: TargetTransferRate);
+    fn on_target_transfer_rate(target_transfer_rate: TargetTransferRate);
     // Called to provide updates to the expected target rate in case it changes
     // before the first call to OnTargetTransferRate.
-    fn OnStartRateUpdate(data_rate: DataRate);
+    fn on_start_rate_update(data_rate: DataRate);
 }
 
 // Configuration sent to factory create function. The parameters here are
@@ -47,28 +47,28 @@ pub struct NetworkControllerConfig {
 // non-concurrent fashion.
 pub trait NetworkControllerInterface {
     // Called when network availabilty changes.
-    fn OnNetworkAvailability(&mut self, msg: NetworkAvailability) -> NetworkControlUpdate;
+    fn on_network_availability(&mut self, msg: NetworkAvailability) -> NetworkControlUpdate;
     // Called when the receiving or sending endpoint changes address.
-    fn OnNetworkRouteChange(&mut self, msg: NetworkRouteChange) -> NetworkControlUpdate;
+    fn on_network_route_change(&mut self, msg: NetworkRouteChange) -> NetworkControlUpdate;
     // Called periodically with a periodicy as specified by
     // NetworkControllerFactoryInterface::GetProcessInterval.
-    fn OnProcessInterval(&mut self, msg: ProcessInterval) -> NetworkControlUpdate;
+    fn on_process_interval(&mut self, msg: ProcessInterval) -> NetworkControlUpdate;
     // Called when remotely calculated bitrate is received.
-    fn OnRemoteBitrateReport(&mut self, msg: RemoteBitrateReport) -> NetworkControlUpdate;
+    fn on_remote_bitrate_report(&mut self, msg: RemoteBitrateReport) -> NetworkControlUpdate;
     // Called round trip time has been calculated by protocol specific mechanisms.
-    fn OnRoundTripTimeUpdate(&mut self, msg: RoundTripTimeUpdate) -> NetworkControlUpdate;
+    fn on_round_trip_time_update(&mut self, msg: RoundTripTimeUpdate) -> NetworkControlUpdate;
     // Called when a packet is sent on the network.
-    fn OnSentPacket(&mut self, msg: SentPacket) -> NetworkControlUpdate;
+    fn on_sent_packet(&mut self, msg: SentPacket) -> NetworkControlUpdate;
     // Called when a packet is received from the remote client.
-    fn OnReceivedPacket(&mut self, msg: ReceivedPacket) -> NetworkControlUpdate;
+    fn on_received_packet(&mut self, msg: ReceivedPacket) -> NetworkControlUpdate;
     // Called when the stream specific configuration has been updated.
-    fn OnStreamsConfig(&mut self, msg: StreamsConfig) -> NetworkControlUpdate;
+    fn on_streams_config(&mut self, msg: StreamsConfig) -> NetworkControlUpdate;
     // Called when target transfer rate constraints has been changed.
-    fn OnTargetRateConstraints(&mut self, msg: TargetRateConstraints) -> NetworkControlUpdate;
+    fn on_target_rate_constraints(&mut self, msg: TargetRateConstraints) -> NetworkControlUpdate;
     // Called when a protocol specific calculation of packet loss has been made.
-    fn OnTransportLossReport(&mut self, msg: TransportLossReport) -> NetworkControlUpdate;
+    fn on_transport_loss_report(&mut self, msg: TransportLossReport) -> NetworkControlUpdate;
     // Called with per packet feedback regarding receive time.
-    fn OnTransportPacketsFeedback(&mut self, msg: TransportPacketsFeedback)
+    fn on_transport_packets_feedback(&mut self, msg: TransportPacketsFeedback)
         -> NetworkControlUpdate;
     // Called with network state estimate updates.
     //fn OnNetworkStateEstimate(&mut self, msg: NetworkStateEstimate) -> NetworkControlUpdate;
@@ -79,10 +79,10 @@ pub trait NetworkControllerInterface {
 pub trait NetworkControllerFactoryInterface {
     // Used to create a new network controller, requires an observer to be
     // provided to handle callbacks.
-    fn Create(config: NetworkControllerConfig) -> impl NetworkControllerInterface;
+    fn create(config: NetworkControllerConfig) -> impl NetworkControllerInterface;
     // Returns the interval by which the network controller expects
     // OnProcessInterval calls.
-    fn GetProcessInterval() -> TimeDelta;
+    fn get_process_interval() -> TimeDelta;
 }
 
 // Under development, subject to change without notice.

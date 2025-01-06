@@ -6,72 +6,75 @@ macro_rules! unit_base {
         pub struct $ty(i64);
 
         impl $ty {
-            pub const fn Zero() -> Self {
+            pub const fn zero() -> Self {
                 Self(0)
             }
-            pub const fn PlusInfinity() -> Self {
+            pub const fn plus_infinity() -> Self {
                 Self(i64::MAX)
             }
-            pub const fn MinusInfinity() -> Self {
+            pub const fn minus_infinity() -> Self {
                 Self(i64::MIN)
             }
 
-            pub const fn IsZero(&self) -> bool {
+            pub const fn is_zero(&self) -> bool {
                 self.0 == 0
             }
-            pub const fn IsFinite(&self) -> bool {
-                !self.IsInfinite()
+            pub const fn is_finite(&self) -> bool {
+                !self.is_infinite()
             }
-            pub const fn IsInfinite(&self) -> bool {
+            pub const fn is_infinite(&self) -> bool {
                 self.0 == i64::MAX || self.0 == i64::MIN
             }
 
-            pub const fn IsPlusInfinity(&self) -> bool {
+            pub const fn is_plus_infinity(&self) -> bool {
                 self.0 == i64::MAX
             }
 
-            pub const fn IsMinusInfinity(&self) -> bool {
+            pub const fn is_minus_infinity(&self) -> bool {
                 self.0 == i64::MIN
             }
 
-            pub const fn RoundTo(&self, resolution: Self) -> Self {
-                assert!(self.IsFinite());
-                assert!(resolution.IsFinite());
+            pub const fn round_to(&self, resolution: Self) -> Self {
+                assert!(self.is_finite());
+                assert!(resolution.is_finite());
                 assert!(resolution.0 > 0);
-                Self::FromValue(((self.0 + resolution.0 / 2) / resolution.0) * resolution.0)
+                Self::from_value(((self.0 + resolution.0 / 2) / resolution.0) * resolution.0)
             }
 
-            pub const fn RoundUpTo(&self, resolution: Self) -> Self {
-                assert!(self.IsFinite());
-                assert!(resolution.IsFinite());
+            pub const fn round_up_to(&self, resolution: Self) -> Self {
+                assert!(self.is_finite());
+                assert!(resolution.is_finite());
                 assert!(resolution.0 > 0);
-                Self::FromValue(((self.0 + resolution.0 - 1) / resolution.0) * resolution.0)
+                Self::from_value(((self.0 + resolution.0 - 1) / resolution.0) * resolution.0)
             }
 
-            pub const fn RoundDownTo(&self, resolution: Self) -> Self {
-                assert!(self.IsFinite());
-                assert!(resolution.IsFinite());
+            pub const fn round_down_to(&self, resolution: Self) -> Self {
+                assert!(self.is_finite());
+                assert!(resolution.is_finite());
                 assert!(resolution.0 > 0);
-                Self::FromValue((self.0 / resolution.0) * resolution.0)
+                Self::from_value((self.0 / resolution.0) * resolution.0)
             }
 
-            const fn FromFraction(denominator: i64, value: i64) -> Self {
+            #[allow(dead_code)]
+            const fn from_fraction(denominator: i64, value: i64) -> Self {
                 assert!(denominator >= 0);
-                Self::FromValue(value * denominator)
+                Self::from_value(value * denominator)
             }
 
-            fn FromFractionFloat(denominator: f64, value: f64) -> Self {
-                Self::FromValueFloat(value * denominator)
+            #[allow(dead_code)]
+            fn from_fraction_float(denominator: f64, value: f64) -> Self {
+                Self::from_value_float(value * denominator)
             }
 
-            const fn ToFraction(&self, denominator: i64) -> i64 {
-                self.DivideRoundToNearest(denominator)
+            #[allow(dead_code)]
+            const fn to_fraction(&self, denominator: i64) -> i64 {
+                self.divide_round_to_nearest(denominator)
             }
 
-            const fn DivideRoundToNearest(&self, d: i64) -> i64 {
+            const fn divide_round_to_nearest(&self, d: i64) -> i64 {
                 assert!(d >= 0);
 
-                let v = self.ToValue();
+                let v = self.to_value();
                 let mut result = v / d;
                 let remainder = v % d;
 
@@ -85,31 +88,33 @@ macro_rules! unit_base {
                 result
             }
 
-            fn ToFractionFloat(&self, denominator: f64) -> f64 {
+            #[allow(dead_code)]
+            fn to_fraction_float(&self, denominator: f64) -> f64 {
                 assert!(denominator >= 0.0);
-                self.ToValueFloat() / denominator
+                self.to_value_float() / denominator
             }
 
-            const fn ToFractionOr(&self, denominator: i64, fallback_value: i64) -> i64 {
+            #[allow(dead_code)]
+            const fn to_fraction_or(&self, denominator: i64, fallback_value: i64) -> i64 {
                 assert!(denominator >= 0);
-                if self.IsFinite() {
-                    self.DivideRoundToNearest(denominator)
+                if self.is_finite() {
+                    self.divide_round_to_nearest(denominator)
                 } else {
                     fallback_value
                 }
             }
 
-            pub const fn ToMultiple(&self, factor: i64) -> i64 {
+            pub const fn to_multiple(&self, factor: i64) -> i64 {
                 assert!(factor >= 0);
-                self.ToValue() * factor
+                self.to_value() * factor
             }
 
-            pub fn ToMultipleFloat(&self, factor: f64) -> f64 {
+            pub fn to_multiple_float(&self, factor: f64) -> f64 {
                 assert!(factor >= 0.0);
-                self.ToValueFloat() * factor
+                self.to_value_float() * factor
             }
 
-            const fn FromValue(value: i64) -> Self {
+            const fn from_value(value: i64) -> Self {
                 assert!(value != i64::MAX && value != i64::MIN);
                 if Self::ONE_SIDED {
                     assert!(value >= 0);
@@ -118,11 +123,11 @@ macro_rules! unit_base {
                 Self(value)
             }
 
-            fn FromValueFloat(value: f64) -> Self {
+            fn from_value_float(value: f64) -> Self {
                 assert!(!value.is_nan());
 
                 if value == f64::INFINITY {
-                    return Self::PlusInfinity();
+                    return Self::plus_infinity();
                 }
 
                 if Self::ONE_SIDED {
@@ -130,29 +135,30 @@ macro_rules! unit_base {
                 }
 
                 if value == f64::NEG_INFINITY {
-                    Self::MinusInfinity()
+                    Self::minus_infinity()
                 } else {
                     Self(value as i64)
                 }
             }
 
-            const fn ToValue(&self) -> i64 {
-                assert!(self.IsFinite());
+            const fn to_value(&self) -> i64 {
+                assert!(self.is_finite());
                 self.0
             }
 
-            const fn ToValueOr(&self, fallback_value: i64) -> i64 {
-                if self.IsFinite() {
+            #[allow(dead_code)]
+            const fn to_value_or(&self, fallback_value: i64) -> i64 {
+                if self.is_finite() {
                     self.0
                 } else {
                     fallback_value
                 }
             }
 
-            const fn ToValueFloat(&self) -> f64 {
-                if self.IsPlusInfinity() {
+            const fn to_value_float(&self) -> f64 {
+                if self.is_plus_infinity() {
                     f64::INFINITY
-                } else if self.IsMinusInfinity() {
+                } else if self.is_minus_infinity() {
                     f64::NEG_INFINITY
                 } else {
                     self.0 as f64
@@ -167,11 +173,7 @@ macro_rules! relative_unit {
         crate::api::units::unit_base!($ty);
 
         impl $ty {
-            pub fn Clamped(&self, min_value: Self, max_value: Self) -> Self {
-                Self(self.0.max(min_value.0).min(max_value.0))
-            }
-
-            pub fn Clamp(&mut self, min_value: Self, max_value: Self) {
+            pub fn clamp_mut(&mut self, min_value: Self, max_value: Self) {
                 *self = Self(self.0.max(min_value.0).min(max_value.0));
             }
         }
@@ -180,16 +182,16 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn add(self, rhs: Self) -> Self::Output {
-                if self.IsPlusInfinity() || rhs.IsPlusInfinity() {
-                    assert!(!self.IsMinusInfinity());
-                    assert!(!rhs.IsMinusInfinity());
-                    return Self::PlusInfinity();
-                } else if self.IsMinusInfinity() || rhs.IsMinusInfinity() {
-                    assert!(!self.IsPlusInfinity());
-                    assert!(!rhs.IsPlusInfinity());
-                    return Self::MinusInfinity();
+                if self.is_plus_infinity() || rhs.is_plus_infinity() {
+                    assert!(!self.is_minus_infinity());
+                    assert!(!rhs.is_minus_infinity());
+                    return Self::plus_infinity();
+                } else if self.is_minus_infinity() || rhs.is_minus_infinity() {
+                    assert!(!self.is_plus_infinity());
+                    assert!(!rhs.is_plus_infinity());
+                    return Self::minus_infinity();
                 }
-                Self::FromValue(self.ToValue() + rhs.ToValue())
+                Self::from_value(self.to_value() + rhs.to_value())
             }
         }
 
@@ -197,28 +199,28 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn sub(self, rhs: Self) -> Self::Output {
-                if self.IsPlusInfinity() || rhs.IsMinusInfinity() {
-                    assert!(!self.IsMinusInfinity());
-                    assert!(!rhs.IsPlusInfinity());
-                    return Self::PlusInfinity();
-                } else if self.IsMinusInfinity() || rhs.IsPlusInfinity() {
-                    assert!(!self.IsPlusInfinity());
-                    assert!(!rhs.IsMinusInfinity());
-                    return Self::MinusInfinity();
+                if self.is_plus_infinity() || rhs.is_minus_infinity() {
+                    assert!(!self.is_minus_infinity());
+                    assert!(!rhs.is_plus_infinity());
+                    return Self::plus_infinity();
+                } else if self.is_minus_infinity() || rhs.is_plus_infinity() {
+                    assert!(!self.is_plus_infinity());
+                    assert!(!rhs.is_minus_infinity());
+                    return Self::minus_infinity();
                 }
-                Self::FromValue(self.ToValue() - rhs.ToValue())
+                Self::from_value(self.to_value() - rhs.to_value())
             }
         }
 
         impl ::std::ops::AddAssign for $ty {
             fn add_assign(&mut self, rhs: Self) {
-                *self = Self::FromValue(self.ToValue() + rhs.ToValue());
+                *self = Self::from_value(self.to_value() + rhs.to_value());
             }
         }
 
         impl ::std::ops::SubAssign for $ty {
             fn sub_assign(&mut self, rhs: Self) {
-                *self = Self::FromValue(self.ToValue() - rhs.ToValue());
+                *self = Self::from_value(self.to_value() - rhs.to_value());
             }
         }
 
@@ -226,7 +228,7 @@ macro_rules! relative_unit {
             type Output = f64;
 
             fn div(self, rhs: Self) -> Self::Output {
-                self.ToValueFloat() / rhs.ToValueFloat()
+                self.to_value_float() / rhs.to_value_float()
             }
         }
 
@@ -234,7 +236,7 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn div(self, rhs: f64) -> Self::Output {
-                Self::FromValueFloat((self.ToValueFloat() / rhs).round())
+                Self::from_value_float((self.to_value_float() / rhs).round())
             }
         }
 
@@ -242,7 +244,7 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn div(self, rhs: i64) -> Self::Output {
-                Self::FromValue(self.ToValue() / rhs)
+                Self::from_value(self.to_value() / rhs)
             }
         }
 
@@ -250,7 +252,7 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn mul(self, rhs: f64) -> Self::Output {
-                Self::FromValueFloat((self.ToValueFloat() * rhs).round())
+                Self::from_value_float((self.to_value_float() * rhs).round())
             }
         }
 
@@ -258,7 +260,7 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn mul(self, rhs: i64) -> Self::Output {
-                Self::FromValue(self.ToValue() * rhs)
+                Self::from_value(self.to_value() * rhs)
             }
         }
 
@@ -266,7 +268,7 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn mul(self, rhs: i32) -> Self::Output {
-                Self::FromValue(self.ToValue() * rhs as i64)
+                Self::from_value(self.to_value() * rhs as i64)
             }
         }
 
@@ -274,7 +276,7 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn mul(self, rhs: f32) -> Self::Output {
-                Self::FromValueFloat((self.ToValueFloat() * rhs as f64).round())
+                Self::from_value_float((self.to_value_float() * rhs as f64).round())
             }
         }
 
@@ -282,7 +284,7 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn mul(self, rhs: usize) -> Self::Output {
-                Self::FromValue(self.ToValue() * i64::try_from(rhs).unwrap())
+                Self::from_value(self.to_value() * i64::try_from(rhs).unwrap())
             }
         }
 
@@ -290,12 +292,12 @@ macro_rules! relative_unit {
             type Output = Self;
 
             fn neg(self) -> Self::Output {
-                if self.IsPlusInfinity() {
-                    Self::MinusInfinity()
-                } else if self.IsMinusInfinity() {
-                    Self::PlusInfinity()
+                if self.is_plus_infinity() {
+                    Self::minus_infinity()
+                } else if self.is_minus_infinity() {
+                    Self::plus_infinity()
                 } else {
-                    Self::FromValue(-self.ToValue())
+                    Self::from_value(-self.to_value())
                 }
             }
         }
@@ -377,7 +379,6 @@ pub(crate) use unit_base;
 
 #[cfg(test)]
 mod test {
-
     use std::fmt;
 
     use approx::assert_relative_eq;
@@ -389,39 +390,40 @@ mod test {
     impl TestUnit {
         const ONE_SIDED: bool = false;
 
-        pub const fn FromKilo(kilo: i64) -> Self {
-            Self::FromFraction(1000, kilo)
+        pub const fn from_kilo(kilo: i64) -> Self {
+            Self::from_fraction(1000, kilo)
         }
 
-        pub fn FromKiloFloat(kilo: f64) -> Self {
-            Self::FromFractionFloat(1000.0, kilo)
-        }
-        pub const fn ToKilo(&self) -> i64 {
-            self.ToFraction(1000)
+        pub fn from_kilo_float(kilo: f64) -> Self {
+            Self::from_fraction_float(1000.0, kilo)
         }
 
-        pub fn ToKiloFloat(&self) -> f64 {
-            self.ToFractionFloat(1000.0)
+        pub const fn to_kilo(&self) -> i64 {
+            self.to_fraction(1000)
         }
 
-        pub const fn ToKiloOr(&self, fallback: i64) -> i64 {
-            self.ToFractionOr(1000, fallback)
+        pub fn to_kilo_float(&self) -> f64 {
+            self.to_fraction_float(1000.0)
         }
 
-        pub const fn ToMilli(&self) -> i64 {
-            self.ToMultiple(1000)
+        pub const fn to_kilo_or(&self, fallback: i64) -> i64 {
+            self.to_fraction_or(1000, fallback)
         }
 
-        pub fn ToMilliFloat(&self) -> f64 {
-            self.ToMultipleFloat(1000.0)
+        pub const fn to_milli(&self) -> i64 {
+            self.to_multiple(1000)
+        }
+
+        pub fn to_milli_float(&self) -> f64 {
+            self.to_multiple_float(1000.0)
         }
     }
 
     impl fmt::Debug for TestUnit {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            if self.IsPlusInfinity() {
+            if self.is_plus_infinity() {
                 write!(f, "+inf")
-            } else if self.IsMinusInfinity() {
+            } else if self.is_minus_infinity() {
                 write!(f, "-inf")
             } else {
                 write!(f, "{}", self.0)
@@ -429,255 +431,255 @@ mod test {
         }
     }
 
-    fn TestUnitAddKilo(mut value: TestUnit, add_kilo: i64) -> TestUnit {
-        value += TestUnit::FromKilo(add_kilo);
+    fn test_unit_add_kilo(mut value: TestUnit, add_kilo: i64) -> TestUnit {
+        value += TestUnit::from_kilo(add_kilo);
         value
     }
 
     #[test]
-    fn ConstExpr() {
-        const Value: i64 = -12345;
-        const TestUnitZero: TestUnit = TestUnit::Zero();
-        const TestUnitPlusInf: TestUnit = TestUnit::PlusInfinity();
-        const TestUnitMinusInf: TestUnit = TestUnit::MinusInfinity();
+    fn const_expr() {
+        const VALUE: i64 = -12345;
+        const TEST_UNIT_ZERO: TestUnit = TestUnit::zero();
+        const TEST_UNIT_PLUS_INF: TestUnit = TestUnit::plus_infinity();
+        const TEST_UNIT_MINUS_INF: TestUnit = TestUnit::minus_infinity();
 
-        assert!(TestUnitZero.IsZero());
-        assert!(TestUnitPlusInf.IsPlusInfinity());
-        assert!(TestUnitMinusInf.IsMinusInfinity());
-        assert!(TestUnitPlusInf.ToKiloOr(-1) == -1);
+        assert!(TEST_UNIT_ZERO.is_zero());
+        assert!(TEST_UNIT_PLUS_INF.is_plus_infinity());
+        assert!(TEST_UNIT_MINUS_INF.is_minus_infinity());
+        assert!(TEST_UNIT_PLUS_INF.to_kilo_or(-1) == -1);
 
         // Check from is constexpr for floats.
-        assert!(TestUnit::FromValueFloat(0.0).IsZero());
-        assert!(TestUnit::FromValueFloat(f64::INFINITY).IsPlusInfinity());
-        assert!(TestUnit::FromValueFloat(-f64::INFINITY).IsMinusInfinity());
-        assert!(TestUnit::FromValueFloat(250.0) == TestUnit::FromValue(250));
-        assert!(TestUnit::FromValueFloat(-250.0) == TestUnit::FromValue(-250));
+        assert!(TestUnit::from_value_float(0.0).is_zero());
+        assert!(TestUnit::from_value_float(f64::INFINITY).is_plus_infinity());
+        assert!(TestUnit::from_value_float(-f64::INFINITY).is_minus_infinity());
+        assert!(TestUnit::from_value_float(250.0) == TestUnit::from_value(250));
+        assert!(TestUnit::from_value_float(-250.0) == TestUnit::from_value(-250));
 
-        assert!(TestUnitPlusInf > TestUnitZero);
+        assert!(TEST_UNIT_PLUS_INF > TEST_UNIT_ZERO);
 
-        const TestUnitKilo: TestUnit = TestUnit::FromKilo(Value);
-        const TestUnitValue: TestUnit = TestUnit::FromValue(Value);
+        const TEST_UNIT_KILO: TestUnit = TestUnit::from_kilo(VALUE);
+        const TEST_UNIT_VALUE: TestUnit = TestUnit::from_value(VALUE);
 
-        assert!(TestUnitKilo.ToKiloOr(0) == Value);
-        assert!(TestUnitValue.ToValueOr(0) == Value);
-        assert!(TestUnitAddKilo(TestUnitValue, 2).ToValue() == Value + 2000);
-        assert!(TestUnit::FromValue(500) / 2 == TestUnit::FromValue(250));
-        assert!(TestUnit::FromValueFloat(500.0) / 2 == TestUnit::FromValueFloat(250.0));
+        assert!(TEST_UNIT_KILO.to_kilo_or(0) == VALUE);
+        assert!(TEST_UNIT_VALUE.to_value_or(0) == VALUE);
+        assert!(test_unit_add_kilo(TEST_UNIT_VALUE, 2).to_value() == VALUE + 2000);
+        assert!(TestUnit::from_value(500) / 2 == TestUnit::from_value(250));
+        assert!(TestUnit::from_value_float(500.0) / 2 == TestUnit::from_value_float(250.0));
     }
 
     #[test]
-    fn GetBackSameValues() {
-        const Value: i64 = 499;
+    fn get_back_same_values() {
+        const VALUE: i64 = 499;
         for sign in [-1, 0, 1] {
-            let value: i64 = Value * sign;
-            assert_eq!(TestUnit::FromKilo(value).ToKilo(), value);
-            assert_eq!(TestUnit::FromValue(value).ToValue(), value);
+            let value: i64 = VALUE * sign;
+            assert_eq!(TestUnit::from_kilo(value).to_kilo(), value);
+            assert_eq!(TestUnit::from_value(value).to_value(), value);
         }
-        assert_eq!(TestUnit::Zero().ToValue(), 0);
+        assert_eq!(TestUnit::zero().to_value(), 0);
     }
 
     #[test]
-    fn GetDifferentPrefix() {
-        const Value: i64 = 3000000;
-        assert_eq!(TestUnit::FromValue(Value).ToKilo(), Value / 1000);
-        assert_eq!(TestUnit::FromKilo(Value).ToValue(), Value * 1000);
+    fn get_different_prefix() {
+        const VALUE: i64 = 3000000;
+        assert_eq!(TestUnit::from_value(VALUE).to_kilo(), VALUE / 1000);
+        assert_eq!(TestUnit::from_kilo(VALUE).to_value(), VALUE * 1000);
     }
 
     #[test]
-    fn IdentityChecks() {
-        const Value: i64 = 3000;
-        assert!(TestUnit::Zero().IsZero());
-        assert!(!TestUnit::FromKilo(Value).IsZero());
+    fn identity_checks() {
+        const VALUE: i64 = 3000;
+        assert!(TestUnit::zero().is_zero());
+        assert!(!TestUnit::from_kilo(VALUE).is_zero());
 
-        assert!(TestUnit::PlusInfinity().IsInfinite());
-        assert!(TestUnit::MinusInfinity().IsInfinite());
-        assert!(!TestUnit::Zero().IsInfinite());
-        assert!(!TestUnit::FromKilo(-Value).IsInfinite());
-        assert!(!TestUnit::FromKilo(Value).IsInfinite());
+        assert!(TestUnit::plus_infinity().is_infinite());
+        assert!(TestUnit::minus_infinity().is_infinite());
+        assert!(!TestUnit::zero().is_infinite());
+        assert!(!TestUnit::from_kilo(-VALUE).is_infinite());
+        assert!(!TestUnit::from_kilo(VALUE).is_infinite());
 
-        assert!(!TestUnit::PlusInfinity().IsFinite());
-        assert!(!TestUnit::MinusInfinity().IsFinite());
-        assert!(TestUnit::FromKilo(-Value).IsFinite());
-        assert!(TestUnit::FromKilo(Value).IsFinite());
-        assert!(TestUnit::Zero().IsFinite());
+        assert!(!TestUnit::plus_infinity().is_finite());
+        assert!(!TestUnit::minus_infinity().is_finite());
+        assert!(TestUnit::from_kilo(-VALUE).is_finite());
+        assert!(TestUnit::from_kilo(VALUE).is_finite());
+        assert!(TestUnit::zero().is_finite());
 
-        assert!(TestUnit::PlusInfinity().IsPlusInfinity());
-        assert!(!TestUnit::MinusInfinity().IsPlusInfinity());
+        assert!(TestUnit::plus_infinity().is_plus_infinity());
+        assert!(!TestUnit::minus_infinity().is_plus_infinity());
 
-        assert!(TestUnit::MinusInfinity().IsMinusInfinity());
-        assert!(!TestUnit::PlusInfinity().IsMinusInfinity());
+        assert!(TestUnit::minus_infinity().is_minus_infinity());
+        assert!(!TestUnit::plus_infinity().is_minus_infinity());
     }
 
     #[test]
-    fn ComparisonOperators() {
-        const Small: i64 = 450;
-        const Large: i64 = 451;
-        const small: TestUnit = TestUnit::FromKilo(Small);
-        const large: TestUnit = TestUnit::FromKilo(Large);
+    fn comparison_operators() {
+        const SMALL: i64 = 450;
+        const LARGE: i64 = 451;
+        let small: TestUnit = TestUnit::from_kilo(SMALL);
+        let large: TestUnit = TestUnit::from_kilo(LARGE);
 
-        assert_eq!(TestUnit::Zero(), TestUnit::FromKilo(0));
-        assert_eq!(TestUnit::PlusInfinity(), TestUnit::PlusInfinity());
-        assert_eq!(small, TestUnit::FromKilo(Small));
-        assert!(small <= TestUnit::FromKilo(Small));
-        assert!(small >= TestUnit::FromKilo(Small));
-        assert!(small != TestUnit::FromKilo(Large));
-        assert!(small <= TestUnit::FromKilo(Large));
-        assert!(small < TestUnit::FromKilo(Large));
-        assert!(large >= TestUnit::FromKilo(Small));
-        assert!(large > TestUnit::FromKilo(Small));
-        assert!(TestUnit::Zero() < small);
-        assert!(TestUnit::Zero() > TestUnit::FromKilo(-Small));
-        assert!(TestUnit::Zero() > TestUnit::FromKilo(-Small));
+        assert_eq!(TestUnit::zero(), TestUnit::from_kilo(0));
+        assert_eq!(TestUnit::plus_infinity(), TestUnit::plus_infinity());
+        assert_eq!(small, TestUnit::from_kilo(SMALL));
+        assert!(small <= TestUnit::from_kilo(SMALL));
+        assert!(small >= TestUnit::from_kilo(SMALL));
+        assert!(small != TestUnit::from_kilo(LARGE));
+        assert!(small <= TestUnit::from_kilo(LARGE));
+        assert!(small < TestUnit::from_kilo(LARGE));
+        assert!(large >= TestUnit::from_kilo(SMALL));
+        assert!(large > TestUnit::from_kilo(SMALL));
+        assert!(TestUnit::zero() < small);
+        assert!(TestUnit::zero() > TestUnit::from_kilo(-SMALL));
+        assert!(TestUnit::zero() > TestUnit::from_kilo(-SMALL));
 
-        assert!(TestUnit::PlusInfinity() > large);
-        assert!(TestUnit::MinusInfinity() < TestUnit::Zero());
+        assert!(TestUnit::plus_infinity() > large);
+        assert!(TestUnit::minus_infinity() < TestUnit::zero());
     }
 
     #[test]
-    fn CanBeInititializedFromLargeInt() {
-        const MaxInt: i32 = i32::MAX;
+    fn can_be_inititialized_from_large_int() {
+        const MAX_INT: i32 = i32::MAX;
         assert_eq!(
-            TestUnit::FromKilo(MaxInt as i64).ToValue(),
-            (MaxInt as i64) * 1000
+            TestUnit::from_kilo(MAX_INT as i64).to_value(),
+            (MAX_INT as i64) * 1000
         );
     }
 
     #[test]
-    fn ConvertsToAndFromDouble() {
-        const Value: i64 = 17017;
-        const MilliDouble: f64 = Value as f64 * 1e3;
-        const ValueDouble: f64 = Value as f64;
-        const KiloDouble: f64 = Value as f64 * 1e-3;
+    fn converts_to_and_from_double() {
+        const VALUE: i64 = 17017;
+        const MILLI_DOUBLE: f64 = VALUE as f64 * 1e3;
+        const VALUE_DOUBLE: f64 = VALUE as f64;
+        const KILO_DOUBLE: f64 = VALUE as f64 * 1e-3;
 
-        assert_eq!(TestUnit::FromValue(Value).ToKiloFloat(), KiloDouble);
-        assert_eq!(TestUnit::FromKiloFloat(KiloDouble).ToValue(), Value);
+        assert_eq!(TestUnit::from_value(VALUE).to_kilo_float(), KILO_DOUBLE);
+        assert_eq!(TestUnit::from_kilo_float(KILO_DOUBLE).to_value(), VALUE);
 
-        assert_eq!(TestUnit::FromValue(Value).ToValueFloat(), ValueDouble);
-        assert_eq!(TestUnit::FromValueFloat(ValueDouble).ToValue(), Value);
+        assert_eq!(TestUnit::from_value(VALUE).to_value_float(), VALUE_DOUBLE);
+        assert_eq!(TestUnit::from_value_float(VALUE_DOUBLE).to_value(), VALUE);
 
         assert_relative_eq!(
-            TestUnit::FromValue(Value).ToMilliFloat(),
-            MilliDouble,
+            TestUnit::from_value(VALUE).to_milli_float(),
+            MILLI_DOUBLE,
             epsilon = 1.0
         );
 
-        const PlusInfinity: f64 = f64::INFINITY;
-        const MinusInfinity: f64 = -PlusInfinity;
+        const PLUS_INFINITY: f64 = f64::INFINITY;
+        const MINUS_INFINITY: f64 = -PLUS_INFINITY;
 
-        assert_eq!(TestUnit::PlusInfinity().ToKiloFloat(), PlusInfinity);
-        assert_eq!(TestUnit::MinusInfinity().ToKiloFloat(), MinusInfinity);
-        assert_eq!(TestUnit::PlusInfinity().ToKiloFloat(), PlusInfinity);
-        assert_eq!(TestUnit::MinusInfinity().ToKiloFloat(), MinusInfinity);
-        assert_eq!(TestUnit::PlusInfinity().ToMilliFloat(), PlusInfinity);
-        assert_eq!(TestUnit::MinusInfinity().ToMilliFloat(), MinusInfinity);
+        assert_eq!(TestUnit::plus_infinity().to_kilo_float(), PLUS_INFINITY);
+        assert_eq!(TestUnit::minus_infinity().to_kilo_float(), MINUS_INFINITY);
+        assert_eq!(TestUnit::plus_infinity().to_kilo_float(), PLUS_INFINITY);
+        assert_eq!(TestUnit::minus_infinity().to_kilo_float(), MINUS_INFINITY);
+        assert_eq!(TestUnit::plus_infinity().to_milli_float(), PLUS_INFINITY);
+        assert_eq!(TestUnit::minus_infinity().to_milli_float(), MINUS_INFINITY);
 
-        assert!(TestUnit::FromKiloFloat(PlusInfinity).IsPlusInfinity());
-        assert!(TestUnit::FromKiloFloat(MinusInfinity).IsMinusInfinity());
-        assert!(TestUnit::FromValueFloat(PlusInfinity).IsPlusInfinity());
-        assert!(TestUnit::FromValueFloat(MinusInfinity).IsMinusInfinity());
+        assert!(TestUnit::from_kilo_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(TestUnit::from_kilo_float(MINUS_INFINITY).is_minus_infinity());
+        assert!(TestUnit::from_value_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(TestUnit::from_value_float(MINUS_INFINITY).is_minus_infinity());
     }
 
     #[test]
     #[should_panic]
-    fn CrashesWhenCreatedFromNan1() {
-        TestUnit::FromValueFloat(f64::NAN);
+    fn crashes_when_created_from_nan1() {
+        TestUnit::from_value_float(f64::NAN);
     }
 
     #[test]
     #[should_panic]
-    fn CrashesWhenCreatedFromNan2() {
-        TestUnit::FromValueFloat(0.0 / 0.0);
+    fn crashes_when_created_from_nan2() {
+        TestUnit::from_value_float(0.0 / 0.0);
     }
 
     #[test]
     #[should_panic]
-    fn CrashesWhenCreatedFromNan3() {
-        TestUnit::FromValueFloat(f64::INFINITY - f64::INFINITY);
+    fn crashes_when_created_from_nan3() {
+        TestUnit::from_value_float(f64::INFINITY - f64::INFINITY);
     }
 
     #[test]
-    fn Clamping() {
-        const upper: TestUnit = TestUnit::FromValue(800);
-        const lower: TestUnit = TestUnit::FromValue(100);
-        const under: TestUnit = TestUnit::FromValue(100);
-        const inside: TestUnit = TestUnit::FromValue(500);
-        const over: TestUnit = TestUnit::FromValue(1000);
-        assert_eq!(under.Clamped(lower, upper), lower);
-        assert_eq!(inside.Clamped(lower, upper), inside);
-        assert_eq!(over.Clamped(lower, upper), upper);
+    fn clamping() {
+        const UPPER: TestUnit = TestUnit::from_value(800);
+        const LOWER: TestUnit = TestUnit::from_value(100);
+        const UNDER: TestUnit = TestUnit::from_value(100);
+        const INSIDE: TestUnit = TestUnit::from_value(500);
+        const OVER: TestUnit = TestUnit::from_value(1000);
+        assert_eq!(UNDER.clamp(LOWER, UPPER), LOWER);
+        assert_eq!(INSIDE.clamp(LOWER, UPPER), INSIDE);
+        assert_eq!(OVER.clamp(LOWER, UPPER), UPPER);
 
-        let mut mutable_delta: TestUnit = lower;
-        mutable_delta.Clamp(lower, upper);
-        assert_eq!(mutable_delta, lower);
-        mutable_delta = inside;
-        mutable_delta.Clamp(lower, upper);
-        assert_eq!(mutable_delta, inside);
-        mutable_delta = over;
-        mutable_delta.Clamp(lower, upper);
-        assert_eq!(mutable_delta, upper);
+        let mut mutable_delta: TestUnit = LOWER;
+        mutable_delta.clamp_mut(LOWER, UPPER);
+        assert_eq!(mutable_delta, LOWER);
+        mutable_delta = INSIDE;
+        mutable_delta.clamp_mut(LOWER, UPPER);
+        assert_eq!(mutable_delta, INSIDE);
+        mutable_delta = OVER;
+        mutable_delta.clamp_mut(LOWER, UPPER);
+        assert_eq!(mutable_delta, UPPER);
     }
 
     #[test]
-    fn MathOperations() {
-        const ValueA: i64 = 267;
-        const ValueB: i64 = 450;
-        const delta_a: TestUnit = TestUnit::FromKilo(ValueA);
-        const delta_b: TestUnit = TestUnit::FromKilo(ValueB);
-        assert_eq!((delta_a + delta_b).ToKilo(), ValueA + ValueB);
-        assert_eq!((delta_a - delta_b).ToKilo(), ValueA - ValueB);
+    fn math_operations() {
+        const VALUE_A: i64 = 267;
+        const VALUE_B: i64 = 450;
+        const DELTA_A: TestUnit = TestUnit::from_kilo(VALUE_A);
+        const DELTA_B: TestUnit = TestUnit::from_kilo(VALUE_B);
+        assert_eq!((DELTA_A + DELTA_B).to_kilo(), VALUE_A + VALUE_B);
+        assert_eq!((DELTA_A - DELTA_B).to_kilo(), VALUE_A - VALUE_B);
 
-        const Int32Value: i32 = 123;
-        const FloatValue: f64 = 123.0;
+        const INT32_VALUE: i32 = 123;
+        const FLOAT_VALUE: f64 = 123.0;
         assert_eq!(
-            (TestUnit::FromValue(ValueA) * ValueB).ToValue(),
-            ValueA * ValueB
+            (TestUnit::from_value(VALUE_A) * VALUE_B).to_value(),
+            VALUE_A * VALUE_B
         );
         assert_eq!(
-            (TestUnit::FromValue(ValueA) * Int32Value).ToValue(),
-            ValueA * Int32Value as i64
+            (TestUnit::from_value(VALUE_A) * INT32_VALUE).to_value(),
+            VALUE_A * INT32_VALUE as i64
         );
         assert_eq!(
-            (TestUnit::FromValue(ValueA) * FloatValue).ToValue(),
-            ValueA * FloatValue as i64
+            (TestUnit::from_value(VALUE_A) * FLOAT_VALUE).to_value(),
+            VALUE_A * FLOAT_VALUE as i64
         );
 
-        assert_eq!((delta_b / 10).ToKilo(), ValueB / 10);
-        assert_eq!(delta_b / delta_a, ValueB as f64 / ValueA as f64);
+        assert_eq!((DELTA_B / 10).to_kilo(), VALUE_B / 10);
+        assert_eq!(DELTA_B / DELTA_A, VALUE_B as f64 / VALUE_A as f64);
 
-        let mut mutable_delta: TestUnit = TestUnit::FromKilo(ValueA);
-        mutable_delta += TestUnit::FromKilo(ValueB);
-        assert_eq!(mutable_delta, TestUnit::FromKilo(ValueA + ValueB));
-        mutable_delta -= TestUnit::FromKilo(ValueB);
-        assert_eq!(mutable_delta, TestUnit::FromKilo(ValueA));
+        let mut mutable_delta: TestUnit = TestUnit::from_kilo(VALUE_A);
+        mutable_delta += TestUnit::from_kilo(VALUE_B);
+        assert_eq!(mutable_delta, TestUnit::from_kilo(VALUE_A + VALUE_B));
+        mutable_delta -= TestUnit::from_kilo(VALUE_B);
+        assert_eq!(mutable_delta, TestUnit::from_kilo(VALUE_A));
 
         // Division by an int rounds towards zero to follow regular int division.
-        assert_eq!(TestUnit::FromValue(789) / 10, TestUnit::FromValue(78));
-        assert_eq!(TestUnit::FromValue(-789) / 10, TestUnit::FromValue(-78));
+        assert_eq!(TestUnit::from_value(789) / 10, TestUnit::from_value(78));
+        assert_eq!(TestUnit::from_value(-789) / 10, TestUnit::from_value(-78));
     }
 
     #[test]
-    fn InfinityOperations() {
-        const Value: i64 = 267;
-        const finite: TestUnit = TestUnit::FromValue(Value);
-        assert!((TestUnit::PlusInfinity() + finite).IsPlusInfinity());
-        assert!((TestUnit::PlusInfinity() - finite).IsPlusInfinity());
-        assert!((finite + TestUnit::PlusInfinity()).IsPlusInfinity());
-        assert!((finite - TestUnit::MinusInfinity()).IsPlusInfinity());
+    fn infinity_operations() {
+        const VALUE: i64 = 267;
+        const FINITE: TestUnit = TestUnit::from_value(VALUE);
+        assert!((TestUnit::plus_infinity() + FINITE).is_plus_infinity());
+        assert!((TestUnit::plus_infinity() - FINITE).is_plus_infinity());
+        assert!((FINITE + TestUnit::plus_infinity()).is_plus_infinity());
+        assert!((FINITE - TestUnit::minus_infinity()).is_plus_infinity());
 
-        assert!((TestUnit::MinusInfinity() + finite).IsMinusInfinity());
-        assert!((TestUnit::MinusInfinity() - finite).IsMinusInfinity());
-        assert!((finite + TestUnit::MinusInfinity()).IsMinusInfinity());
-        assert!((finite - TestUnit::PlusInfinity()).IsMinusInfinity());
+        assert!((TestUnit::minus_infinity() + FINITE).is_minus_infinity());
+        assert!((TestUnit::minus_infinity() - FINITE).is_minus_infinity());
+        assert!((FINITE + TestUnit::minus_infinity()).is_minus_infinity());
+        assert!((FINITE - TestUnit::plus_infinity()).is_minus_infinity());
     }
 
     #[test]
-    fn UnaryMinus() {
-        const Value: i64 = 1337;
-        const unit: TestUnit = TestUnit::FromValue(Value);
-        assert_eq!(-unit.ToValue(), -Value);
+    fn unary_minus() {
+        const VALUE: i64 = 1337;
+        const UNIT: TestUnit = TestUnit::from_value(VALUE);
+        assert_eq!(-UNIT.to_value(), -VALUE);
 
         // Check infinity.
-        assert_eq!(-TestUnit::PlusInfinity(), TestUnit::MinusInfinity());
-        assert_eq!(-TestUnit::MinusInfinity(), TestUnit::PlusInfinity());
+        assert_eq!(-TestUnit::plus_infinity(), TestUnit::minus_infinity());
+        assert_eq!(-TestUnit::minus_infinity(), TestUnit::plus_infinity());
     }
 }

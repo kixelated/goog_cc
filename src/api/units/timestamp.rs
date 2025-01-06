@@ -22,64 +22,64 @@ super::unit_base!(Timestamp);
 impl Timestamp {
     const ONE_SIDED: bool = false;
 
-    pub const fn Seconds(value: i64) -> Self {
-        Self::FromFraction(1_000_000, value)
+    pub const fn from_seconds(value: i64) -> Self {
+        Self::from_fraction(1_000_000, value)
     }
 
-    pub fn SecondsFloat(value: f64) -> Self {
-        Self::FromFractionFloat(1_000_000.0, value)
+    pub fn from_seconds_float(value: f64) -> Self {
+        Self::from_fraction_float(1_000_000.0, value)
     }
 
-    pub const fn Millis(value: i64) -> Self {
-        Self::FromFraction(1_000, value)
+    pub const fn from_millis(value: i64) -> Self {
+        Self::from_fraction(1_000, value)
     }
 
-    pub fn MillisFloat(value: f64) -> Self {
-        Self::FromFractionFloat(1_000.0, value)
+    pub fn from_millis_float(value: f64) -> Self {
+        Self::from_fraction_float(1_000.0, value)
     }
 
-    pub const fn Micros(value: i64) -> Self {
-        Self::FromValue(value)
+    pub const fn from_micros(value: i64) -> Self {
+        Self::from_value(value)
     }
 
-    pub fn MicrosFloat(value: f64) -> Self {
-        Self::FromValueFloat(value)
+    pub fn from_micros_float(value: f64) -> Self {
+        Self::from_value_float(value)
     }
 
     pub const fn seconds(&self) -> i64 {
-        self.ToFraction(1_000_000)
+        self.to_fraction(1_000_000)
     }
 
     pub fn seconds_float(&self) -> f64 {
-        self.ToFractionFloat(1_000_000.0)
+        self.to_fraction_float(1_000_000.0)
     }
 
     pub const fn ms(&self) -> i64 {
-        self.ToFraction(1_000)
+        self.to_fraction(1_000)
     }
 
     pub fn ms_float(&self) -> f64 {
-        self.ToFractionFloat(1_000.0)
+        self.to_fraction_float(1_000.0)
     }
 
     pub const fn us(&self) -> i64 {
-        self.ToValue()
+        self.to_value()
     }
 
     pub const fn us_float(&self) -> f64 {
-        self.ToValueFloat()
+        self.to_value_float()
     }
 
     pub const fn seconds_or(&self, fallback_value: i64) -> i64 {
-        self.ToFractionOr(1_000_000, fallback_value)
+        self.to_fraction_or(1_000_000, fallback_value)
     }
 
     pub const fn ms_or(&self, fallback_value: i64) -> i64 {
-        self.ToFractionOr(1_000, fallback_value)
+        self.to_fraction_or(1_000, fallback_value)
     }
 
     pub const fn us_or(&self, fallback_value: i64) -> i64 {
-        self.ToValueOr(fallback_value)
+        self.to_value_or(fallback_value)
     }
 }
 
@@ -87,16 +87,16 @@ impl Add<TimeDelta> for Timestamp {
     type Output = Self;
 
     fn add(self, delta: TimeDelta) -> Self {
-        if self.IsPlusInfinity() || delta.IsPlusInfinity() {
-            assert!(!self.IsMinusInfinity());
-            assert!(!delta.IsMinusInfinity());
-            return Self::PlusInfinity();
-        } else if self.IsMinusInfinity() || delta.IsMinusInfinity() {
-            assert!(!self.IsPlusInfinity());
-            assert!(!delta.IsPlusInfinity());
-            return Self::MinusInfinity();
+        if self.is_plus_infinity() || delta.is_plus_infinity() {
+            assert!(!self.is_minus_infinity());
+            assert!(!delta.is_minus_infinity());
+            return Self::plus_infinity();
+        } else if self.is_minus_infinity() || delta.is_minus_infinity() {
+            assert!(!self.is_plus_infinity());
+            assert!(!delta.is_plus_infinity());
+            return Self::minus_infinity();
         }
-        Timestamp::Micros(self.us() + delta.us())
+        Timestamp::from_micros(self.us() + delta.us())
     }
 }
 
@@ -104,16 +104,16 @@ impl Sub<TimeDelta> for Timestamp {
     type Output = Self;
 
     fn sub(self, delta: TimeDelta) -> Self {
-        if self.IsPlusInfinity() || delta.IsMinusInfinity() {
-            assert!(!self.IsMinusInfinity());
-            assert!(!delta.IsPlusInfinity());
-            return Self::PlusInfinity();
-        } else if self.IsMinusInfinity() || delta.IsPlusInfinity() {
-            assert!(!self.IsPlusInfinity());
-            assert!(!delta.IsMinusInfinity());
-            return Self::MinusInfinity();
+        if self.is_plus_infinity() || delta.is_minus_infinity() {
+            assert!(!self.is_minus_infinity());
+            assert!(!delta.is_plus_infinity());
+            return Self::plus_infinity();
+        } else if self.is_minus_infinity() || delta.is_plus_infinity() {
+            assert!(!self.is_plus_infinity());
+            assert!(!delta.is_minus_infinity());
+            return Self::minus_infinity();
         }
-        Timestamp::Micros(self.us() - delta.us())
+        Timestamp::from_micros(self.us() - delta.us())
     }
 }
 
@@ -121,16 +121,16 @@ impl Sub for Timestamp {
     type Output = TimeDelta;
 
     fn sub(self, other: Self) -> TimeDelta {
-        if self.IsPlusInfinity() || other.IsMinusInfinity() {
-            assert!(!self.IsMinusInfinity());
-            assert!(!other.IsPlusInfinity());
-            return TimeDelta::PlusInfinity();
-        } else if self.IsMinusInfinity() || other.IsPlusInfinity() {
-            assert!(!self.IsPlusInfinity());
-            assert!(!other.IsMinusInfinity());
-            return TimeDelta::MinusInfinity();
+        if self.is_plus_infinity() || other.is_minus_infinity() {
+            assert!(!self.is_minus_infinity());
+            assert!(!other.is_plus_infinity());
+            return TimeDelta::plus_infinity();
+        } else if self.is_minus_infinity() || other.is_plus_infinity() {
+            assert!(!self.is_plus_infinity());
+            assert!(!other.is_minus_infinity());
+            return TimeDelta::minus_infinity();
         }
-        TimeDelta::Micros(self.us() - other.us())
+        TimeDelta::from_micros(self.us() - other.us())
     }
 }
 
@@ -148,9 +148,9 @@ impl SubAssign<TimeDelta> for Timestamp {
 
 impl fmt::Debug for Timestamp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.IsPlusInfinity() {
+        if self.is_plus_infinity() {
             write!(f, "+inf ms")
-        } else if self.IsMinusInfinity() {
+        } else if self.is_minus_infinity() {
             write!(f, "-inf ms")
         } else if self.us() == 0 || (self.us() % 1000) != 0 {
             write!(f, "{} us", self.us())
@@ -167,156 +167,156 @@ mod test {
     use super::*;
 
     #[test]
-    fn ConstExpr() {
-        const Value: i64 = 12345;
-        const TimestampInf: Timestamp = Timestamp::PlusInfinity();
-        assert!(TimestampInf.IsInfinite());
-        assert!(TimestampInf.ms_or(-1) == -1);
+    fn const_expr() {
+        const VALUE: i64 = 12345;
+        const TIMESTAMP_INF: Timestamp = Timestamp::plus_infinity();
+        assert!(TIMESTAMP_INF.is_infinite());
+        assert!(TIMESTAMP_INF.ms_or(-1) == -1);
 
-        const TimestampSeconds: Timestamp = Timestamp::Seconds(Value);
-        const TimestampMs: Timestamp = Timestamp::Millis(Value);
-        const TimestampUs: Timestamp = Timestamp::Micros(Value);
+        const TIMESTAMP_SECONDS: Timestamp = Timestamp::from_seconds(VALUE);
+        const TIMESTAMP_MS: Timestamp = Timestamp::from_millis(VALUE);
+        const TIMESTAMP_US: Timestamp = Timestamp::from_micros(VALUE);
 
-        assert!(TimestampSeconds.seconds_or(0) == Value);
-        assert!(TimestampMs.ms_or(0) == Value);
-        assert!(TimestampUs.us_or(0) == Value);
+        assert!(TIMESTAMP_SECONDS.seconds_or(0) == VALUE);
+        assert!(TIMESTAMP_MS.ms_or(0) == VALUE);
+        assert!(TIMESTAMP_US.us_or(0) == VALUE);
 
-        assert!(TimestampMs > TimestampUs);
+        assert!(TIMESTAMP_MS > TIMESTAMP_US);
 
-        assert_eq!(TimestampSeconds.seconds(), Value);
-        assert_eq!(TimestampMs.ms(), Value);
-        assert_eq!(TimestampUs.us(), Value);
+        assert_eq!(TIMESTAMP_SECONDS.seconds(), VALUE);
+        assert_eq!(TIMESTAMP_MS.ms(), VALUE);
+        assert_eq!(TIMESTAMP_US.us(), VALUE);
     }
 
     #[test]
-    fn GetBackSameValues() {
-        const Value: i64 = 499;
-        assert_eq!(Timestamp::Millis(Value).ms(), Value);
-        assert_eq!(Timestamp::Micros(Value).us(), Value);
-        assert_eq!(Timestamp::Seconds(Value).seconds(), Value);
+    fn get_back_same_values() {
+        const VALUE: i64 = 499;
+        assert_eq!(Timestamp::from_millis(VALUE).ms(), VALUE);
+        assert_eq!(Timestamp::from_micros(VALUE).us(), VALUE);
+        assert_eq!(Timestamp::from_seconds(VALUE).seconds(), VALUE);
     }
 
     #[test]
-    fn GetDifferentPrefix() {
-        const Value: i64 = 3000000;
-        assert_eq!(Timestamp::Micros(Value).seconds(), Value / 1000000);
-        assert_eq!(Timestamp::Millis(Value).seconds(), Value / 1000);
-        assert_eq!(Timestamp::Micros(Value).ms(), Value / 1000);
+    fn get_different_prefix() {
+        const VALUE: i64 = 3000000;
+        assert_eq!(Timestamp::from_micros(VALUE).seconds(), VALUE / 1000000);
+        assert_eq!(Timestamp::from_millis(VALUE).seconds(), VALUE / 1000);
+        assert_eq!(Timestamp::from_micros(VALUE).ms(), VALUE / 1000);
 
-        assert_eq!(Timestamp::Millis(Value).us(), Value * 1000);
-        assert_eq!(Timestamp::Seconds(Value).ms(), Value * 1000);
-        assert_eq!(Timestamp::Seconds(Value).us(), Value * 1000000);
+        assert_eq!(Timestamp::from_millis(VALUE).us(), VALUE * 1000);
+        assert_eq!(Timestamp::from_seconds(VALUE).ms(), VALUE * 1000);
+        assert_eq!(Timestamp::from_seconds(VALUE).us(), VALUE * 1000000);
     }
 
     #[test]
-    fn IdentityChecks() {
-        const Value: i64 = 3000;
+    fn identity_checks() {
+        const VALUE: i64 = 3000;
 
-        assert!(Timestamp::PlusInfinity().IsInfinite());
-        assert!(Timestamp::MinusInfinity().IsInfinite());
-        assert!(!Timestamp::Millis(Value).IsInfinite());
+        assert!(Timestamp::plus_infinity().is_infinite());
+        assert!(Timestamp::minus_infinity().is_infinite());
+        assert!(!Timestamp::from_millis(VALUE).is_infinite());
 
-        assert!(!Timestamp::PlusInfinity().IsFinite());
-        assert!(!Timestamp::MinusInfinity().IsFinite());
-        assert!(Timestamp::Millis(Value).IsFinite());
+        assert!(!Timestamp::plus_infinity().is_finite());
+        assert!(!Timestamp::minus_infinity().is_finite());
+        assert!(Timestamp::from_millis(VALUE).is_finite());
 
-        assert!(Timestamp::PlusInfinity().IsPlusInfinity());
-        assert!(!Timestamp::MinusInfinity().IsPlusInfinity());
+        assert!(Timestamp::plus_infinity().is_plus_infinity());
+        assert!(!Timestamp::minus_infinity().is_plus_infinity());
 
-        assert!(Timestamp::MinusInfinity().IsMinusInfinity());
-        assert!(!Timestamp::PlusInfinity().IsMinusInfinity());
+        assert!(Timestamp::minus_infinity().is_minus_infinity());
+        assert!(!Timestamp::plus_infinity().is_minus_infinity());
     }
 
     #[test]
-    fn ComparisonOperators() {
-        const Small: i64 = 450;
-        const Large: i64 = 451;
+    fn comparison_operators() {
+        const SMALL: i64 = 450;
+        const LARGE: i64 = 451;
 
-        assert_eq!(Timestamp::PlusInfinity(), Timestamp::PlusInfinity());
-        assert!(Timestamp::PlusInfinity() >= Timestamp::PlusInfinity());
-        assert!(Timestamp::PlusInfinity() > Timestamp::Millis(Large));
-        assert_eq!(Timestamp::Millis(Small), Timestamp::Millis(Small));
-        assert!(Timestamp::Millis(Small) <= Timestamp::Millis(Small));
-        assert!(Timestamp::Millis(Small) >= Timestamp::Millis(Small));
-        assert!(Timestamp::Millis(Small) != Timestamp::Millis(Large));
-        assert!(Timestamp::Millis(Small) <= Timestamp::Millis(Large));
-        assert!(Timestamp::Millis(Small) < Timestamp::Millis(Large));
-        assert!(Timestamp::Millis(Large) >= Timestamp::Millis(Small));
-        assert!(Timestamp::Millis(Large) > Timestamp::Millis(Small));
+        assert_eq!(Timestamp::plus_infinity(), Timestamp::plus_infinity());
+        assert!(Timestamp::plus_infinity() >= Timestamp::plus_infinity());
+        assert!(Timestamp::plus_infinity() > Timestamp::from_millis(LARGE));
+        assert_eq!(Timestamp::from_millis(SMALL), Timestamp::from_millis(SMALL));
+        assert!(Timestamp::from_millis(SMALL) <= Timestamp::from_millis(SMALL));
+        assert!(Timestamp::from_millis(SMALL) >= Timestamp::from_millis(SMALL));
+        assert!(Timestamp::from_millis(SMALL) != Timestamp::from_millis(LARGE));
+        assert!(Timestamp::from_millis(SMALL) <= Timestamp::from_millis(LARGE));
+        assert!(Timestamp::from_millis(SMALL) < Timestamp::from_millis(LARGE));
+        assert!(Timestamp::from_millis(LARGE) >= Timestamp::from_millis(SMALL));
+        assert!(Timestamp::from_millis(LARGE) > Timestamp::from_millis(SMALL));
     }
 
     #[test]
-    fn CanBeInititializedFromLargeInt() {
-        const MaxInt: i32 = i32::MAX;
+    fn can_be_inititialized_from_large_int() {
+        const MAX_INT: i32 = i32::MAX;
         assert_eq!(
-            Timestamp::Seconds(MaxInt as _).us(),
-            MaxInt as i64 * 1000000
+            Timestamp::from_seconds(MAX_INT as _).us(),
+            MAX_INT as i64 * 1000000
         );
-        assert_eq!(Timestamp::Millis(MaxInt as _).us(), MaxInt as i64 * 1000);
+        assert_eq!(Timestamp::from_millis(MAX_INT as _).us(), MAX_INT as i64 * 1000);
     }
 
     #[test]
-    fn ConvertsToAndFromDouble() {
-        const Micros: i64 = 17017;
-        const MicrosDouble: f64 = Micros as f64;
-        const MillisDouble: f64 = Micros as f64 * 1e-3;
-        const SecondsDouble: f64 = MillisDouble * 1e-3;
+    fn converts_to_and_from_double() {
+        const MICROS: i64 = 17017;
+        const MICROS_DOUBLE: f64 = MICROS as f64;
+        const MILLIS_DOUBLE: f64 = MICROS as f64 * 1e-3;
+        const SECONDS_DOUBLE: f64 = MILLIS_DOUBLE * 1e-3;
 
-        assert_eq!(Timestamp::Micros(Micros).seconds_float(), SecondsDouble);
-        assert_eq!(Timestamp::SecondsFloat(SecondsDouble).us(), Micros);
+        assert_eq!(Timestamp::from_micros(MICROS).seconds_float(), SECONDS_DOUBLE);
+        assert_eq!(Timestamp::from_seconds_float(SECONDS_DOUBLE).us(), MICROS);
 
-        assert_eq!(Timestamp::Micros(Micros).ms_float(), MillisDouble);
-        assert_eq!(Timestamp::MillisFloat(MillisDouble).us(), Micros);
+        assert_eq!(Timestamp::from_micros(MICROS).ms_float(), MILLIS_DOUBLE);
+        assert_eq!(Timestamp::from_millis_float(MILLIS_DOUBLE).us(), MICROS);
 
-        assert_eq!(Timestamp::Micros(Micros).us_float(), MicrosDouble);
-        assert_eq!(Timestamp::MicrosFloat(MicrosDouble).us(), Micros);
+        assert_eq!(Timestamp::from_micros(MICROS).us_float(), MICROS_DOUBLE);
+        assert_eq!(Timestamp::from_micros_float(MICROS_DOUBLE).us(), MICROS);
 
-        const PlusInfinity: f64 = f64::INFINITY;
-        const MinusInfinity: f64 = -PlusInfinity;
+        const PLUS_INFINITY: f64 = f64::INFINITY;
+        const MINUS_INFINITY: f64 = -PLUS_INFINITY;
 
-        assert_eq!(Timestamp::PlusInfinity().seconds_float(), PlusInfinity);
-        assert_eq!(Timestamp::MinusInfinity().seconds_float(), MinusInfinity);
-        assert_eq!(Timestamp::PlusInfinity().ms_float(), PlusInfinity);
-        assert_eq!(Timestamp::MinusInfinity().ms_float(), MinusInfinity);
-        assert_eq!(Timestamp::PlusInfinity().us_float(), PlusInfinity);
-        assert_eq!(Timestamp::MinusInfinity().us_float(), MinusInfinity);
+        assert_eq!(Timestamp::plus_infinity().seconds_float(), PLUS_INFINITY);
+        assert_eq!(Timestamp::minus_infinity().seconds_float(), MINUS_INFINITY);
+        assert_eq!(Timestamp::plus_infinity().ms_float(), PLUS_INFINITY);
+        assert_eq!(Timestamp::minus_infinity().ms_float(), MINUS_INFINITY);
+        assert_eq!(Timestamp::plus_infinity().us_float(), PLUS_INFINITY);
+        assert_eq!(Timestamp::minus_infinity().us_float(), MINUS_INFINITY);
 
-        assert!(Timestamp::SecondsFloat(PlusInfinity).IsPlusInfinity());
-        assert!(Timestamp::SecondsFloat(MinusInfinity).IsMinusInfinity());
-        assert!(Timestamp::MillisFloat(PlusInfinity).IsPlusInfinity());
-        assert!(Timestamp::MillisFloat(MinusInfinity).IsMinusInfinity());
-        assert!(Timestamp::MicrosFloat(PlusInfinity).IsPlusInfinity());
-        assert!(Timestamp::MicrosFloat(MinusInfinity).IsMinusInfinity());
+        assert!(Timestamp::from_seconds_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(Timestamp::from_seconds_float(MINUS_INFINITY).is_minus_infinity());
+        assert!(Timestamp::from_millis_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(Timestamp::from_millis_float(MINUS_INFINITY).is_minus_infinity());
+        assert!(Timestamp::from_micros_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(Timestamp::from_micros_float(MINUS_INFINITY).is_minus_infinity());
     }
 
     #[test]
-    fn TimestampAndTimeDeltaMath() {
-        const ValueA: i64 = 267;
-        const ValueB: i64 = 450;
-        const time_a: Timestamp = Timestamp::Millis(ValueA);
-        const time_b: Timestamp = Timestamp::Millis(ValueB);
-        const delta_a: TimeDelta = TimeDelta::Millis(ValueA);
-        const delta_b: TimeDelta = TimeDelta::Millis(ValueB);
+    fn timestamp_and_time_delta_math() {
+        const VALUE_A: i64 = 267;
+        const VALUE_B: i64 = 450;
+        const TIME_A: Timestamp = Timestamp::from_millis(VALUE_A);
+        const TIME_B: Timestamp = Timestamp::from_millis(VALUE_B);
+        const DELTA_A: TimeDelta = TimeDelta::from_millis(VALUE_A);
+        const DELTA_B: TimeDelta = TimeDelta::from_millis(VALUE_B);
 
-        assert_eq!((time_a - time_b), TimeDelta::Millis(ValueA - ValueB));
-        assert_eq!((time_b - delta_a), Timestamp::Millis(ValueB - ValueA));
-        assert_eq!((time_b + delta_a), Timestamp::Millis(ValueB + ValueA));
+        assert_eq!((TIME_A - TIME_B), TimeDelta::from_millis(VALUE_A - VALUE_B));
+        assert_eq!((TIME_B - DELTA_A), Timestamp::from_millis(VALUE_B - VALUE_A));
+        assert_eq!((TIME_B + DELTA_A), Timestamp::from_millis(VALUE_B + VALUE_A));
 
-        let mut mutable_time: Timestamp = time_a;
-        mutable_time += delta_b;
-        assert_eq!(mutable_time, time_a + delta_b);
-        mutable_time -= delta_b;
-        assert_eq!(mutable_time, time_a);
+        let mut mutable_time: Timestamp = TIME_A;
+        mutable_time += DELTA_B;
+        assert_eq!(mutable_time, TIME_A + DELTA_B);
+        mutable_time -= DELTA_B;
+        assert_eq!(mutable_time, TIME_A);
     }
 
     #[test]
-    fn InfinityOperations() {
-        const Value: i64 = 267;
-        const finite_time: Timestamp = Timestamp::Millis(Value);
-        const finite_delta: TimeDelta = TimeDelta::Millis(Value);
-        assert!((Timestamp::PlusInfinity() + finite_delta).IsInfinite());
-        assert!((Timestamp::PlusInfinity() - finite_delta).IsInfinite());
-        assert!((finite_time + TimeDelta::PlusInfinity()).IsInfinite());
-        assert!((finite_time - TimeDelta::MinusInfinity()).IsInfinite());
+    fn infinity_operations() {
+        const VALUE: i64 = 267;
+        const FINITE_TIME: Timestamp = Timestamp::from_millis(VALUE);
+        const FINITE_DELTA: TimeDelta = TimeDelta::from_millis(VALUE);
+        assert!((Timestamp::plus_infinity() + FINITE_DELTA).is_infinite());
+        assert!((Timestamp::plus_infinity() - FINITE_DELTA).is_infinite());
+        assert!((FINITE_TIME + TimeDelta::plus_infinity()).is_infinite());
+        assert!((FINITE_TIME - TimeDelta::minus_infinity()).is_infinite());
     }
 } // namespace test

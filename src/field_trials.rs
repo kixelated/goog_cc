@@ -93,9 +93,3 @@ pub struct FieldTrials {
     // WebRTC-Bwe-ReceiverLimitCapsOnly
     pub receiver_limit_caps_only: bool,
 }
-
-impl FieldTrials {
-    pub fn parse(trials: &str) -> Self {
-        todo!()
-    }
-}

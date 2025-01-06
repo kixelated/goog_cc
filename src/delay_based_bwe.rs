@@ -30,7 +30,7 @@ impl Default for BweSeparateAudioPacketsSettings {
         Self {
             enabled: false,
             packet_threshold: 10,
-            time_threshold: TimeDelta::Seconds(1),
+            time_threshold: TimeDelta::from_seconds(1),
         }
     }
 }
@@ -48,7 +48,7 @@ impl Default for DelayBasedBweResult {
         Self {
             updated: false,
             probe: false,
-            target_bitrate: DataRate::Zero(),
+            target_bitrate: DataRate::zero(),
             recovered_from_overuse: false,
             delay_detector_state: BandwidthUsage::Normal,
         }
@@ -86,19 +86,22 @@ pub struct DelayBasedBwe {
 }
 
 impl DelayBasedBwe {
-    const StreamTimeOut: TimeDelta = TimeDelta::Seconds(2);
-    const SendTimeGroupLength: TimeDelta = TimeDelta::Millis(5);
+    const STREAM_TIME_OUT: TimeDelta = TimeDelta::from_seconds(2);
+    const SEND_TIME_GROUP_LENGTH: TimeDelta = TimeDelta::from_millis(5);
 
     // This ssrc is used to fulfill the current API but will be removed
     // after the API has been changed.
-    const FixedSsrc: u32 = 0;
+    const FIXED_SSRC: u32 = 0;
 
     pub fn new(field_trials: &FieldTrials) -> Self {
-        tracing::info!("Initialized DelayBasedBwe with separate audio overuse detection: {:?}", field_trials.separate_audio_packets);
+        tracing::info!(
+            "Initialized DelayBasedBwe with separate audio overuse detection: {:?}",
+            field_trials.separate_audio_packets
+        );
         Self {
             separate_audio: field_trials.separate_audio_packets.clone(),
             audio_packets_since_last_video: 0,
-            last_video_packet_recv_time: Timestamp::MinusInfinity(),
+            last_video_packet_recv_time: Timestamp::minus_infinity(),
             video_delay_detector: TrendlineEstimator::new(
                 field_trials.trendline_estimator_settings.clone(),
             ),
@@ -106,15 +109,15 @@ impl DelayBasedBwe {
                 field_trials.trendline_estimator_settings.clone(),
             ),
             active_delay_detector_type: DelayDetector::Video,
-            last_seen_packet: Timestamp::MinusInfinity(),
+            last_seen_packet: Timestamp::minus_infinity(),
             uma_recorded: false,
             rate_control: AimdRateControl::new(field_trials, true), // send_side
-            prev_bitrate: DataRate::Zero(),
+            prev_bitrate: DataRate::zero(),
             prev_state: BandwidthUsage::Normal,
 
             // Note: Not initialized in C++ but this avoids needing an Option
-            audio_inter_arrival_delta: InterArrivalDelta::new(Self::SendTimeGroupLength),
-            video_inter_arrival_delta: InterArrivalDelta::new(Self::SendTimeGroupLength),
+            audio_inter_arrival_delta: InterArrivalDelta::new(Self::SEND_TIME_GROUP_LENGTH),
+            video_inter_arrival_delta: InterArrivalDelta::new(Self::SEND_TIME_GROUP_LENGTH),
         }
     }
 
@@ -125,7 +128,7 @@ impl DelayBasedBwe {
         }
     }
 
-    pub fn IncomingPacketFeedbackVector(
+    pub fn incoming_packet_feedback_vector(
         &mut self,
         msg: &TransportPacketsFeedback,
         acked_bitrate: Option<DataRate>,
@@ -133,7 +136,7 @@ impl DelayBasedBwe {
         //network_estimate: Option<NetworkStateEstimate>,
         in_alr: bool,
     ) -> DelayBasedBweResult {
-        let packet_feedback_vector = msg.SortedByReceiveTime();
+        let packet_feedback_vector = msg.sorted_by_receive_time();
         // TODO(holmer): An empty feedback vector here likely means that
         // all acks were too late and that the send time history had
         // timed out. We should reduce the rate when this occurs.
@@ -150,7 +153,7 @@ impl DelayBasedBwe {
         let mut prev_detector_state: BandwidthUsage = self.active_delay_detector_state();
         for packet_feedback in &packet_feedback_vector {
             delayed_feedback = false;
-            self.IncomingPacketFeedback(packet_feedback, msg.feedback_time);
+            self.incoming_packet_feedback(packet_feedback, msg.feedback_time);
             if prev_detector_state == BandwidthUsage::Underusing
                 && self.active_delay_detector_state() == BandwidthUsage::Normal
             {
@@ -164,9 +167,9 @@ impl DelayBasedBwe {
             // against building very large network queues.
             return DelayBasedBweResult::default();
         }
-        self.rate_control.SetInApplicationLimitedRegion(in_alr);
+        self.rate_control.set_in_application_limited_region(in_alr);
         //self.rate_control.SetNetworkStateEstimate(network_estimate);
-        self.MaybeUpdateEstimate(
+        self.maybe_update_estimate(
             acked_bitrate,
             probe_bitrate,
             //network_estimate,
@@ -176,43 +179,43 @@ impl DelayBasedBwe {
         )
     }
 
-    pub fn OnRttUpdate(&mut self, avg_rtt: TimeDelta) {
-        self.rate_control.SetRtt(avg_rtt);
+    pub fn on_rtt_update(&mut self, avg_rtt: TimeDelta) {
+        self.rate_control.set_rtt(avg_rtt);
     }
-    pub fn LatestEstimate(&self, ssrcs: &mut Vec<u32>, bitrate: &mut DataRate) -> bool {
+    pub fn latest_estimate(&self, ssrcs: &mut Vec<u32>, bitrate: &mut DataRate) -> bool {
         // Currently accessed from both the process thread (see
         // ModuleRtpRtcpImpl::Process()) and the configuration thread (see
         // Call::GetStats()). Should in the future only be accessed from a single
         // thread.
-        if !self.rate_control.ValidEstimate() {
+        if !self.rate_control.valid_estimate() {
             return false;
         }
 
-        *ssrcs = vec![Self::FixedSsrc];
-        *bitrate = self.rate_control.LatestEstimate();
+        *ssrcs = vec![Self::FIXED_SSRC];
+        *bitrate = self.rate_control.latest_estimate();
         true
     }
 
-    pub fn SetStartBitrate(&mut self, start_bitrate: DataRate) {
+    pub fn set_start_bitrate(&mut self, start_bitrate: DataRate) {
         tracing::info!("BWE Setting start bitrate to: {:?}", start_bitrate);
-        self.rate_control.SetStartBitrate(start_bitrate);
+        self.rate_control.set_start_bitrate(start_bitrate);
     }
-    pub fn SetMinBitrate(&mut self, min_bitrate: DataRate) {
+    pub fn set_min_bitrate(&mut self, min_bitrate: DataRate) {
         // Called from both the configuration thread and the network thread. Shouldn't
         // be called from the network thread in the future.
-        self.rate_control.SetMinBitrate(min_bitrate);
+        self.rate_control.set_min_bitrate(min_bitrate);
     }
 
-    pub fn GetExpectedBwePeriod(&self) -> TimeDelta {
-        self.rate_control.GetExpectedBandwidthPeriod()
+    pub fn get_expected_bwe_period(&self) -> TimeDelta {
+        self.rate_control.get_expected_bandwidth_period()
     }
-    pub fn TriggerOveruse(
+    pub fn trigger_overuse(
         &mut self,
         at_time: Timestamp,
         link_capacity: Option<DataRate>,
     ) -> DataRate {
         let input = RateControlInput::new(BandwidthUsage::Overusing, link_capacity);
-        self.rate_control.Update(input, at_time)
+        self.rate_control.update(input, at_time)
     }
     pub fn last_estimate(&self) -> DataRate {
         self.prev_bitrate
@@ -221,13 +224,13 @@ impl DelayBasedBwe {
         self.prev_state
     }
 
-    fn IncomingPacketFeedback(&mut self, packet_feedback: &PacketResult, at_time: Timestamp) {
+    fn incoming_packet_feedback(&mut self, packet_feedback: &PacketResult, at_time: Timestamp) {
         // Reset if the stream has timed out.
-        if self.last_seen_packet.IsInfinite()
-            || at_time - self.last_seen_packet > Self::StreamTimeOut
+        if self.last_seen_packet.is_infinite()
+            || at_time - self.last_seen_packet > Self::STREAM_TIME_OUT
         {
-            self.video_inter_arrival_delta = InterArrivalDelta::new(Self::SendTimeGroupLength);
-            self.audio_inter_arrival_delta = InterArrivalDelta::new(Self::SendTimeGroupLength);
+            self.video_inter_arrival_delta = InterArrivalDelta::new(Self::SEND_TIME_GROUP_LENGTH);
+            self.audio_inter_arrival_delta = InterArrivalDelta::new(Self::SEND_TIME_GROUP_LENGTH);
 
             self.video_delay_detector = TrendlineEstimator::default();
             self.audio_delay_detector = TrendlineEstimator::default();
@@ -259,8 +262,8 @@ impl DelayBasedBwe {
         }
         let packet_size: DataSize = packet_feedback.sent_packet.size;
 
-        let mut send_delta: TimeDelta = TimeDelta::Zero();
-        let mut recv_delta: TimeDelta = TimeDelta::Zero();
+        let mut send_delta: TimeDelta = TimeDelta::zero();
+        let mut recv_delta: TimeDelta = TimeDelta::zero();
         let mut size_delta: i64 = 0;
 
         let inter_arrival_for_packet: &mut InterArrivalDelta =
@@ -269,7 +272,7 @@ impl DelayBasedBwe {
             } else {
                 &mut self.video_inter_arrival_delta
             };
-        let calculated_deltas: bool = inter_arrival_for_packet.ComputeDeltas(
+        let calculated_deltas: bool = inter_arrival_for_packet.compute_deltas(
             packet_feedback.sent_packet.send_time,
             packet_feedback.receive_time,
             at_time,
@@ -299,7 +302,7 @@ impl DelayBasedBwe {
         }
     }
 
-    fn MaybeUpdateEstimate(
+    fn maybe_update_estimate(
         &mut self,
         acked_bitrate: Option<DataRate>,
         probe_bitrate: Option<DataRate>,
@@ -315,35 +318,35 @@ impl DelayBasedBwe {
             if let Some(acked_bitrate) = acked_bitrate {
                 if self
                     .rate_control
-                    .TimeToReduceFurther(at_time, acked_bitrate)
+                    .time_to_reduce_further(at_time, acked_bitrate)
                 {
-                    result.updated = self.UpdateEstimate(
+                    result.updated = self.update_estimate(
                         at_time,
                         Some(acked_bitrate),
                         &mut result.target_bitrate,
                     );
                 }
-            } else if self.rate_control.ValidEstimate()
-                && self.rate_control.InitialTimeToReduceFurther(at_time)
+            } else if self.rate_control.valid_estimate()
+                && self.rate_control.initial_time_to_reduce_further(at_time)
             {
                 // Overusing before we have a measured acknowledged bitrate. Reduce send
                 // rate by 50% every 200 ms.
                 // TODO(tschumim): Improve this and/or the acknowledged bitrate estimator
                 // so that we (almost) always have a bitrate estimate.
                 self.rate_control
-                    .SetEstimate(self.rate_control.LatestEstimate() / 2, at_time);
+                    .set_estimate(self.rate_control.latest_estimate() / 2, at_time);
                 result.updated = true;
                 result.probe = false;
-                result.target_bitrate = self.rate_control.LatestEstimate();
+                result.target_bitrate = self.rate_control.latest_estimate();
             }
         } else if let Some(probe_bitrate) = probe_bitrate {
             result.probe = true;
             result.updated = true;
-            self.rate_control.SetEstimate(probe_bitrate, at_time);
-            result.target_bitrate = self.rate_control.LatestEstimate();
+            self.rate_control.set_estimate(probe_bitrate, at_time);
+            result.target_bitrate = self.rate_control.latest_estimate();
         } else {
             result.updated =
-                self.UpdateEstimate(at_time, acked_bitrate, &mut result.target_bitrate);
+                self.update_estimate(at_time, acked_bitrate, &mut result.target_bitrate);
             result.recovered_from_overuse = recovered_from_overuse;
         }
         let detector_state: BandwidthUsage = self.active_delay_detector_state();
@@ -366,15 +369,15 @@ impl DelayBasedBwe {
 
     // Updates the current remote rate estimate and returns true if a valid
     // estimate exists.
-    fn UpdateEstimate(
+    fn update_estimate(
         &mut self,
         at_time: Timestamp,
         acked_bitrate: Option<DataRate>,
         target_rate: &mut DataRate,
     ) -> bool {
         let input = RateControlInput::new(self.active_delay_detector_state(), acked_bitrate);
-        *target_rate = self.rate_control.Update(input, at_time);
-        self.rate_control.ValidEstimate()
+        *target_rate = self.rate_control.update(input, at_time);
+        self.rate_control.valid_estimate()
     }
 }
 
@@ -391,14 +394,14 @@ mod test {
 
     pub use super::*;
 
-    const DefaultSsrc: u32 = 0;
-    const Mtu: usize = 1200;
-    const AcceptedBitrateErrorBps: u32 = 50000;
+    const DEFAULT_SSRC: u32 = 0;
+    const MTU: usize = 1200;
+    const ACCEPTED_BITRATE_ERROR_BPS: u32 = 50000;
 
     // Number of packets needed before we have a valid estimate.
-    const NumInitialPackets: i64 = 2;
+    const NUM_INITIAL_PACKETS: i64 = 2;
 
-    const InitialProbingPackets: i64 = 5;
+    const INITIAL_PROBING_PACKETS: i64 = 5;
 
     pub struct TestBitrateObserver {
         updated: bool,
@@ -413,12 +416,12 @@ mod test {
             }
         }
 
-        pub fn OnReceiveBitrateChanged(&mut self, bitrate: u32) {
+        pub fn on_receive_bitrate_changed(&mut self, bitrate: u32) {
             self.latest_bitrate = bitrate;
             self.updated = true;
         }
 
-        pub fn Reset(&mut self) {
+        pub fn reset(&mut self) {
             self.updated = false;
         }
 
@@ -438,7 +441,7 @@ mod test {
     }
 
     impl RtpStream {
-        const SendSideOffsetUs: i64 = 1000000;
+        const SEND_SIDE_OFFSET_US: i64 = 1000000;
 
         pub fn new(fps: i64, bitrate_bps: i64) -> Self {
             assert!(fps > 0);
@@ -452,7 +455,7 @@ mod test {
         // Generates a new frame for this stream. If called too soon after the
         // previous frame, no frame will be generated. The frame is split into
         // packets.
-        pub fn GenerateFrame(
+        pub fn generate_frame(
             &mut self,
             time_now_us: i64,
             next_sequence_number: &mut i64,
@@ -462,13 +465,13 @@ mod test {
                 return self.next_rtp_time;
             }
             let bits_per_frame: usize = ((self.bitrate_bps + self.fps / 2) / self.fps) as usize;
-            let n_packets: usize = std::cmp::max((bits_per_frame + 4 * Mtu) / (8 * Mtu), 1);
+            let n_packets: usize = std::cmp::max((bits_per_frame + 4 * MTU) / (8 * MTU), 1);
             let payload_size: usize = (bits_per_frame + 4 * n_packets) / (8 * n_packets);
-            for i in 0..n_packets {
+            for _ in 0..n_packets {
                 let mut packet = PacketResult::default();
                 packet.sent_packet.send_time =
-                    Timestamp::Micros(time_now_us + Self::SendSideOffsetUs);
-                packet.sent_packet.size = DataSize::Bytes(payload_size as _);
+                    Timestamp::from_micros(time_now_us + Self::SEND_SIDE_OFFSET_US);
+                packet.sent_packet.size = DataSize::from_bytes(payload_size as _);
                 packet.sent_packet.sequence_number = *next_sequence_number;
                 *next_sequence_number += 1;
                 packets.push(packet);
@@ -511,7 +514,7 @@ mod test {
         }
 
         // Add a new stream.
-        pub fn AddStream(&mut self, stream: RtpStream) {
+        pub fn add_stream(&mut self, stream: RtpStream) {
             self.streams.push(stream);
         }
 
@@ -523,8 +526,7 @@ mod test {
 
         // Divides `bitrate_bps` among all streams. The allocated bitrate per stream
         // is decided by the initial allocation ratios.
-        pub fn SetBitrateBps(&mut self, bitrate_bps: i64) {
-            assert!(self.streams.len() >= 0);
+        pub fn set_bitrate_bps(&mut self, bitrate_bps: i64) {
             let mut total_bitrate_before: i64 = 0;
             for stream in &self.streams {
                 total_bitrate_before += stream.bitrate_bps();
@@ -544,7 +546,7 @@ mod test {
 
         // TODO(holmer): Break out the channel simulation part from this class to make
         // it possible to simulate different types of channels.
-        pub fn GenerateFrame(
+        pub fn generate_frame(
             &mut self,
             time_now_us: i64,
             next_sequence_number: &mut i64,
@@ -557,7 +559,7 @@ mod test {
                 .iter_mut()
                 .min_by_key(|x| x.next_rtp_time())
                 .unwrap();
-            it.GenerateFrame(time_now_us, next_sequence_number, packets);
+            it.generate_frame(time_now_us, next_sequence_number, packets);
             for packet in packets {
                 let capacity_bpus: i64 = self.capacity / 1000;
                 let required_network_time_us: i64 = (8 * 1000 * packet.sent_packet.size.bytes()
@@ -567,7 +569,7 @@ mod test {
                     time_now_us + required_network_time_us,
                     self.prev_arrival_time_us + required_network_time_us,
                 );
-                packet.receive_time = Timestamp::Micros(self.prev_arrival_time_us);
+                packet.receive_time = Timestamp::from_micros(self.prev_arrival_time_us);
             }
             let it = self
                 .streams
@@ -599,7 +601,7 @@ mod test {
                 },
                 ..Default::default()
             };
-            let clock = Timestamp::Micros(100000000);
+            let clock = Timestamp::from_micros(100000000);
 
             Self {
                 acknowledged_bitrate_estimator: AcknowledgedBitrateEstimator::create(&field_trials),
@@ -617,65 +619,47 @@ mod test {
             }
         }
 
-        pub fn AddDefaultStream(&mut self) {
-            self.stream_generator.AddStream(RtpStream::new(30, 300000));
+        pub fn add_default_stream(&mut self) {
+            self.stream_generator.add_stream(RtpStream::new(30, 300000));
         }
 
         // Helpers to insert a single packet into the delay-based BWE.
-        /*
-        fn IncomingFeedback(arrival_time_ms: i64,
-                              send_time_ms: i64,
-                              payload_size: usize) {
-        IncomingFeedback(arrival_time_ms, send_time_ms, payload_size,
-                         PacedPacketInfo::default());
-                              }
-
-        fn IncomingFeedback(arrival_time_ms: i64,
-                              send_time_ms: i64,
-                              payload_size: usize,
-                              pacing_info: &PacedPacketInfo) {
-        RTC_CHECK_GE(arrival_time_ms + self.arrival_time_offset_ms, 0);
-        IncomingFeedback(Timestamp::Millis(arrival_time_ms + self.arrival_time_offset_ms),
-                         Timestamp::Millis(send_time_ms), payload_size, pacing_info);
-                              }
-                              */
-
-        fn IncomingFeedback(
+        fn incoming_feedback(
             &mut self,
             arrival_time: Timestamp,
             send_time: Timestamp,
             payload_size: usize,
             pacing_info: PacedPacketInfo,
         ) {
-            let receive_time = arrival_time + TimeDelta::Millis(self.arrival_time_offset_ms);
+            let receive_time = arrival_time + TimeDelta::from_millis(self.arrival_time_offset_ms);
 
             let mut packet = PacketResult::default();
             packet.receive_time = receive_time;
             packet.sent_packet.send_time = send_time;
-            packet.sent_packet.size = DataSize::Bytes(payload_size as _);
+            packet.sent_packet.size = DataSize::from_bytes(payload_size as _);
             packet.sent_packet.pacing_info = pacing_info;
             packet.sent_packet.sequence_number = self.next_sequence_number;
             self.next_sequence_number += 1;
-            if packet.sent_packet.pacing_info.probe_cluster_id != PacedPacketInfo::NotAProbe {
+            if packet.sent_packet.pacing_info.probe_cluster_id != PacedPacketInfo::NOT_APROBE {
                 self.probe_bitrate_estimator
-                    .HandleProbeAndEstimateBitrate(&packet);
+                    .handle_probe_and_estimate_bitrate(&packet);
             }
 
             let mut msg = TransportPacketsFeedback::default();
-            msg.feedback_time = Timestamp::Millis(self.clock.ms());
+            msg.feedback_time = Timestamp::from_millis(self.clock.ms());
             msg.packet_feedbacks.push(packet);
             self.acknowledged_bitrate_estimator
-                .incoming_packet_feedback(&msg.SortedByReceiveTime());
-            let result = self.bitrate_estimator.IncomingPacketFeedbackVector(
+                .incoming_packet_feedback(&msg.sorted_by_receive_time());
+            let result = self.bitrate_estimator.incoming_packet_feedback_vector(
                 &msg,
                 self.acknowledged_bitrate_estimator.bitrate(),
                 self.probe_bitrate_estimator
-                    .FetchAndResetLastEstimatedBitrate(),
+                    .fetch_and_reset_last_estimated_bitrate(),
                 /*in_alr*/ false,
             );
             if result.updated {
                 self.bitrate_observer
-                    .OnReceiveBitrateChanged(result.target_bitrate.bps() as _);
+                    .on_receive_bitrate_changed(result.target_bitrate.bps() as _);
             }
         }
 
@@ -685,11 +669,11 @@ mod test {
         // Returns true if an over-use was seen, false otherwise.
         // The StreamGenerator::updated() should be used to check for any changes in
         // target bitrate after the call to this function.
-        fn GenerateAndProcessFrame(&mut self, ssrc: u32, bitrate_bps: u32) -> bool {
-            self.stream_generator.SetBitrateBps(bitrate_bps as _);
+        fn generate_and_process_frame(&mut self, ssrc: u32, bitrate_bps: u32) -> bool {
+            self.stream_generator.set_bitrate_bps(bitrate_bps as _);
             let mut packets: Vec<PacketResult> = Vec::new();
 
-            let next_time_us: i64 = self.stream_generator.GenerateFrame(
+            let next_time_us: i64 = self.stream_generator.generate_frame(
                 self.clock.us(),
                 &mut self.next_sequence_number,
                 &mut packets,
@@ -699,15 +683,15 @@ mod test {
             }
 
             let mut overuse: bool = false;
-            self.bitrate_observer.Reset();
+            self.bitrate_observer.reset();
             self.clock = packets.last().unwrap().receive_time;
             for packet in &mut packets {
                 assert!(packet.receive_time.ms() + self.arrival_time_offset_ms >= 0);
-                packet.receive_time += TimeDelta::Millis(self.arrival_time_offset_ms);
+                packet.receive_time += TimeDelta::from_millis(self.arrival_time_offset_ms);
 
-                if packet.sent_packet.pacing_info.probe_cluster_id != PacedPacketInfo::NotAProbe {
+                if packet.sent_packet.pacing_info.probe_cluster_id != PacedPacketInfo::NOT_APROBE {
                     self.probe_bitrate_estimator
-                        .HandleProbeAndEstimateBitrate(packet);
+                        .handle_probe_and_estimate_bitrate(packet);
                 }
             }
 
@@ -717,23 +701,23 @@ mod test {
             msg.packet_feedbacks = packets;
             msg.feedback_time = self.clock;
 
-            let result: DelayBasedBweResult = self.bitrate_estimator.IncomingPacketFeedbackVector(
+            let result: DelayBasedBweResult = self.bitrate_estimator.incoming_packet_feedback_vector(
                 &msg,
                 self.acknowledged_bitrate_estimator.bitrate(),
                 self.probe_bitrate_estimator
-                    .FetchAndResetLastEstimatedBitrate(),
+                    .fetch_and_reset_last_estimated_bitrate(),
                 /*in_alr*/ false,
             );
             if result.updated {
                 self.bitrate_observer
-                    .OnReceiveBitrateChanged(result.target_bitrate.bps() as _);
+                    .on_receive_bitrate_changed(result.target_bitrate.bps() as _);
                 if !self.first_update && result.target_bitrate.bps() < bitrate_bps as _ {
                     overuse = true;
                 }
                 self.first_update = false;
             }
 
-            self.clock = Timestamp::Micros(next_time_us);
+            self.clock = Timestamp::from_micros(next_time_us);
             overuse
         }
 
@@ -741,7 +725,7 @@ mod test {
         // until it reaches `target_bitrate`.
         // Can for instance be used to run the estimator for some time to get it
         // into a steady state.
-        fn SteadyStateRun(
+        fn steady_state_run(
             &mut self,
             ssrc: u32,
             number_of_frames: i64,
@@ -753,8 +737,8 @@ mod test {
             let mut bitrate_bps: u32 = start_bitrate;
             let mut bitrate_update_seen: bool = false;
             // Produce `number_of_frames` frames and give them to the estimator.
-            for i in 0..number_of_frames {
-                let overuse: bool = self.GenerateAndProcessFrame(ssrc, bitrate_bps);
+            for _ in 0..number_of_frames {
+                let overuse: bool = self.generate_and_process_frame(ssrc, bitrate_bps);
                 if overuse {
                     assert!(self.bitrate_observer.latest_bitrate() < max_bitrate);
                     assert!(self.bitrate_observer.latest_bitrate() > min_bitrate);
@@ -762,7 +746,7 @@ mod test {
                     bitrate_update_seen = true;
                 } else if self.bitrate_observer.updated() {
                     bitrate_bps = self.bitrate_observer.latest_bitrate();
-                    self.bitrate_observer.Reset();
+                    self.bitrate_observer.reset();
                 }
                 if bitrate_update_seen && bitrate_bps > target_bitrate {
                     break;
@@ -772,199 +756,199 @@ mod test {
             bitrate_bps
         }
 
-        fn TestTimestampGroupingTestHelper(&mut self) {
-            const Framerate: i64 = 50; // 50 fps to avoid rounding errors.
-            const FrameIntervalMs: i64 = 1000 / Framerate;
+        fn test_timestamp_grouping_test_helper(&mut self) {
+            const FRAMERATE: i64 = 50; // 50 fps to avoid rounding errors.
+            const FRAME_INTERVAL_MS: i64 = 1000 / FRAMERATE;
             let mut send_time_ms: i64 = 0;
             // Initial set of frames to increase the bitrate. 6 seconds to have enough
             // time for the first estimate to be generated and for Process() to be called.
-            for i in 0..=(6*Framerate) {
-                self.IncomingFeedback(
+            for _ in 0..=(6 * FRAMERATE) {
+                self.incoming_feedback(
                     self.clock,
-                    Timestamp::Millis(send_time_ms),
+                    Timestamp::from_millis(send_time_ms),
                     1000,
                     Default::default(),
                 );
 
-                self.clock += TimeDelta::Millis(FrameIntervalMs as _);
-                send_time_ms += FrameIntervalMs;
+                self.clock += TimeDelta::from_millis(FRAME_INTERVAL_MS as _);
+                send_time_ms += FRAME_INTERVAL_MS;
             }
             assert!(self.bitrate_observer.updated());
             assert!(self.bitrate_observer.latest_bitrate() >= 400000);
 
             // Insert batches of frames which were sent very close in time. Also simulate
             // capacity over-use to see that we back off correctly.
-            const TimestampGroupLength: i64 = 15;
-            for i in 0..100 {
-                for j in 0..TimestampGroupLength {
+            const TIMESTAMP_GROUP_LENGTH: i64 = 15;
+            for _ in 0..100 {
+                for _ in 0..TIMESTAMP_GROUP_LENGTH {
                     // Insert `kTimestampGroupLength` frames with just 1 timestamp ticks in
                     // between. Should be treated as part of the same group by the estimator.
-                    self.IncomingFeedback(
+                    self.incoming_feedback(
                         self.clock,
-                        Timestamp::Millis(send_time_ms),
+                        Timestamp::from_millis(send_time_ms),
                         100,
                         Default::default(),
                     );
-                    self.clock += TimeDelta::Millis(FrameIntervalMs / TimestampGroupLength);
+                    self.clock += TimeDelta::from_millis(FRAME_INTERVAL_MS / TIMESTAMP_GROUP_LENGTH);
                     send_time_ms += 1;
                 }
                 // Increase time until next batch to simulate over-use.
-                self.clock += TimeDelta::Millis(10);
-                send_time_ms += FrameIntervalMs - TimestampGroupLength;
+                self.clock += TimeDelta::from_millis(10);
+                send_time_ms += FRAME_INTERVAL_MS - TIMESTAMP_GROUP_LENGTH;
             }
             assert!(self.bitrate_observer.updated());
             // Should have reduced the estimate.
             assert!(self.bitrate_observer.latest_bitrate() < 400000);
         }
 
-        fn TestWrappingHelper(&mut self, silence_time_s: i64) {
-            const Framerate: i64 = 100;
-            const FrameIntervalMs: i64 = 1000 / Framerate;
+        fn test_wrapping_helper(&mut self, silence_time_s: i64) {
+            const FRAMERATE: i64 = 100;
+            const FRAME_INTERVAL_MS: i64 = 1000 / FRAMERATE;
             let mut send_time_ms: i64 = 0;
 
-            for i in 0..3000 {
-                self.IncomingFeedback(
+            for _ in 0..3000 {
+                self.incoming_feedback(
                     self.clock,
-                    Timestamp::Millis(send_time_ms),
+                    Timestamp::from_millis(send_time_ms),
                     1000,
                     Default::default(),
                 );
-                self.clock += TimeDelta::Millis(FrameIntervalMs);
-                send_time_ms += FrameIntervalMs;
+                self.clock += TimeDelta::from_millis(FRAME_INTERVAL_MS);
+                send_time_ms += FRAME_INTERVAL_MS;
             }
-            let mut bitrate_before: DataRate = DataRate::Zero();
+            let mut bitrate_before: DataRate = DataRate::zero();
             let mut ssrcs = Vec::new();
             self.bitrate_estimator
-                .LatestEstimate(&mut ssrcs, &mut bitrate_before);
+                .latest_estimate(&mut ssrcs, &mut bitrate_before);
 
-            self.clock += TimeDelta::Millis(silence_time_s * 1000);
+            self.clock += TimeDelta::from_millis(silence_time_s * 1000);
             send_time_ms += silence_time_s * 1000;
 
-            for i in 0..24 {
-                self.IncomingFeedback(
+            for _ in 0..24 {
+                self.incoming_feedback(
                     self.clock,
-                    Timestamp::Millis(send_time_ms),
+                    Timestamp::from_millis(send_time_ms),
                     1000,
                     Default::default(),
                 );
-                self.clock += TimeDelta::Millis(2 * FrameIntervalMs);
-                send_time_ms += FrameIntervalMs;
+                self.clock += TimeDelta::from_millis(2 * FRAME_INTERVAL_MS);
+                send_time_ms += FRAME_INTERVAL_MS;
             }
-            let mut bitrate_after: DataRate = DataRate::Zero();
+            let mut bitrate_after: DataRate = DataRate::zero();
             self.bitrate_estimator
-                .LatestEstimate(&mut ssrcs, &mut bitrate_after);
+                .latest_estimate(&mut ssrcs, &mut bitrate_after);
             assert!(bitrate_after < bitrate_before);
         }
 
-        fn InitialBehaviorTestHelper(&mut self, expected_converge_bitrate: u32) {
-            const Framerate: i64 = 50; // 50 fps to avoid rounding errors.
-            const FrameIntervalMs: i64 = 1000 / Framerate;
-            const PacingInfo: PacedPacketInfo = PacedPacketInfo::new(0, 5, 5000);
-            let mut bitrate: DataRate = DataRate::Zero();
+        fn initial_behavior_test_helper(&mut self, expected_converge_bitrate: u32) {
+            const FRAMERATE: i64 = 50; // 50 fps to avoid rounding errors.
+            const FRAME_INTERVAL_MS: i64 = 1000 / FRAMERATE;
+            const PACING_INFO: PacedPacketInfo = PacedPacketInfo::new(0, 5, 5000);
+            let mut bitrate: DataRate = DataRate::zero();
             let mut send_time_ms: i64 = 0;
             let mut ssrcs: Vec<u32> = Vec::new();
             assert!(!self
                 .bitrate_estimator
-                .LatestEstimate(&mut ssrcs, &mut bitrate));
+                .latest_estimate(&mut ssrcs, &mut bitrate));
             assert_eq!(0, ssrcs.len());
-            self.clock += TimeDelta::Millis(1000);
+            self.clock += TimeDelta::from_millis(1000);
             assert!(!self
                 .bitrate_estimator
-                .LatestEstimate(&mut ssrcs, &mut bitrate));
+                .latest_estimate(&mut ssrcs, &mut bitrate));
             assert!(!self.bitrate_observer.updated());
-            self.bitrate_observer.Reset();
-            self.clock += TimeDelta::Millis(1000);
+            self.bitrate_observer.reset();
+            self.clock += TimeDelta::from_millis(1000);
             // Inserting packets for 5 seconds to get a valid estimate.
-            for i in 0..(5 * Framerate + 1 + NumInitialPackets) {
+            for i in 0..(5 * FRAMERATE + 1 + NUM_INITIAL_PACKETS) {
                 // NOTE!!! If the following line is moved under the if case then this test
                 //         wont work on windows realease bots.
-                let pacing_info: PacedPacketInfo = if i < InitialProbingPackets {
-                    PacingInfo
+                let pacing_info: PacedPacketInfo = if i < INITIAL_PROBING_PACKETS {
+                    PACING_INFO
                 } else {
                     PacedPacketInfo::default()
                 };
 
-                if i == NumInitialPackets {
+                if i == NUM_INITIAL_PACKETS {
                     assert!(!self
                         .bitrate_estimator
-                        .LatestEstimate(&mut ssrcs, &mut bitrate));
+                        .latest_estimate(&mut ssrcs, &mut bitrate));
                     assert_eq!(0, ssrcs.len());
                     assert!(!self.bitrate_observer.updated());
-                    self.bitrate_observer.Reset();
+                    self.bitrate_observer.reset();
                 }
-                self.IncomingFeedback(
+                self.incoming_feedback(
                     self.clock,
-                    Timestamp::Millis(send_time_ms),
-                    Mtu,
+                    Timestamp::from_millis(send_time_ms),
+                    MTU,
                     pacing_info,
                 );
-                self.clock += TimeDelta::Millis(1000 / Framerate);
-                send_time_ms += FrameIntervalMs;
+                self.clock += TimeDelta::from_millis(1000 / FRAMERATE);
+                send_time_ms += FRAME_INTERVAL_MS;
             }
             assert!(self
                 .bitrate_estimator
-                .LatestEstimate(&mut ssrcs, &mut bitrate));
+                .latest_estimate(&mut ssrcs, &mut bitrate));
             assert_eq!(1, ssrcs.len());
-            assert_eq!(&DefaultSsrc, ssrcs.first().unwrap());
+            assert_eq!(&DEFAULT_SSRC, ssrcs.first().unwrap());
             assert_relative_eq!(
                 expected_converge_bitrate as f64,
                 bitrate.bps_float(),
-                epsilon = AcceptedBitrateErrorBps as f64
+                epsilon = ACCEPTED_BITRATE_ERROR_BPS as f64
             );
             assert!(self.bitrate_observer.updated());
-            self.bitrate_observer.Reset();
+            self.bitrate_observer.reset();
             assert_eq!(self.bitrate_observer.latest_bitrate() as i64, bitrate.bps());
         }
 
-        fn RateIncreaseReorderingTestHelper(&mut self, expected_bitrate_bps: u32) {
-            const Framerate: i64 = 50; // 50 fps to avoid rounding errors.
-            const FrameIntervalMs: i64 = 1000 / Framerate;
-            const PacingInfo: PacedPacketInfo = PacedPacketInfo::new(0, 5, 5000);
+        fn rate_increase_reordering_test_helper(&mut self, expected_bitrate_bps: u32) {
+            const FRAMERATE: i64 = 50; // 50 fps to avoid rounding errors.
+            const FRAME_INTERVAL_MS: i64 = 1000 / FRAMERATE;
+            const PACING_INFO: PacedPacketInfo = PacedPacketInfo::new(0, 5, 5000);
             let mut send_time_ms: i64 = 0;
             // Inserting packets for five seconds to get a valid estimate.
-            for i in 0..(5 * Framerate + 1 + NumInitialPackets) {
+            for i in 0..(5 * FRAMERATE + 1 + NUM_INITIAL_PACKETS) {
                 // NOTE!!! If the following line is moved under the if case then this test
                 //         wont work on windows realease bots.
-                let pacing_info: PacedPacketInfo = if i < InitialProbingPackets {
-                    PacingInfo
+                let pacing_info: PacedPacketInfo = if i < INITIAL_PROBING_PACKETS {
+                    PACING_INFO
                 } else {
                     PacedPacketInfo::default()
                 };
 
                 // TODO(sprang): Remove this hack once the single stream estimator is gone,
                 // as it doesn't do anything in Process().
-                if i == NumInitialPackets {
+                if i == NUM_INITIAL_PACKETS {
                     // Process after we have enough frames to get a valid input rate estimate.
 
                     assert!(!self.bitrate_observer.updated()); // No valid estimate.
                 }
-                self.IncomingFeedback(
+                self.incoming_feedback(
                     self.clock,
-                    Timestamp::Millis(send_time_ms),
-                    Mtu,
+                    Timestamp::from_millis(send_time_ms),
+                    MTU,
                     pacing_info,
                 );
-                self.clock += TimeDelta::Millis(FrameIntervalMs);
-                send_time_ms += FrameIntervalMs;
+                self.clock += TimeDelta::from_millis(FRAME_INTERVAL_MS);
+                send_time_ms += FRAME_INTERVAL_MS;
             }
             assert!(self.bitrate_observer.updated());
             assert_relative_eq!(
                 expected_bitrate_bps as f64,
                 self.bitrate_observer.latest_bitrate() as f64,
-                epsilon = AcceptedBitrateErrorBps as f64
+                epsilon = ACCEPTED_BITRATE_ERROR_BPS as f64
             );
-            for i in 0..10 {
-                self.clock += TimeDelta::Millis(2 * FrameIntervalMs);
-                send_time_ms += 2 * FrameIntervalMs;
-                self.IncomingFeedback(
+            for _ in 0..10 {
+                self.clock += TimeDelta::from_millis(2 * FRAME_INTERVAL_MS);
+                send_time_ms += 2 * FRAME_INTERVAL_MS;
+                self.incoming_feedback(
                     self.clock,
-                    Timestamp::Millis(send_time_ms),
+                    Timestamp::from_millis(send_time_ms),
                     1000,
                     Default::default(),
                 );
-                self.IncomingFeedback(
+                self.incoming_feedback(
                     self.clock,
-                    Timestamp::Millis(send_time_ms - FrameIntervalMs),
+                    Timestamp::from_millis(send_time_ms - FRAME_INTERVAL_MS),
                     1000,
                     Default::default(),
                 );
@@ -973,98 +957,98 @@ mod test {
             assert_relative_eq!(
                 expected_bitrate_bps as f64,
                 self.bitrate_observer.latest_bitrate() as f64,
-                epsilon = AcceptedBitrateErrorBps as f64
+                epsilon = ACCEPTED_BITRATE_ERROR_BPS as f64
             );
         }
-        fn RateIncreaseRtpTimestampsTestHelper(&mut self, expected_iterations: i64) {
+        fn rate_increase_rtp_timestamps_test_helper(&mut self, expected_iterations: i64) {
             // This threshold corresponds approximately to increasing linearly with
             // bitrate(i) = 1.04 * bitrate(i-1) + 1000
             // until bitrate(i) > 500000, with bitrate(1) ~= 30000.
             let mut bitrate_bps: u32 = 30000;
             let mut iterations: i64 = 0;
-            self.AddDefaultStream();
+            self.add_default_stream();
             // Feed the estimator with a stream of packets and verify that it reaches
             // 500 kbps at the expected time.
             while bitrate_bps < 500000 {
-                let overuse: bool = self.GenerateAndProcessFrame(DefaultSsrc, bitrate_bps);
+                let overuse: bool = self.generate_and_process_frame(DEFAULT_SSRC, bitrate_bps);
                 if overuse {
                     assert!(self.bitrate_observer.latest_bitrate() > bitrate_bps);
                     bitrate_bps = self.bitrate_observer.latest_bitrate();
-                    self.bitrate_observer.Reset();
+                    self.bitrate_observer.reset();
                 } else if self.bitrate_observer.updated() {
                     bitrate_bps = self.bitrate_observer.latest_bitrate();
-                    self.bitrate_observer.Reset();
+                    self.bitrate_observer.reset();
                 }
                 iterations += 1;
             }
             assert_eq!(expected_iterations, iterations);
         }
-        fn CapacityDropTestHelper(
+        fn capacity_drop_test_helper(
             &mut self,
             number_of_streams: i64,
             wrap_time_stamp: bool,
             expected_bitrate_drop_delta: u32,
             receiver_clock_offset_change_ms: i64,
         ) {
-            const Framerate: i64 = 30;
-            const StartBitrate: i64 = 900000;
-            const MinExpectedBitrate: i64 = 800000;
-            const MaxExpectedBitrate: i64 = 1100000;
-            const InitialCapacityBps: u32 = 1000000;
-            const ReducedCapacityBps: u32 = 500000;
+            const FRAMERATE: i64 = 30;
+            const START_BITRATE: i64 = 900000;
+            const MIN_EXPECTED_BITRATE: i64 = 800000;
+            const MAX_EXPECTED_BITRATE: i64 = 1100000;
+            const INITIAL_CAPACITY_BPS: u32 = 1000000;
+            const REDUCED_CAPACITY_BPS: u32 = 500000;
 
-            let mut steady_state_time: i64 = 0;
+            let steady_state_time;
             if number_of_streams <= 1 {
                 steady_state_time = 10;
-                self.AddDefaultStream();
+                self.add_default_stream();
             } else {
                 steady_state_time = 10 * number_of_streams;
                 let mut bitrate_sum: i64 = 0;
-                let BitrateDenom: i64 = number_of_streams * (number_of_streams - 1);
+                let bitrate_denom: i64 = number_of_streams * (number_of_streams - 1);
                 for i in 0..number_of_streams {
                     // First stream gets half available bitrate, while the rest share the
                     // remaining half i.e.: 1/2 = Sum[n/(N*(N-1))] for n=1..N-1 (rounded up)
-                    let mut bitrate: i64 = StartBitrate / 2;
+                    let mut bitrate: i64 = START_BITRATE / 2;
                     if i > 0 {
-                        bitrate = (StartBitrate * i + BitrateDenom / 2) / BitrateDenom;
+                        bitrate = (START_BITRATE * i + bitrate_denom / 2) / bitrate_denom;
                     }
                     self.stream_generator
-                        .AddStream(RtpStream::new(Framerate, bitrate));
+                        .add_stream(RtpStream::new(FRAMERATE, bitrate));
                     bitrate_sum += bitrate;
                 }
-                assert_eq!(bitrate_sum, StartBitrate);
+                assert_eq!(bitrate_sum, START_BITRATE);
             }
 
             // Run in steady state to make the estimator converge.
             self.stream_generator
-                .set_capacity_bps(InitialCapacityBps as _);
-            let mut bitrate_bps: u32 = self.SteadyStateRun(
-                DefaultSsrc,
-                steady_state_time * Framerate,
-                StartBitrate as _,
-                MinExpectedBitrate as _,
-                MaxExpectedBitrate as _,
-                InitialCapacityBps,
+                .set_capacity_bps(INITIAL_CAPACITY_BPS as _);
+            let mut bitrate_bps: u32 = self.steady_state_run(
+                DEFAULT_SSRC,
+                steady_state_time * FRAMERATE,
+                START_BITRATE as _,
+                MIN_EXPECTED_BITRATE as _,
+                MAX_EXPECTED_BITRATE as _,
+                INITIAL_CAPACITY_BPS,
             );
             assert_relative_eq!(
-                InitialCapacityBps as f64,
+                INITIAL_CAPACITY_BPS as f64,
                 bitrate_bps as f64,
                 epsilon = 180000.0
             );
-            self.bitrate_observer.Reset();
+            self.bitrate_observer.reset();
 
             // Add an offset to make sure the BWE can handle it.
             self.arrival_time_offset_ms += receiver_clock_offset_change_ms;
 
             // Reduce the capacity and verify the decrease time.
             self.stream_generator
-                .set_capacity_bps(ReducedCapacityBps as _);
+                .set_capacity_bps(REDUCED_CAPACITY_BPS as _);
             let overuse_start_time: i64 = self.clock.ms();
             let mut bitrate_drop_time: i64 = -1;
-            for i in 0..(100 * number_of_streams) {
-                self.GenerateAndProcessFrame(DefaultSsrc, bitrate_bps);
+            for _ in 0..(100 * number_of_streams) {
+                self.generate_and_process_frame(DEFAULT_SSRC, bitrate_bps);
                 if bitrate_drop_time == -1
-                    && self.bitrate_observer.latest_bitrate() <= ReducedCapacityBps
+                    && self.bitrate_observer.latest_bitrate() <= REDUCED_CAPACITY_BPS
                 {
                     bitrate_drop_time = self.clock.ms();
                 }
@@ -1081,27 +1065,27 @@ mod test {
         }
     }
 
-    const NumProbesCluster0: i64 = 5;
-    const NumProbesCluster1: i64 = 8;
-    const PacingInfo0: PacedPacketInfo = PacedPacketInfo::new(0, NumProbesCluster0, 2000);
-    const PacingInfo1: PacedPacketInfo = PacedPacketInfo::new(1, NumProbesCluster1, 4000);
-    const TargetUtilizationFraction: f64 = 0.95;
+    const NUM_PROBES_CLUSTER0: i64 = 5;
+    const NUM_PROBES_CLUSTER1: i64 = 8;
+    const PACING_INFO0: PacedPacketInfo = PacedPacketInfo::new(0, NUM_PROBES_CLUSTER0, 2000);
+    const PACING_INFO1: PacedPacketInfo = PacedPacketInfo::new(1, NUM_PROBES_CLUSTER1, 4000);
+    const TARGET_UTILIZATION_FRACTION: f64 = 0.95;
 
     #[test]
-    fn ProbeDetection() {
+    fn probe_detection() {
         let mut bwe = DelayBasedBweTest::new();
 
         // First burst sent at 8 * 1000 / 10 = 800 kbps.
-        for i in 0..NumProbesCluster0 {
-            bwe.clock += TimeDelta::Millis(10);
-            bwe.IncomingFeedback(bwe.clock, bwe.clock, 1000, PacingInfo0);
+        for _ in 0..NUM_PROBES_CLUSTER0 {
+            bwe.clock += TimeDelta::from_millis(10);
+            bwe.incoming_feedback(bwe.clock, bwe.clock, 1000, PACING_INFO0);
         }
         assert!(bwe.bitrate_observer.updated());
 
         // Second burst sent at 8 * 1000 / 5 = 1600 kbps.
-        for i in 0..NumProbesCluster1 {
-            bwe.clock += TimeDelta::Millis(5);
-            bwe.IncomingFeedback(bwe.clock, bwe.clock, 1000, PacingInfo1);
+        for _ in 0..NUM_PROBES_CLUSTER1 {
+            bwe.clock += TimeDelta::from_millis(5);
+            bwe.incoming_feedback(bwe.clock, bwe.clock, 1000, PACING_INFO1);
         }
 
         assert!(bwe.bitrate_observer.updated());
@@ -1109,18 +1093,18 @@ mod test {
     }
 
     #[test]
-    fn ProbeDetectionNonPacedPackets() {
+    fn probe_detection_non_paced_packets() {
         let mut bwe = DelayBasedBweTest::new();
 
         // First burst sent at 8 * 1000 / 10 = 800 kbps, but with every other packet
         // not being paced which could mess things up.
-        for i in 0..NumProbesCluster0 {
-            bwe.clock += TimeDelta::Millis(5);
+        for _ in 0..NUM_PROBES_CLUSTER0 {
+            bwe.clock += TimeDelta::from_millis(5);
 
-            bwe.IncomingFeedback(bwe.clock, bwe.clock, 1000, PacingInfo0);
+            bwe.incoming_feedback(bwe.clock, bwe.clock, 1000, PACING_INFO0);
             // Non-paced packet, arriving 5 ms after.
-            bwe.clock += TimeDelta::Millis(5);
-            bwe.IncomingFeedback(bwe.clock, bwe.clock, 100, PacedPacketInfo::default());
+            bwe.clock += TimeDelta::from_millis(5);
+            bwe.incoming_feedback(bwe.clock, bwe.clock, 100, PacedPacketInfo::default());
         }
 
         assert!(bwe.bitrate_observer.updated());
@@ -1128,196 +1112,196 @@ mod test {
     }
 
     #[test]
-    fn ProbeDetectionFasterArrival() {
+    fn probe_detection_faster_arrival() {
         let mut bwe = DelayBasedBweTest::new();
 
         // First burst sent at 8 * 1000 / 10 = 800 kbps.
         // Arriving at 8 * 1000 / 5 = 1600 kbps.
-        let mut send_time_ms: Timestamp = Timestamp::Zero();
-        for i in 0..NumProbesCluster0 {
-            bwe.clock += TimeDelta::Millis(1);
-            send_time_ms += TimeDelta::Millis(10);
+        let mut send_time_ms: Timestamp = Timestamp::zero();
+        for _ in 0..NUM_PROBES_CLUSTER0 {
+            bwe.clock += TimeDelta::from_millis(1);
+            send_time_ms += TimeDelta::from_millis(10);
 
-            bwe.IncomingFeedback(bwe.clock, send_time_ms, 1000, PacingInfo0);
+            bwe.incoming_feedback(bwe.clock, send_time_ms, 1000, PACING_INFO0);
         }
 
         assert!(!bwe.bitrate_observer.updated());
     }
 
     #[test]
-    fn ProbeDetectionSlowerArrival() {
+    fn probe_detection_slower_arrival() {
         let mut bwe = DelayBasedBweTest::new();
 
         // First burst sent at 8 * 1000 / 5 = 1600 kbps.
         // Arriving at 8 * 1000 / 7 = 1142 kbps.
         // Since the receive rate is significantly below the send rate, we expect to
         // use 95% of the estimated capacity.
-        let mut send_time_ms: Timestamp = Timestamp::Zero();
-        for i in 0..NumProbesCluster1 {
-            bwe.clock += TimeDelta::Millis(7);
-            send_time_ms += TimeDelta::Millis(5);
+        let mut send_time_ms: Timestamp = Timestamp::zero();
+        for _ in 0..NUM_PROBES_CLUSTER1 {
+            bwe.clock += TimeDelta::from_millis(7);
+            send_time_ms += TimeDelta::from_millis(5);
 
-            bwe.IncomingFeedback(bwe.clock, send_time_ms, 1000, PacingInfo1);
+            bwe.incoming_feedback(bwe.clock, send_time_ms, 1000, PACING_INFO1);
         }
 
         assert!(bwe.bitrate_observer.updated());
         assert_relative_eq!(
             bwe.bitrate_observer.latest_bitrate() as f64,
-            { (TargetUtilizationFraction * 1140000.0) },
+            { TARGET_UTILIZATION_FRACTION * 1140000.0 },
             epsilon = 10000.0
         );
     }
 
     #[test]
-    fn ProbeDetectionSlowerArrivalHighBitrate() {
+    fn probe_detection_slower_arrival_high_bitrate() {
         let mut bwe = DelayBasedBweTest::new();
 
         // Burst sent at 8 * 1000 / 1 = 8000 kbps.
         // Arriving at 8 * 1000 / 2 = 4000 kbps.
         // Since the receive rate is significantly below the send rate, we expect to
         // use 95% of the estimated capacity.
-        let mut send_time_ms: Timestamp = Timestamp::Zero();
-        for i in 0..NumProbesCluster1 {
-            bwe.clock += TimeDelta::Millis(2);
-            send_time_ms += TimeDelta::Millis(1);
+        let mut send_time_ms: Timestamp = Timestamp::zero();
+        for _ in 0..NUM_PROBES_CLUSTER1 {
+            bwe.clock += TimeDelta::from_millis(2);
+            send_time_ms += TimeDelta::from_millis(1);
 
-            bwe.IncomingFeedback(bwe.clock, send_time_ms, 1000, PacingInfo1);
+            bwe.incoming_feedback(bwe.clock, send_time_ms, 1000, PACING_INFO1);
         }
 
         assert!(bwe.bitrate_observer.updated());
         assert_relative_eq!(
             bwe.bitrate_observer.latest_bitrate() as f64,
-            TargetUtilizationFraction * 4000000.0,
+            TARGET_UTILIZATION_FRACTION * 4000000.0,
             epsilon = 10000.0
         );
     }
 
     #[test]
-    fn GetExpectedBwePeriodMs() {
+    fn get_expected_bwe_period_ms() {
         let mut bwe = DelayBasedBweTest::new();
-        let default_interval = bwe.bitrate_estimator.GetExpectedBwePeriod();
+        let default_interval = bwe.bitrate_estimator.get_expected_bwe_period();
         assert!(default_interval.ms() > 0);
-        bwe.CapacityDropTestHelper(1, true, 533, 0);
-        let interval = bwe.bitrate_estimator.GetExpectedBwePeriod();
+        bwe.capacity_drop_test_helper(1, true, 533, 0);
+        let interval = bwe.bitrate_estimator.get_expected_bwe_period();
         assert!(interval.ms() > 0);
         assert_ne!(interval.ms(), default_interval.ms());
     }
 
     #[test]
-    fn InitialBehavior() {
+    fn initial_behavior() {
         let mut bwe = DelayBasedBweTest::new();
-        bwe.InitialBehaviorTestHelper(730000);
+        bwe.initial_behavior_test_helper(730000);
     }
 
     #[test]
-    fn InitializeResult() {
+    fn initialize_result() {
         let result = DelayBasedBweResult::default();
         assert_eq!(result.delay_detector_state, BandwidthUsage::Normal);
     }
 
     #[test]
-    fn RateIncreaseReordering() {
+    fn rate_increase_reordering() {
         let mut bwe = DelayBasedBweTest::new();
-        bwe.RateIncreaseReorderingTestHelper(730000);
+        bwe.rate_increase_reordering_test_helper(730000);
     }
     #[test]
-    fn RateIncreaseRtpTimestamps() {
+    fn rate_increase_rtp_timestamps() {
         let mut bwe = DelayBasedBweTest::new();
-        bwe.RateIncreaseRtpTimestampsTestHelper(617);
-    }
-
-    #[test]
-    fn CapacityDropOneStream() {
-        let mut bwe = DelayBasedBweTest::new();
-        bwe.CapacityDropTestHelper(1, false, 500, 0);
+        bwe.rate_increase_rtp_timestamps_test_helper(617);
     }
 
     #[test]
-    fn CapacityDropPosOffsetChange() {
+    fn capacity_drop_one_stream() {
         let mut bwe = DelayBasedBweTest::new();
-        bwe.CapacityDropTestHelper(1, false, 867, 30000);
+        bwe.capacity_drop_test_helper(1, false, 500, 0);
     }
 
     #[test]
-    fn CapacityDropNegOffsetChange() {
+    fn capacity_drop_pos_offset_change() {
         let mut bwe = DelayBasedBweTest::new();
-        bwe.CapacityDropTestHelper(1, false, 933, -30000);
+        bwe.capacity_drop_test_helper(1, false, 867, 30000);
     }
 
     #[test]
-    fn CapacityDropOneStreamWrap() {
+    fn capacity_drop_neg_offset_change() {
         let mut bwe = DelayBasedBweTest::new();
-        bwe.CapacityDropTestHelper(1, true, 533, 0);
+        bwe.capacity_drop_test_helper(1, false, 933, -30000);
     }
 
     #[test]
-    fn TestTimestampGrouping() {
+    fn capacity_drop_one_stream_wrap() {
         let mut bwe = DelayBasedBweTest::new();
-        bwe.TestTimestampGroupingTestHelper();
+        bwe.capacity_drop_test_helper(1, true, 533, 0);
     }
 
     #[test]
-    fn TestShortTimeoutAndWrap() {
+    fn test_timestamp_grouping() {
+        let mut bwe = DelayBasedBweTest::new();
+        bwe.test_timestamp_grouping_test_helper();
+    }
+
+    #[test]
+    fn test_short_timeout_and_wrap() {
         let mut bwe = DelayBasedBweTest::new();
         // Simulate a client leaving and rejoining the call after 35 seconds. This
         // will make abs send time wrap, so if streams aren't timed out properly
         // the next 30 seconds of packets will be out of order.
-        bwe.TestWrappingHelper(35);
+        bwe.test_wrapping_helper(35);
     }
 
     #[test]
-    fn TestLongTimeoutAndWrap() {
+    fn test_long_timeout_and_wrap() {
         let mut bwe = DelayBasedBweTest::new();
         // Simulate a client leaving and rejoining the call after some multiple of
         // 64 seconds later. This will cause a zero difference in abs send times due
         // to the wrap, but a big difference in arrival time, if streams aren't
         // properly timed out.
-        bwe.TestWrappingHelper(10 * 64);
+        bwe.test_wrapping_helper(10 * 64);
     }
 
     #[test]
-    fn TestInitialOveruse() {
+    fn test_initial_overuse() {
         let mut bwe = DelayBasedBweTest::new();
-        const StartBitrate: DataRate = DataRate::KilobitsPerSec(300);
-        const InitialCapacity: DataRate = DataRate::KilobitsPerSec(200);
-        const DummySsrc: u32 = 0;
+        const START_BITRATE: DataRate = DataRate::from_kilobits_per_sec(300);
+        const INITIAL_CAPACITY: DataRate = DataRate::from_kilobits_per_sec(200);
+        const DUMMY_SSRC: u32 = 0;
         // High FPS to ensure that we send a lot of packets in a short time.
-        const Fps: i64 = 90;
+        const FPS: i64 = 90;
 
         bwe.stream_generator
-            .AddStream(RtpStream::new(Fps, StartBitrate.bps()));
-        bwe.stream_generator.set_capacity_bps(InitialCapacity.bps());
+            .add_stream(RtpStream::new(FPS, START_BITRATE.bps()));
+        bwe.stream_generator.set_capacity_bps(INITIAL_CAPACITY.bps());
 
         // Needed to initialize the AimdRateControl.
-        bwe.bitrate_estimator.SetStartBitrate(StartBitrate);
+        bwe.bitrate_estimator.set_start_bitrate(START_BITRATE);
 
         // Produce 40 frames (in 1/3 second) and give them to the estimator.
-        let mut bitrate_bps: i64 = StartBitrate.bps();
+        let mut bitrate_bps: i64 = START_BITRATE.bps();
         let mut seen_overuse: bool = false;
-        for i in 0..40 {
-            let overuse: bool = bwe.GenerateAndProcessFrame(DummySsrc, bitrate_bps as _);
+        for _ in 0..40 {
+            let overuse: bool = bwe.generate_and_process_frame(DUMMY_SSRC, bitrate_bps as _);
             if overuse {
                 assert!(bwe.bitrate_observer.updated());
-                assert!(bwe.bitrate_observer.latest_bitrate() as i64 <= InitialCapacity.bps());
+                assert!(bwe.bitrate_observer.latest_bitrate() as i64 <= INITIAL_CAPACITY.bps());
                 assert!(
                     bwe.bitrate_observer.latest_bitrate() as f64
-                        > 0.8 * InitialCapacity.bps_float()
+                        > 0.8 * INITIAL_CAPACITY.bps_float()
                 );
                 bitrate_bps = bwe.bitrate_observer.latest_bitrate() as _;
                 seen_overuse = true;
                 break;
             } else if bwe.bitrate_observer.updated() {
                 bitrate_bps = bwe.bitrate_observer.latest_bitrate() as _;
-                bwe.bitrate_observer.Reset();
+                bwe.bitrate_observer.reset();
             }
         }
         assert!(seen_overuse);
-        assert!(bwe.bitrate_observer.latest_bitrate() as i64 <= InitialCapacity.bps());
-        assert!(bwe.bitrate_observer.latest_bitrate() as f64 > 0.8 * InitialCapacity.bps_float());
+        assert!(bwe.bitrate_observer.latest_bitrate() as i64 <= INITIAL_CAPACITY.bps());
+        assert!(bwe.bitrate_observer.latest_bitrate() as f64 > 0.8 * INITIAL_CAPACITY.bps_float());
     }
 
     #[test]
-    fn TestTimestampPrecisionHandling() {
+    fn test_timestamp_precision_handling() {
         let mut bwe = DelayBasedBweTest::new();
         // This test does some basic checks to make sure that timestamps with higher
         // than millisecond precision are handled properly and do not cause any
@@ -1336,22 +1320,22 @@ mod test {
         // all the send deltas would be equal to 10ms while some recv deltas would
         // round up to 11ms which would lead in a false illusion of delay build up.
         let mut last_bitrate: u32 = bwe.bitrate_observer.latest_bitrate();
-        for i in 0..1000 {
-            bwe.clock += TimeDelta::Micros(500);
-            bwe.IncomingFeedback(
+        for _ in 0..1000 {
+            bwe.clock += TimeDelta::from_micros(500);
+            bwe.incoming_feedback(
                 bwe.clock,
-                bwe.clock - TimeDelta::Micros(500),
+                bwe.clock - TimeDelta::from_micros(500),
                 1000,
                 PacedPacketInfo::default(),
             );
-            bwe.clock += TimeDelta::Micros(9500);
-            bwe.IncomingFeedback(
+            bwe.clock += TimeDelta::from_micros(9500);
+            bwe.incoming_feedback(
                 bwe.clock,
-                bwe.clock - TimeDelta::Micros(250),
+                bwe.clock - TimeDelta::from_micros(250),
                 1000,
                 PacedPacketInfo::default(),
             );
-            bwe.clock += TimeDelta::Micros(10000);
+            bwe.clock += TimeDelta::from_micros(10000);
 
             // The bitrate should never decrease in this test.
             assert!(last_bitrate <= bwe.bitrate_observer.latest_bitrate());

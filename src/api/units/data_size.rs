@@ -15,34 +15,34 @@ super::relative_unit!(DataSize);
 impl DataSize {
     const ONE_SIDED: bool = true;
 
-    pub const fn Bytes(value: i64) -> Self {
-        Self::FromValue(value)
+    pub const fn from_bytes(value: i64) -> Self {
+        Self::from_value(value)
     }
 
-    pub fn BytesFloat(value: f64) -> Self {
-        Self::FromValueFloat(value)
+    pub fn from_bytes_float(value: f64) -> Self {
+        Self::from_value_float(value)
     }
 
-    pub const fn Infinity() -> Self {
-        Self::PlusInfinity()
+    pub const fn infinity() -> Self {
+        Self::plus_infinity()
     }
 
     pub const fn bytes(&self) -> i64 {
-        self.ToValue()
+        self.to_value()
     }
 
     pub const fn bytes_float(&self) -> f64 {
-        self.ToValueFloat()
+        self.to_value_float()
     }
 
     pub const fn bytes_or(&self, fallback_value: i64) -> i64 {
-        self.ToValueOr(fallback_value)
+        self.to_value_or(fallback_value)
     }
 
-    pub const fn Microbits(&self) -> i64 {
-        const MaxBeforeConversion: i64 = i64::MAX / 8000000;
+    pub const fn microbits(&self) -> i64 {
+        const MAX_BEFORE_CONVERSION: i64 = i64::MAX / 8000000;
         assert!(
-            self.bytes() <= MaxBeforeConversion,
+            self.bytes() <= MAX_BEFORE_CONVERSION,
             "size is too large to be expressed in microbits"
         );
         self.bytes() * 8000000
@@ -51,9 +51,9 @@ impl DataSize {
 
 impl fmt::Debug for DataSize {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.IsPlusInfinity() {
+        if self.is_plus_infinity() {
             write!(f, "+inf bytes")
-        } else if self.IsMinusInfinity() {
+        } else if self.is_minus_infinity() {
             write!(f, "-inf bytes")
         } else {
             write!(f, "{} bytes", self.bytes())
@@ -66,52 +66,52 @@ mod test {
     use super::*;
 
     #[test]
-    fn ConstExpr() {
-        const Value: i64 = 12345;
-        const DataSizeZero: DataSize = DataSize::Zero();
-        const DataSizeInf: DataSize = DataSize::Infinity();
-        assert!(DataSize::default() == DataSizeZero);
-        assert!(DataSizeZero.IsZero());
-        assert!(DataSizeInf.IsInfinite());
-        assert!(DataSizeInf.bytes_or(-1) == -1);
-        assert!(DataSizeInf > DataSizeZero);
+    fn const_expr() {
+        const VALUE: i64 = 12345;
+        const DATA_SIZE_ZERO: DataSize = DataSize::zero();
+        const DATA_SIZE_INF: DataSize = DataSize::infinity();
+        assert!(DataSize::default() == DATA_SIZE_ZERO);
+        assert!(DATA_SIZE_ZERO.is_zero());
+        assert!(DATA_SIZE_INF.is_infinite());
+        assert!(DATA_SIZE_INF.bytes_or(-1) == -1);
+        assert!(DATA_SIZE_INF > DATA_SIZE_ZERO);
 
-        const DataSize: DataSize = DataSize::Bytes(Value);
-        assert!(DataSize.bytes_or(-1) == Value);
+        const DATA_SIZE: DataSize = DataSize::from_bytes(VALUE);
+        assert!(DATA_SIZE.bytes_or(-1) == VALUE);
 
-        assert_eq!(DataSize.bytes(), Value);
+        assert_eq!(DATA_SIZE.bytes(), VALUE);
     }
 
     #[test]
-    fn GetBackSameValues() {
-        const Value: i64 = 123 * 8;
-        assert_eq!(DataSize::Bytes(Value).bytes(), Value);
+    fn get_back_same_values() {
+        const VALUE: i64 = 123 * 8;
+        assert_eq!(DataSize::from_bytes(VALUE).bytes(), VALUE);
     }
 
     #[test]
-    fn IdentityChecks() {
-        const Value: i64 = 3000;
-        assert!(DataSize::Zero().IsZero());
-        assert!(!DataSize::Bytes(Value).IsZero());
+    fn identity_checks() {
+        const VALUE: i64 = 3000;
+        assert!(DataSize::zero().is_zero());
+        assert!(!DataSize::from_bytes(VALUE).is_zero());
 
-        assert!(DataSize::Infinity().IsInfinite());
-        assert!(!DataSize::Zero().IsInfinite());
-        assert!(!DataSize::Bytes(Value).IsInfinite());
+        assert!(DataSize::infinity().is_infinite());
+        assert!(!DataSize::zero().is_infinite());
+        assert!(!DataSize::from_bytes(VALUE).is_infinite());
 
-        assert!(!DataSize::Infinity().IsFinite());
-        assert!(DataSize::Bytes(Value).IsFinite());
-        assert!(DataSize::Zero().IsFinite());
+        assert!(!DataSize::infinity().is_finite());
+        assert!(DataSize::from_bytes(VALUE).is_finite());
+        assert!(DataSize::zero().is_finite());
     }
 
     #[test]
-    fn ComparisonOperators() {
-        const Small: i64 = 450;
-        const Large: i64 = 451;
-        const small: DataSize = DataSize::Bytes(Small);
-        const large: DataSize = DataSize::Bytes(Large);
+    fn comparison_operators() {
+        const SMALL: i64 = 450;
+        const LARGE: i64 = 451;
+        let small: DataSize = DataSize::from_bytes(SMALL);
+        let large: DataSize = DataSize::from_bytes(LARGE);
 
-        assert_eq!(DataSize::Zero(), DataSize::Bytes(0));
-        assert_eq!(DataSize::Infinity(), DataSize::Infinity());
+        assert_eq!(DataSize::zero(), DataSize::from_bytes(0));
+        assert_eq!(DataSize::infinity(), DataSize::infinity());
         assert_eq!(small, small);
         assert!(small <= small);
         assert!(small >= small);
@@ -120,48 +120,48 @@ mod test {
         assert!(small < large);
         assert!(large >= small);
         assert!(large > small);
-        assert!(DataSize::Zero() < small);
-        assert!(DataSize::Infinity() > large);
+        assert!(DataSize::zero() < small);
+        assert!(DataSize::infinity() > large);
     }
 
     #[test]
-    fn ConvertsToAndFromDouble() {
-        const Value: i64 = 128;
-        const DoubleValue: f64 = Value as f64;
+    fn converts_to_and_from_double() {
+        const VALUE: i64 = 128;
+        const DOUBLE_VALUE: f64 = VALUE as f64;
 
-        assert_eq!(DataSize::Bytes(Value).bytes_float(), DoubleValue);
-        assert_eq!(DataSize::BytesFloat(DoubleValue).bytes(), Value);
+        assert_eq!(DataSize::from_bytes(VALUE).bytes_float(), DOUBLE_VALUE);
+        assert_eq!(DataSize::from_bytes_float(DOUBLE_VALUE).bytes(), VALUE);
 
-        const Infinity: f64 = f64::INFINITY;
-        assert_eq!(DataSize::Infinity().bytes_float(), Infinity);
-        assert!(DataSize::BytesFloat(Infinity).IsInfinite());
+        const INFINITY: f64 = f64::INFINITY;
+        assert_eq!(DataSize::infinity().bytes_float(), INFINITY);
+        assert!(DataSize::from_bytes_float(INFINITY).is_infinite());
     }
 
     #[test]
-    fn MathOperations() {
-        const ValueA: i64 = 450;
-        const ValueB: i64 = 267;
-        const size_a: DataSize = DataSize::Bytes(ValueA);
-        const size_b: DataSize = DataSize::Bytes(ValueB);
-        assert_eq!((size_a + size_b).bytes(), ValueA + ValueB);
-        assert_eq!((size_a - size_b).bytes(), ValueA - ValueB);
+    fn math_operations() {
+        const VALUE_A: i64 = 450;
+        const VALUE_B: i64 = 267;
+        const SIZE_A: DataSize = DataSize::from_bytes(VALUE_A);
+        const SIZE_B: DataSize = DataSize::from_bytes(VALUE_B);
+        assert_eq!((SIZE_A + SIZE_B).bytes(), VALUE_A + VALUE_B);
+        assert_eq!((SIZE_A - SIZE_B).bytes(), VALUE_A - VALUE_B);
 
-        const Int32Value: i32 = 123;
-        const FloatValue: f64 = 123.0;
-        assert_eq!((size_a * ValueB).bytes(), ValueA * ValueB);
-        assert_eq!((size_a * Int32Value).bytes(), ValueA * Int32Value as i64);
+        const INT32_VALUE: i32 = 123;
+        const FLOAT_VALUE: f64 = 123.0;
+        assert_eq!((SIZE_A * VALUE_B).bytes(), VALUE_A * VALUE_B);
+        assert_eq!((SIZE_A * INT32_VALUE).bytes(), VALUE_A * INT32_VALUE as i64);
         assert_eq!(
-            (size_a * FloatValue).bytes_float(),
-            ValueA as f64 * FloatValue
+            (SIZE_A * FLOAT_VALUE).bytes_float(),
+            VALUE_A as f64 * FLOAT_VALUE
         );
 
-        assert_eq!((size_a / 10).bytes(), ValueA / 10);
-        assert_eq!(size_a / size_b, ValueA as f64 / ValueB as f64);
+        assert_eq!((SIZE_A / 10).bytes(), VALUE_A / 10);
+        assert_eq!(SIZE_A / SIZE_B, VALUE_A as f64 / VALUE_B as f64);
 
-        let mut mutable_size: DataSize = DataSize::Bytes(ValueA);
-        mutable_size += size_b;
-        assert_eq!(mutable_size.bytes(), ValueA + ValueB);
-        mutable_size -= size_a;
-        assert_eq!(mutable_size.bytes(), ValueB);
+        let mut mutable_size: DataSize = DataSize::from_bytes(VALUE_A);
+        mutable_size += SIZE_B;
+        assert_eq!(mutable_size.bytes(), VALUE_A + VALUE_B);
+        mutable_size -= SIZE_A;
+        assert_eq!(mutable_size.bytes(), VALUE_B);
     }
 }

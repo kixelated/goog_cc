@@ -22,85 +22,85 @@ super::relative_unit!(TimeDelta);
 impl TimeDelta {
     const ONE_SIDED: bool = false;
 
-    pub const fn Minutes(value: i64) -> Self {
-        Self::FromFraction(60_000_000, value)
+    pub const fn from_minutes(value: i64) -> Self {
+        Self::from_fraction(60_000_000, value)
     }
 
-    pub fn MinutesFloat(value: f64) -> Self {
-        Self::FromFractionFloat(60_000_000.0, value)
+    pub fn from_minutes_float(value: f64) -> Self {
+        Self::from_fraction_float(60_000_000.0, value)
     }
 
-    pub const fn Seconds(value: i64) -> Self {
-        Self::FromFraction(1_000_000, value)
+    pub const fn from_seconds(value: i64) -> Self {
+        Self::from_fraction(1_000_000, value)
     }
 
-    pub fn SecondsFloat(value: f64) -> Self {
-        Self::FromFractionFloat(1_000_000.0, value)
+    pub fn from_seconds_float(value: f64) -> Self {
+        Self::from_fraction_float(1_000_000.0, value)
     }
 
-    pub const fn Millis(value: i64) -> Self {
-        Self::FromFraction(1_000, value)
+    pub const fn from_millis(value: i64) -> Self {
+        Self::from_fraction(1_000, value)
     }
 
-    pub fn MillisFloat(value: f64) -> Self {
-        Self::FromFractionFloat(1_000.0, value)
+    pub fn from_millis_float(value: f64) -> Self {
+        Self::from_fraction_float(1_000.0, value)
     }
 
-    pub const fn Micros(value: i64) -> Self {
-        Self::FromValue(value)
+    pub const fn from_micros(value: i64) -> Self {
+        Self::from_value(value)
     }
 
-    pub fn MicrosFloat(value: f64) -> Self {
-        Self::FromValueFloat(value)
+    pub fn from_micros_float(value: f64) -> Self {
+        Self::from_value_float(value)
     }
 
     pub const fn seconds(&self) -> i64 {
-        self.ToFraction(1_000_000)
+        self.to_fraction(1_000_000)
     }
 
     pub fn seconds_float(&self) -> f64 {
-        self.ToFractionFloat(1_000_000.0)
+        self.to_fraction_float(1_000_000.0)
     }
 
     pub const fn ms(&self) -> i64 {
-        self.ToFraction(1_000)
+        self.to_fraction(1_000)
     }
 
     pub fn ms_float(&self) -> f64 {
-        self.ToFractionFloat(1_000.0)
+        self.to_fraction_float(1_000.0)
     }
 
     pub const fn us(&self) -> i64 {
-        self.ToValue()
+        self.to_value()
     }
 
     pub const fn us_float(&self) -> f64 {
-        self.ToValueFloat()
+        self.to_value_float()
     }
 
     pub const fn ns(&self) -> i64 {
-        self.ToMultiple(1000)
+        self.to_multiple(1000)
     }
 
     pub fn ns_float(&self) -> f64 {
-        self.ToMultipleFloat(1000.0)
+        self.to_multiple_float(1000.0)
     }
 
     pub const fn seconds_or(&self, fallback_value: i64) -> i64 {
-        self.ToFractionOr(1_000_000, fallback_value)
+        self.to_fraction_or(1_000_000, fallback_value)
     }
 
     pub const fn ms_or(&self, fallback_value: i64) -> i64 {
-        self.ToFractionOr(1_000, fallback_value)
+        self.to_fraction_or(1_000, fallback_value)
     }
 
     pub const fn us_or(&self, fallback_value: i64) -> i64 {
-        self.ToValueOr(fallback_value)
+        self.to_value_or(fallback_value)
     }
 
     pub const fn abs(&self) -> Self {
         if self.us() < 0 {
-            Self::Micros(-self.us())
+            Self::from_micros(-self.us())
         } else {
             *self
         }
@@ -109,9 +109,9 @@ impl TimeDelta {
 
 impl fmt::Debug for TimeDelta {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.IsPlusInfinity() {
+        if self.is_plus_infinity() {
             write!(f, "+inf ms")
-        } else if self.IsMinusInfinity() {
+        } else if self.is_minus_infinity() {
             write!(f, "-inf ms")
         } else if self.us() == 0 || (self.us() % 1000) != 0 {
             write!(f, "{} us", self.us())
@@ -130,241 +130,241 @@ mod test {
     use super::*;
 
     #[test]
-    fn ConstExpr() {
-        const Value: i64 = -12345;
-        const TimeDeltaZero: TimeDelta = TimeDelta::Zero();
-        const TimeDeltaPlusInf: TimeDelta = TimeDelta::PlusInfinity();
-        const TimeDeltaMinusInf: TimeDelta = TimeDelta::MinusInfinity();
-        assert!(TimeDelta::default() == TimeDeltaZero);
-        assert!(TimeDeltaZero.IsZero());
-        assert!(TimeDeltaPlusInf.IsPlusInfinity());
-        assert!(TimeDeltaMinusInf.IsMinusInfinity());
-        assert!(TimeDeltaPlusInf.ms_or(-1) == -1);
+    fn const_expr() {
+        const VALUE: i64 = -12345;
+        const TIME_DELTA_ZERO: TimeDelta = TimeDelta::zero();
+        const TIME_DELTA_PLUS_INF: TimeDelta = TimeDelta::plus_infinity();
+        const TIME_DELTA_MINUS_INF: TimeDelta = TimeDelta::minus_infinity();
+        assert!(TimeDelta::default() == TIME_DELTA_ZERO);
+        assert!(TIME_DELTA_ZERO.is_zero());
+        assert!(TIME_DELTA_PLUS_INF.is_plus_infinity());
+        assert!(TIME_DELTA_MINUS_INF.is_minus_infinity());
+        assert!(TIME_DELTA_PLUS_INF.ms_or(-1) == -1);
 
-        assert!(TimeDeltaPlusInf > TimeDeltaZero);
+        assert!(TIME_DELTA_PLUS_INF > TIME_DELTA_ZERO);
 
-        const TimeDeltaMinutes: TimeDelta = TimeDelta::Minutes(Value);
-        const TimeDeltaSeconds: TimeDelta = TimeDelta::Seconds(Value);
-        const TimeDeltaMs: TimeDelta = TimeDelta::Millis(Value);
-        const TimeDeltaUs: TimeDelta = TimeDelta::Micros(Value);
+        const TIME_DELTA_MINUTES: TimeDelta = TimeDelta::from_minutes(VALUE);
+        const TIME_DELTA_SECONDS: TimeDelta = TimeDelta::from_seconds(VALUE);
+        const TIME_DELTA_MS: TimeDelta = TimeDelta::from_millis(VALUE);
+        const TIME_DELTA_US: TimeDelta = TimeDelta::from_micros(VALUE);
 
-        assert!(TimeDeltaMinutes.seconds_or(0) == Value * 60);
-        assert!(TimeDeltaSeconds.seconds_or(0) == Value);
-        assert!(TimeDeltaMs.ms_or(0) == Value);
-        assert!(TimeDeltaUs.us_or(0) == Value);
+        assert!(TIME_DELTA_MINUTES.seconds_or(0) == VALUE * 60);
+        assert!(TIME_DELTA_SECONDS.seconds_or(0) == VALUE);
+        assert!(TIME_DELTA_MS.ms_or(0) == VALUE);
+        assert!(TIME_DELTA_US.us_or(0) == VALUE);
     }
 
     #[test]
-    fn GetBacSameValues() {
-        const Value: i64 = 499;
+    fn get_back_same_values() {
+        const VALUE: i64 = 499;
         for sign in [-1, 0, 1] {
-            let value: i64 = Value * sign;
-            assert_eq!(TimeDelta::Millis(value).ms(), value);
-            assert_eq!(TimeDelta::Micros(value).us(), value);
-            assert_eq!(TimeDelta::Seconds(value).seconds(), value);
-            assert_eq!(TimeDelta::Seconds(value).seconds(), value);
+            let value: i64 = VALUE * sign;
+            assert_eq!(TimeDelta::from_millis(value).ms(), value);
+            assert_eq!(TimeDelta::from_micros(value).us(), value);
+            assert_eq!(TimeDelta::from_seconds(value).seconds(), value);
+            assert_eq!(TimeDelta::from_seconds(value).seconds(), value);
         }
-        assert_eq!(TimeDelta::Zero().us(), 0);
+        assert_eq!(TimeDelta::zero().us(), 0);
     }
 
     #[test]
-    fn GetDifferentPrefix() {
-        const Value: i64 = 3000000;
-        assert_eq!(TimeDelta::Micros(Value).seconds(), Value / 1000000);
-        assert_eq!(TimeDelta::Millis(Value).seconds(), Value / 1000);
-        assert_eq!(TimeDelta::Micros(Value).ms(), Value / 1000);
-        assert_eq!(TimeDelta::Minutes(Value / 60).seconds(), Value);
+    fn get_different_prefix() {
+        const VALUE: i64 = 3000000;
+        assert_eq!(TimeDelta::from_micros(VALUE).seconds(), VALUE / 1000000);
+        assert_eq!(TimeDelta::from_millis(VALUE).seconds(), VALUE / 1000);
+        assert_eq!(TimeDelta::from_micros(VALUE).ms(), VALUE / 1000);
+        assert_eq!(TimeDelta::from_minutes(VALUE / 60).seconds(), VALUE);
 
-        assert_eq!(TimeDelta::Millis(Value).us(), Value * 1000);
-        assert_eq!(TimeDelta::Seconds(Value).ms(), Value * 1000);
-        assert_eq!(TimeDelta::Seconds(Value).us(), Value * 1000000);
-        assert_eq!(TimeDelta::Minutes(Value / 60).seconds(), Value);
+        assert_eq!(TimeDelta::from_millis(VALUE).us(), VALUE * 1000);
+        assert_eq!(TimeDelta::from_seconds(VALUE).ms(), VALUE * 1000);
+        assert_eq!(TimeDelta::from_seconds(VALUE).us(), VALUE * 1000000);
+        assert_eq!(TimeDelta::from_minutes(VALUE / 60).seconds(), VALUE);
     }
 
     #[test]
-    fn IdentityChecks() {
-        const Value: i64 = 3000;
-        assert!(TimeDelta::Zero().IsZero());
-        assert!(!TimeDelta::Millis(Value).IsZero());
+    fn identity_checks() {
+        const VALUE: i64 = 3000;
+        assert!(TimeDelta::zero().is_zero());
+        assert!(!TimeDelta::from_millis(VALUE).is_zero());
 
-        assert!(TimeDelta::PlusInfinity().IsInfinite());
-        assert!(TimeDelta::MinusInfinity().IsInfinite());
-        assert!(!TimeDelta::Zero().IsInfinite());
-        assert!(!TimeDelta::Millis(-Value).IsInfinite());
-        assert!(!TimeDelta::Millis(Value).IsInfinite());
+        assert!(TimeDelta::plus_infinity().is_infinite());
+        assert!(TimeDelta::minus_infinity().is_infinite());
+        assert!(!TimeDelta::zero().is_infinite());
+        assert!(!TimeDelta::from_millis(-VALUE).is_infinite());
+        assert!(!TimeDelta::from_millis(VALUE).is_infinite());
 
-        assert!(!TimeDelta::PlusInfinity().IsFinite());
-        assert!(!TimeDelta::MinusInfinity().IsFinite());
-        assert!(TimeDelta::Millis(-Value).IsFinite());
-        assert!(TimeDelta::Millis(Value).IsFinite());
-        assert!(TimeDelta::Zero().IsFinite());
+        assert!(!TimeDelta::plus_infinity().is_finite());
+        assert!(!TimeDelta::minus_infinity().is_finite());
+        assert!(TimeDelta::from_millis(-VALUE).is_finite());
+        assert!(TimeDelta::from_millis(VALUE).is_finite());
+        assert!(TimeDelta::zero().is_finite());
 
-        assert!(TimeDelta::PlusInfinity().IsPlusInfinity());
-        assert!(!TimeDelta::MinusInfinity().IsPlusInfinity());
+        assert!(TimeDelta::plus_infinity().is_plus_infinity());
+        assert!(!TimeDelta::minus_infinity().is_plus_infinity());
 
-        assert!(TimeDelta::MinusInfinity().IsMinusInfinity());
-        assert!(!TimeDelta::PlusInfinity().IsMinusInfinity());
+        assert!(TimeDelta::minus_infinity().is_minus_infinity());
+        assert!(!TimeDelta::plus_infinity().is_minus_infinity());
     }
 
     #[test]
-    fn ComparisonOperators() {
-        const Small: i64 = 450;
-        const Large: i64 = 451;
-        const small: TimeDelta = TimeDelta::Millis(Small);
-        const large: TimeDelta = TimeDelta::Millis(Large);
+    fn comparison_operators() {
+        const SMALL: i64 = 450;
+        const LARGE: i64 = 451;
+        let small: TimeDelta = TimeDelta::from_millis(SMALL);
+        let large: TimeDelta = TimeDelta::from_millis(LARGE);
 
-        assert_eq!(TimeDelta::Zero(), TimeDelta::Millis(0));
-        assert_eq!(TimeDelta::PlusInfinity(), TimeDelta::PlusInfinity());
-        assert_eq!(small, TimeDelta::Millis(Small));
-        assert!(small <= TimeDelta::Millis(Small));
-        assert!(small >= TimeDelta::Millis(Small));
-        assert!(small != TimeDelta::Millis(Large));
-        assert!(small <= TimeDelta::Millis(Large));
-        assert!(small < TimeDelta::Millis(Large));
-        assert!(large >= TimeDelta::Millis(Small));
-        assert!(large > TimeDelta::Millis(Small));
-        assert!(TimeDelta::Zero() < small);
-        assert!(TimeDelta::Zero() > TimeDelta::Millis(-Small));
-        assert!(TimeDelta::Zero() > TimeDelta::Millis(-Small));
+        assert_eq!(TimeDelta::zero(), TimeDelta::from_millis(0));
+        assert_eq!(TimeDelta::plus_infinity(), TimeDelta::plus_infinity());
+        assert_eq!(small, TimeDelta::from_millis(SMALL));
+        assert!(small <= TimeDelta::from_millis(SMALL));
+        assert!(small >= TimeDelta::from_millis(SMALL));
+        assert!(small != TimeDelta::from_millis(LARGE));
+        assert!(small <= TimeDelta::from_millis(LARGE));
+        assert!(small < TimeDelta::from_millis(LARGE));
+        assert!(large >= TimeDelta::from_millis(SMALL));
+        assert!(large > TimeDelta::from_millis(SMALL));
+        assert!(TimeDelta::zero() < small);
+        assert!(TimeDelta::zero() > TimeDelta::from_millis(-SMALL));
+        assert!(TimeDelta::zero() > TimeDelta::from_millis(-SMALL));
 
-        assert!(TimeDelta::PlusInfinity() > large);
-        assert!(TimeDelta::MinusInfinity() < TimeDelta::Zero());
+        assert!(TimeDelta::plus_infinity() > large);
+        assert!(TimeDelta::minus_infinity() < TimeDelta::zero());
     }
 
     #[test]
-    fn Clamping() {
-        const upper: TimeDelta = TimeDelta::Millis(800);
-        const lower: TimeDelta = TimeDelta::Millis(100);
-        const under: TimeDelta = TimeDelta::Millis(100);
-        const inside: TimeDelta = TimeDelta::Millis(500);
-        const over: TimeDelta = TimeDelta::Millis(1000);
-        assert_eq!(under.Clamped(lower, upper), lower);
-        assert_eq!(inside.Clamped(lower, upper), inside);
-        assert_eq!(over.Clamped(lower, upper), upper);
+    fn clamping() {
+        const UPPER: TimeDelta = TimeDelta::from_millis(800);
+        const LOWER: TimeDelta = TimeDelta::from_millis(100);
+        const UNDER: TimeDelta = TimeDelta::from_millis(100);
+        const INSIDE: TimeDelta = TimeDelta::from_millis(500);
+        const OVER: TimeDelta = TimeDelta::from_millis(1000);
+        assert_eq!(UNDER.clamp(LOWER, UPPER), LOWER);
+        assert_eq!(INSIDE.clamp(LOWER, UPPER), INSIDE);
+        assert_eq!(OVER.clamp(LOWER, UPPER), UPPER);
 
-        let mut mutable_delta: TimeDelta = lower;
-        mutable_delta.Clamp(lower, upper);
-        assert_eq!(mutable_delta, lower);
-        mutable_delta = inside;
-        mutable_delta.Clamp(lower, upper);
-        assert_eq!(mutable_delta, inside);
-        mutable_delta = over;
-        mutable_delta.Clamp(lower, upper);
-        assert_eq!(mutable_delta, upper);
+        let mut mutable_delta: TimeDelta = LOWER;
+        mutable_delta.clamp_mut(LOWER, UPPER);
+        assert_eq!(mutable_delta, LOWER);
+        mutable_delta = INSIDE;
+        mutable_delta.clamp_mut(LOWER, UPPER);
+        assert_eq!(mutable_delta, INSIDE);
+        mutable_delta = OVER;
+        mutable_delta.clamp_mut(LOWER, UPPER);
+        assert_eq!(mutable_delta, UPPER);
     }
 
     #[test]
-    fn CanBeInititializedFromLargeInt() {
-        const MaxInt: i32 = i32::MAX;
+    fn can_be_inititialized_from_large_int() {
+        const MAX_INT: i32 = i32::MAX;
         assert_eq!(
-            TimeDelta::Seconds(MaxInt as i64).us(),
-            MaxInt as i64 * 1000000
+            TimeDelta::from_seconds(MAX_INT as i64).us(),
+            MAX_INT as i64 * 1000000
         );
-        assert_eq!(TimeDelta::Millis(MaxInt as i64).us(), MaxInt as i64 * 1000);
+        assert_eq!(TimeDelta::from_millis(MAX_INT as i64).us(), MAX_INT as i64 * 1000);
     }
 
     #[test]
-    fn ConvertsToAndFromDouble() {
-        const Micros: i64 = 17017;
-        const NanosDouble: f64 = Micros as f64 * 1e3;
-        const MicrosDouble: f64 = Micros as f64;
-        const MillisDouble: f64 = Micros as f64 * 1e-3;
-        const SecondsDouble: f64 = MillisDouble * 1e-3;
+    fn converts_to_and_from_double() {
+        const MICROS: i64 = 17017;
+        const NANOS_DOUBLE: f64 = MICROS as f64 * 1e3;
+        const MICROS_DOUBLE: f64 = MICROS as f64;
+        const MILLIS_DOUBLE: f64 = MICROS as f64 * 1e-3;
+        const SECONDS_DOUBLE: f64 = MILLIS_DOUBLE * 1e-3;
 
-        assert_eq!(TimeDelta::Micros(Micros).seconds_float(), SecondsDouble);
-        assert_eq!(TimeDelta::SecondsFloat(SecondsDouble).us(), Micros);
+        assert_eq!(TimeDelta::from_micros(MICROS).seconds_float(), SECONDS_DOUBLE);
+        assert_eq!(TimeDelta::from_seconds_float(SECONDS_DOUBLE).us(), MICROS);
 
-        assert_eq!(TimeDelta::Micros(Micros).ms_float(), MillisDouble);
-        assert_eq!(TimeDelta::MillisFloat(MillisDouble).us(), Micros);
+        assert_eq!(TimeDelta::from_micros(MICROS).ms_float(), MILLIS_DOUBLE);
+        assert_eq!(TimeDelta::from_millis_float(MILLIS_DOUBLE).us(), MICROS);
 
-        assert_eq!(TimeDelta::Micros(Micros).us_float(), MicrosDouble);
-        assert_eq!(TimeDelta::MicrosFloat(MicrosDouble).us(), Micros);
+        assert_eq!(TimeDelta::from_micros(MICROS).us_float(), MICROS_DOUBLE);
+        assert_eq!(TimeDelta::from_micros_float(MICROS_DOUBLE).us(), MICROS);
 
         assert_relative_eq!(
-            TimeDelta::Micros(Micros).ns_float(),
-            NanosDouble,
+            TimeDelta::from_micros(MICROS).ns_float(),
+            NANOS_DOUBLE,
             epsilon = 1.0
         );
 
-        const PlusInfinity: f64 = f64::INFINITY;
-        const MinusInfinity: f64 = -PlusInfinity;
+        const PLUS_INFINITY: f64 = f64::INFINITY;
+        const MINUS_INFINITY: f64 = -PLUS_INFINITY;
 
-        assert_eq!(TimeDelta::PlusInfinity().seconds_float(), PlusInfinity);
-        assert_eq!(TimeDelta::MinusInfinity().seconds_float(), MinusInfinity);
-        assert_eq!(TimeDelta::PlusInfinity().ms_float(), PlusInfinity);
-        assert_eq!(TimeDelta::MinusInfinity().ms_float(), MinusInfinity);
-        assert_eq!(TimeDelta::PlusInfinity().us_float(), PlusInfinity);
-        assert_eq!(TimeDelta::MinusInfinity().us_float(), MinusInfinity);
-        assert_eq!(TimeDelta::PlusInfinity().ns_float(), PlusInfinity);
-        assert_eq!(TimeDelta::MinusInfinity().ns_float(), MinusInfinity);
+        assert_eq!(TimeDelta::plus_infinity().seconds_float(), PLUS_INFINITY);
+        assert_eq!(TimeDelta::minus_infinity().seconds_float(), MINUS_INFINITY);
+        assert_eq!(TimeDelta::plus_infinity().ms_float(), PLUS_INFINITY);
+        assert_eq!(TimeDelta::minus_infinity().ms_float(), MINUS_INFINITY);
+        assert_eq!(TimeDelta::plus_infinity().us_float(), PLUS_INFINITY);
+        assert_eq!(TimeDelta::minus_infinity().us_float(), MINUS_INFINITY);
+        assert_eq!(TimeDelta::plus_infinity().ns_float(), PLUS_INFINITY);
+        assert_eq!(TimeDelta::minus_infinity().ns_float(), MINUS_INFINITY);
 
-        assert!(TimeDelta::SecondsFloat(PlusInfinity).IsPlusInfinity());
-        assert!(TimeDelta::SecondsFloat(MinusInfinity).IsMinusInfinity());
-        assert!(TimeDelta::MillisFloat(PlusInfinity).IsPlusInfinity());
-        assert!(TimeDelta::MillisFloat(MinusInfinity).IsMinusInfinity());
-        assert!(TimeDelta::MicrosFloat(PlusInfinity).IsPlusInfinity());
-        assert!(TimeDelta::MicrosFloat(MinusInfinity).IsMinusInfinity());
+        assert!(TimeDelta::from_seconds_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(TimeDelta::from_seconds_float(MINUS_INFINITY).is_minus_infinity());
+        assert!(TimeDelta::from_millis_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(TimeDelta::from_millis_float(MINUS_INFINITY).is_minus_infinity());
+        assert!(TimeDelta::from_micros_float(PLUS_INFINITY).is_plus_infinity());
+        assert!(TimeDelta::from_micros_float(MINUS_INFINITY).is_minus_infinity());
     }
 
     #[test]
-    fn MathOperations() {
-        const ValueA: i64 = 267;
-        const ValueB: i64 = 450;
-        const delta_a: TimeDelta = TimeDelta::Millis(ValueA);
-        const delta_b: TimeDelta = TimeDelta::Millis(ValueB);
-        assert_eq!((delta_a + delta_b).ms(), ValueA + ValueB);
-        assert_eq!((delta_a - delta_b).ms(), ValueA - ValueB);
+    fn math_operations() {
+        const VALUE_A: i64 = 267;
+        const VALUE_B: i64 = 450;
+        const DELTA_A: TimeDelta = TimeDelta::from_millis(VALUE_A);
+        const DELTA_B: TimeDelta = TimeDelta::from_millis(VALUE_B);
+        assert_eq!((DELTA_A + DELTA_B).ms(), VALUE_A + VALUE_B);
+        assert_eq!((DELTA_A - DELTA_B).ms(), VALUE_A - VALUE_B);
 
-        assert_eq!((delta_b / 10).ms(), ValueB / 10);
-        assert_eq!(delta_b / delta_a, ValueB as f64 / ValueA as f64);
+        assert_eq!((DELTA_B / 10).ms(), VALUE_B / 10);
+        assert_eq!(DELTA_B / DELTA_A, VALUE_B as f64 / VALUE_A as f64);
 
-        assert_eq!(TimeDelta::Micros(-ValueA).abs().us(), ValueA);
-        assert_eq!(TimeDelta::Micros(ValueA).abs().us(), ValueA);
+        assert_eq!(TimeDelta::from_micros(-VALUE_A).abs().us(), VALUE_A);
+        assert_eq!(TimeDelta::from_micros(VALUE_A).abs().us(), VALUE_A);
 
-        let mut mutable_delta: TimeDelta = TimeDelta::Millis(ValueA);
-        mutable_delta += TimeDelta::Millis(ValueB);
-        assert_eq!(mutable_delta, TimeDelta::Millis(ValueA + ValueB));
-        mutable_delta -= TimeDelta::Millis(ValueB);
-        assert_eq!(mutable_delta, TimeDelta::Millis(ValueA));
+        let mut mutable_delta: TimeDelta = TimeDelta::from_millis(VALUE_A);
+        mutable_delta += TimeDelta::from_millis(VALUE_B);
+        assert_eq!(mutable_delta, TimeDelta::from_millis(VALUE_A + VALUE_B));
+        mutable_delta -= TimeDelta::from_millis(VALUE_B);
+        assert_eq!(mutable_delta, TimeDelta::from_millis(VALUE_A));
     }
 
     #[test]
-    fn MultiplyByScalar() {
-        const Value: TimeDelta = TimeDelta::Micros(267);
-        const Int64: i64 = 450;
-        const Int32: i32 = 123;
-        const UnsignedInt: usize = 125;
-        const Float: f64 = 123.0;
+    fn multiply_by_scalar() {
+        const VALUE: TimeDelta = TimeDelta::from_micros(267);
+        const INT64: i64 = 450;
+        const INT32: i32 = 123;
+        const UNSIGNED_INT: usize = 125;
+        const FLOAT: f64 = 123.0;
 
-        assert_eq!((Value * Int64).us(), Value.us() * Int64);
-        assert_eq!(Value * Int64, Int64 * Value);
+        assert_eq!((VALUE * INT64).us(), VALUE.us() * INT64);
+        assert_eq!(VALUE * INT64, INT64 * VALUE);
 
-        assert_eq!((Value * Int32).us(), Value.us() * Int32 as i64);
-        assert_eq!(Value * Int32, Int32 * Value);
+        assert_eq!((VALUE * INT32).us(), VALUE.us() * INT32 as i64);
+        assert_eq!(VALUE * INT32, INT32 * VALUE);
 
-        assert_eq!((Value * UnsignedInt).us(), Value.us() * UnsignedInt as i64);
-        assert_eq!(Value * UnsignedInt, UnsignedInt * Value);
+        assert_eq!((VALUE * UNSIGNED_INT).us(), VALUE.us() * UNSIGNED_INT as i64);
+        assert_eq!(VALUE * UNSIGNED_INT, UNSIGNED_INT * VALUE);
 
         assert_relative_eq!(
-            (Value * Float).us_float(),
-            Value.us_float() * Float,
+            (VALUE * FLOAT).us_float(),
+            VALUE.us_float() * FLOAT,
             epsilon = 0.1
         );
-        assert_eq!(Value * Float, Float * Value);
+        assert_eq!(VALUE * FLOAT, FLOAT * VALUE);
     }
 
     #[test]
-    fn InfinityOperations() {
-        const Value: i64 = 267;
-        const finite: TimeDelta = TimeDelta::Millis(Value);
-        assert!((TimeDelta::PlusInfinity() + finite).IsPlusInfinity());
-        assert!((TimeDelta::PlusInfinity() - finite).IsPlusInfinity());
-        assert!((finite + TimeDelta::PlusInfinity()).IsPlusInfinity());
-        assert!((finite - TimeDelta::MinusInfinity()).IsPlusInfinity());
+    fn infinity_operations() {
+        const VALUE: i64 = 267;
+        const FINITE: TimeDelta = TimeDelta::from_millis(VALUE);
+        assert!((TimeDelta::plus_infinity() + FINITE).is_plus_infinity());
+        assert!((TimeDelta::plus_infinity() - FINITE).is_plus_infinity());
+        assert!((FINITE + TimeDelta::plus_infinity()).is_plus_infinity());
+        assert!((FINITE - TimeDelta::minus_infinity()).is_plus_infinity());
 
-        assert!((TimeDelta::MinusInfinity() + finite).IsMinusInfinity());
-        assert!((TimeDelta::MinusInfinity() - finite).IsMinusInfinity());
-        assert!((finite + TimeDelta::MinusInfinity()).IsMinusInfinity());
-        assert!((finite - TimeDelta::PlusInfinity()).IsMinusInfinity());
+        assert!((TimeDelta::minus_infinity() + FINITE).is_minus_infinity());
+        assert!((TimeDelta::minus_infinity() - FINITE).is_minus_infinity());
+        assert!((FINITE + TimeDelta::minus_infinity()).is_minus_infinity());
+        assert!((FINITE - TimeDelta::plus_infinity()).is_minus_infinity());
     }
 }

@@ -30,13 +30,13 @@ impl Default for AggregatedCluster {
     fn default() -> Self {
         Self {
             num_probes: 0,
-            first_send: Timestamp::PlusInfinity(),
-            last_send: Timestamp::MinusInfinity(),
-            first_receive: Timestamp::PlusInfinity(),
-            last_receive: Timestamp::MinusInfinity(),
-            size_last_send: DataSize::Zero(),
-            size_first_receive: DataSize::Zero(),
-            size_total: DataSize::Zero(),
+            first_send: Timestamp::plus_infinity(),
+            last_send: Timestamp::minus_infinity(),
+            first_receive: Timestamp::plus_infinity(),
+            last_receive: Timestamp::minus_infinity(),
+            size_last_send: DataSize::zero(),
+            size_first_receive: DataSize::zero(),
+            size_total: DataSize::zero(),
         }
     }
 }
@@ -50,44 +50,44 @@ pub struct ProbeBitrateEstimator {
 impl ProbeBitrateEstimator {
     // The minumum number of probes we need to receive feedback about in percent
     // in order to have a valid estimate.
-    const MinReceivedProbesRatio: f64 = 0.80;
+    const MIN_RECEIVED_PROBES_RATIO: f64 = 0.80;
 
     // The minumum number of bytes we need to receive feedback about in percent
     // in order to have a valid estimate.
-    const MinReceivedBytesRatio: f64 = 0.80;
+    const MIN_RECEIVED_BYTES_RATIO: f64 = 0.80;
 
     // The maximum |receive rate| / |send rate| ratio for a valid estimate.
-    const MaxValidRatio: f64 = 2.0;
+    const MAX_VALID_RATIO: f64 = 2.0;
 
     // The minimum |receive rate| / |send rate| ratio assuming that the link is
     // not saturated, i.e. we assume that we will receive at least
     // MinRatioForUnsaturatedLink * |send rate| if |send rate| is less than the
     // link capacity.
-    const MinRatioForUnsaturatedLink: f32 = 0.9;
+    const MIN_RATIO_FOR_UNSATURATED_LINK: f32 = 0.9;
 
     // The target utilization of the link. If we know true link capacity
     // we'd like to send at 95% of that rate.
-    const TargetUtilizationFraction: f32 = 0.95;
+    const TARGET_UTILIZATION_FRACTION: f32 = 0.95;
 
     // The maximum time period over which the cluster history is retained.
     // This is also the maximum time period beyond which a probing burst is not
     // expected to last.
-    const MaxClusterHistory: TimeDelta = TimeDelta::Seconds(1);
+    const MAX_CLUSTER_HISTORY: TimeDelta = TimeDelta::from_seconds(1);
 
     // The maximum time interval between first and the last probe on a cluster
     // on the sender side as well as the receive side.
-    const MaxProbeInterval: TimeDelta = TimeDelta::Seconds(1);
+    const MAX_PROBE_INTERVAL: TimeDelta = TimeDelta::from_seconds(1);
 
     // Should be called for every probe packet we receive feedback about.
     // Returns the estimated bitrate if the probe completes a valid cluster.
-    pub fn HandleProbeAndEstimateBitrate(
+    pub fn handle_probe_and_estimate_bitrate(
         &mut self,
         packet_feedback: &PacketResult,
     ) -> Option<DataRate> {
         let cluster_id: i64 = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
-        assert_ne!(cluster_id, PacedPacketInfo::NotAProbe);
+        assert_ne!(cluster_id, PacedPacketInfo::NOT_APROBE);
 
-        self.EraseOldClusters(packet_feedback.receive_time);
+        self.erase_old_clusters(packet_feedback.receive_time);
 
         let cluster: &mut AggregatedCluster = self.clusters.entry(cluster_id).or_default();
 
@@ -127,13 +127,13 @@ impl ProbeBitrateEstimator {
             .sent_packet
             .pacing_info
             .probe_cluster_min_probes as f64
-            * Self::MinReceivedProbesRatio) as i64;
-        let min_size: DataSize = DataSize::Bytes(
+            * Self::MIN_RECEIVED_PROBES_RATIO) as i64;
+        let min_size: DataSize = DataSize::from_bytes(
             packet_feedback
                 .sent_packet
                 .pacing_info
                 .probe_cluster_min_bytes as _,
-        ) * Self::MinReceivedBytesRatio;
+        ) * Self::MIN_RECEIVED_BYTES_RATIO;
         if cluster.num_probes < min_probes || cluster.size_total < min_size {
             return None;
         }
@@ -141,10 +141,10 @@ impl ProbeBitrateEstimator {
         let send_interval: TimeDelta = cluster.last_send - cluster.first_send;
         let receive_interval: TimeDelta = cluster.last_receive - cluster.first_receive;
 
-        if send_interval <= TimeDelta::Zero()
-            || send_interval > Self::MaxProbeInterval
-            || receive_interval <= TimeDelta::Zero()
-            || receive_interval > Self::MaxProbeInterval
+        if send_interval <= TimeDelta::zero()
+            || send_interval > Self::MAX_PROBE_INTERVAL
+            || receive_interval <= TimeDelta::zero()
+            || receive_interval > Self::MAX_PROBE_INTERVAL
         {
             tracing::info!("Probing unsuccessful, invalid send/receive interval [cluster id: {}] [send interval: {:?}] [receive interval: {:?}]",
                       cluster_id, send_interval, receive_interval);
@@ -165,9 +165,9 @@ impl ProbeBitrateEstimator {
         let receive_rate: DataRate = receive_size / receive_interval;
 
         let ratio: f64 = receive_rate / send_rate;
-        if ratio > Self::MaxValidRatio {
+        if ratio > Self::MAX_VALID_RATIO {
             tracing::info!("Probing unsuccessful, receive/send ratio too high [cluster id: {}] [send: {:?}/{:?} = {:?}] [receive: {:?}/{:?} = {:?}] [ratio: {:?} > {:?}]",
-                      cluster_id, send_size, send_interval, send_rate, receive_size, receive_interval, receive_rate, ratio, Self::MaxValidRatio);
+                      cluster_id, send_size, send_interval, send_rate, receive_size, receive_interval, receive_rate, ratio, Self::MAX_VALID_RATIO);
             return None;
         }
 
@@ -178,24 +178,24 @@ impl ProbeBitrateEstimator {
         // If we're receiving at significantly lower bitrate than we were sending at,
         // it suggests that we've found the true capacity of the link. In this case,
         // set the target bitrate slightly lower to not immediately overuse.
-        if receive_rate < Self::MinRatioForUnsaturatedLink * send_rate {
+        if receive_rate < Self::MIN_RATIO_FOR_UNSATURATED_LINK * send_rate {
             assert!(send_rate > receive_rate);
-            res = Self::TargetUtilizationFraction * receive_rate;
+            res = Self::TARGET_UTILIZATION_FRACTION * receive_rate;
         }
         self.estimated_data_rate = Some(res);
         self.estimated_data_rate
     }
 
-    pub fn FetchAndResetLastEstimatedBitrate(&mut self) -> Option<DataRate> {
+    pub fn fetch_and_reset_last_estimated_bitrate(&mut self) -> Option<DataRate> {
         let estimated_data_rate: Option<DataRate> = self.estimated_data_rate;
         self.estimated_data_rate.take();
         estimated_data_rate
     }
 
     // Erases old cluster data that was seen before `timestamp`.
-    fn EraseOldClusters(&mut self, timestamp: Timestamp) {
+    fn erase_old_clusters(&mut self, timestamp: Timestamp) {
         self.clusters
-            .retain(|_, cluster| cluster.last_receive + Self::MaxClusterHistory >= timestamp);
+            .retain(|_, cluster| cluster.last_receive + Self::MAX_CLUSTER_HISTORY >= timestamp);
     }
 }
 
@@ -204,11 +204,9 @@ mod test {
     use super::*;
     use approx::assert_relative_eq;
 
-    //use crate::api::transport::PacedPacketInfo;
-
-    const DefaultMinProbes: i64 = 5;
-    const DefaultMinBytes: i64 = 5000;
-    const TargetUtilizationFraction: f64 = 0.95;
+    const DEFAULT_MIN_PROBES: i64 = 5;
+    const DEFAULT_MIN_BYTES: i64 = 5000;
+    const TARGET_UTILIZATION_FRACTION: f64 = 0.95;
 
     #[derive(Default)]
     struct TestProbeBitrateEstimator {
@@ -219,7 +217,7 @@ mod test {
     impl TestProbeBitrateEstimator {
         // TODO(philipel): Use PacedPacketInfo when ProbeBitrateEstimator is rewritten
         //                 to use that information.
-        fn AddPacketFeedback(
+        fn add_packet_feedback(
             &mut self,
             probe_cluster_id: i64,
             size_bytes: usize,
@@ -228,26 +226,26 @@ mod test {
             min_probes: i64,
             min_bytes: i64,
         ) {
-            const ReferenceTime: Timestamp = Timestamp::Seconds(1000);
+            const REFERENCE_TIME: Timestamp = Timestamp::from_seconds(1000);
             let mut feedback: PacketResult = PacketResult::default();
-            feedback.sent_packet.send_time = ReferenceTime + TimeDelta::Millis(send_time_ms);
-            feedback.sent_packet.size = DataSize::Bytes(size_bytes as _);
+            feedback.sent_packet.send_time = REFERENCE_TIME + TimeDelta::from_millis(send_time_ms);
+            feedback.sent_packet.size = DataSize::from_bytes(size_bytes as _);
             feedback.sent_packet.pacing_info =
                 PacedPacketInfo::new(probe_cluster_id, min_probes, min_bytes);
-            feedback.receive_time = ReferenceTime + TimeDelta::Millis(arrival_time_ms);
+            feedback.receive_time = REFERENCE_TIME + TimeDelta::from_millis(arrival_time_ms);
             self.measured_data_rate = self
                 .probe_bitrate_estimator
-                .HandleProbeAndEstimateBitrate(&feedback);
+                .handle_probe_and_estimate_bitrate(&feedback);
         }
     }
 
     #[test]
-    fn OneCluster() {
+    fn one_cluster() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 20, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 30, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 30, 40, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 20, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 30, 40, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
 
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
@@ -257,38 +255,38 @@ mod test {
     }
 
     #[test]
-    fn OneClusterTooFewProbes() {
+    fn one_cluster_too_few_probes() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 2000, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 2000, 10, 20, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 2000, 20, 30, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 2000, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 2000, 10, 20, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 2000, 20, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
 
         assert!(test.measured_data_rate.is_none());
     }
 
     #[test]
-    fn OneClusterTooFewBytes() {
+    fn one_cluster_too_few_bytes() {
         let mut test = TestProbeBitrateEstimator::default();
-        const MinBytes: i64 = 6000;
-        test.AddPacketFeedback(0, 800, 0, 10, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 800, 10, 20, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 800, 20, 30, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 800, 30, 40, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 800, 40, 50, DefaultMinProbes, MinBytes);
+        const MIN_BYTES: i64 = 6000;
+        test.add_packet_feedback(0, 800, 0, 10, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 800, 10, 20, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 800, 20, 30, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 800, 30, 40, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 800, 40, 50, DEFAULT_MIN_PROBES, MIN_BYTES);
 
         assert!(test.measured_data_rate.is_none());
     }
 
     #[test]
-    fn SmallCluster() {
+    fn small_cluster() {
         let mut test = TestProbeBitrateEstimator::default();
-        const MinBytes: i64 = 1000;
-        test.AddPacketFeedback(0, 150, 0, 10, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 150, 10, 20, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 150, 20, 30, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 150, 30, 40, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 150, 40, 50, DefaultMinProbes, MinBytes);
-        test.AddPacketFeedback(0, 150, 50, 60, DefaultMinProbes, MinBytes);
+        const MIN_BYTES: i64 = 1000;
+        test.add_packet_feedback(0, 150, 0, 10, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 150, 10, 20, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 150, 20, 30, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 150, 30, 40, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 150, 40, 50, DEFAULT_MIN_PROBES, MIN_BYTES);
+        test.add_packet_feedback(0, 150, 50, 60, DEFAULT_MIN_PROBES, MIN_BYTES);
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
             120000.0,
@@ -297,15 +295,15 @@ mod test {
     }
 
     #[test]
-    fn LargeCluster() {
+    fn large_cluster() {
         let mut test = TestProbeBitrateEstimator::default();
-        const MinProbes: i64 = 30;
-        const MinBytes: i64 = 312500;
+        const MIN_PROBES: i64 = 30;
+        const MIN_BYTES: i64 = 312500;
 
         let mut send_time: i64 = 0;
         let mut receive_time: i64 = 5;
-        for i in 0..25 {
-            test.AddPacketFeedback(0, 12500, send_time, receive_time, MinProbes, MinBytes);
+        for _ in 0..25 {
+            test.add_packet_feedback(0, 12500, send_time, receive_time, MIN_PROBES, MIN_BYTES);
             send_time += 1;
             receive_time += 1;
         }
@@ -317,12 +315,12 @@ mod test {
     }
 
     #[test]
-    fn FastReceive() {
+    fn fast_receive() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 15, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 30, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 35, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 30, 40, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 15, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 35, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 30, 40, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
 
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
@@ -332,58 +330,58 @@ mod test {
     }
 
     #[test]
-    fn TooFastReceive() {
+    fn too_fast_receive() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 19, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 22, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 25, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 40, 27, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 19, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 22, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 25, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 40, 27, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
 
         assert!(test.measured_data_rate.is_none());
     }
 
     #[test]
-    fn SlowReceive() {
+    fn slow_receive() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 40, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 70, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 30, 85, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 40, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 70, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 30, 85, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
         // Expected send rate = 800 kbps, expected receive rate = 320 kbps.
 
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
-            TargetUtilizationFraction * 320000.0,
+            TARGET_UTILIZATION_FRACTION * 320000.0,
             epsilon = 10.0
         );
     }
 
     #[test]
-    fn BurstReceive() {
+    fn burst_receive() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 50, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 50, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 50, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 40, 50, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 50, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 50, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 50, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 40, 50, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
 
         assert!(test.measured_data_rate.is_none());
     }
 
     #[test]
-    fn MultipleClusters() {
+    fn multiple_clusters() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 20, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 30, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 40, 60, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 20, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 40, 60, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
         // Expected send rate = 600 kbps, expected receive rate = 480 kbps.
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
-            TargetUtilizationFraction * 480000.0,
+            TARGET_UTILIZATION_FRACTION * 480000.0,
             epsilon = 10.0
         );
 
-        test.AddPacketFeedback(0, 1000, 50, 60, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 50, 60, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
         // Expected send rate = 640 kbps, expected receive rate = 640 kbps.
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
@@ -391,59 +389,59 @@ mod test {
             epsilon = 10.0
         );
 
-        test.AddPacketFeedback(1, 1000, 60, 70, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(1, 1000, 65, 77, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(1, 1000, 70, 84, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(1, 1000, 75, 90, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(1, 1000, 60, 70, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(1, 1000, 65, 77, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(1, 1000, 70, 84, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(1, 1000, 75, 90, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
         // Expected send rate = 1600 kbps, expected receive rate = 1200 kbps.
 
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
-            TargetUtilizationFraction * 1200000.0,
+            TARGET_UTILIZATION_FRACTION * 1200000.0,
             epsilon = 10.0
         );
     }
 
     #[test]
-    fn IgnoreOldClusters() {
+    fn ignore_old_clusters() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 20, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 30, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 20, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
 
-        test.AddPacketFeedback(1, 1000, 60, 70, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(1, 1000, 65, 77, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(1, 1000, 70, 84, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(1, 1000, 75, 90, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(1, 1000, 60, 70, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(1, 1000, 65, 77, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(1, 1000, 70, 84, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(1, 1000, 75, 90, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
         // Expected send rate = 1600 kbps, expected receive rate = 1200 kbps.
 
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
-            TargetUtilizationFraction * 1200000.0,
+            TARGET_UTILIZATION_FRACTION * 1200000.0,
             epsilon = 10.0
         );
 
         // Coming in 6s later
-        test.AddPacketFeedback(
+        test.add_packet_feedback(
             0,
             1000,
             40 + 6000,
             60 + 6000,
-            DefaultMinProbes,
-            DefaultMinBytes,
+            DEFAULT_MIN_PROBES,
+            DEFAULT_MIN_BYTES,
         );
 
         assert!(test.measured_data_rate.is_none());
     }
 
     #[test]
-    fn IgnoreSizeLastSendPacket() {
+    fn ignore_size_last_send_packet() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 20, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 30, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 30, 40, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1500, 40, 50, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 20, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 30, 40, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1500, 40, 50, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
         // Expected send rate = 800 kbps, expected receive rate = 900 kbps.
 
         assert_relative_eq!(
@@ -454,41 +452,41 @@ mod test {
     }
 
     #[test]
-    fn IgnoreSizeFirstReceivePacket() {
+    fn ignore_size_first_receive_packet() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1500, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 20, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 30, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 30, 40, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1500, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 20, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 30, 40, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
         // Expected send rate = 933 kbps, expected receive rate = 800 kbps.
 
         assert_relative_eq!(
             test.measured_data_rate.unwrap().bps_float(),
-            TargetUtilizationFraction * 800000.0,
+            TARGET_UTILIZATION_FRACTION * 800000.0,
             epsilon = 10.0
         );
     }
 
     #[test]
-    fn NoLastEstimatedBitrateBps() {
+    fn no_last_estimated_bitrate_bps() {
         let mut test = TestProbeBitrateEstimator::default();
         assert!(test
             .probe_bitrate_estimator
-            .FetchAndResetLastEstimatedBitrate()
+            .fetch_and_reset_last_estimated_bitrate()
             .is_none());
     }
 
     #[test]
-    fn FetchLastEstimatedBitrateBps() {
+    fn fetch_last_estimated_bitrate_bps() {
         let mut test = TestProbeBitrateEstimator::default();
-        test.AddPacketFeedback(0, 1000, 0, 10, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 10, 20, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 20, 30, DefaultMinProbes, DefaultMinBytes);
-        test.AddPacketFeedback(0, 1000, 30, 40, DefaultMinProbes, DefaultMinBytes);
+        test.add_packet_feedback(0, 1000, 0, 10, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 10, 20, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 20, 30, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
+        test.add_packet_feedback(0, 1000, 30, 40, DEFAULT_MIN_PROBES, DEFAULT_MIN_BYTES);
 
         let estimated_bitrate = test
             .probe_bitrate_estimator
-            .FetchAndResetLastEstimatedBitrate();
+            .fetch_and_reset_last_estimated_bitrate();
         assert!(estimated_bitrate.is_some());
         assert_relative_eq!(
             estimated_bitrate.unwrap().bps_float(),
@@ -497,7 +495,7 @@ mod test {
         );
         assert!(test
             .probe_bitrate_estimator
-            .FetchAndResetLastEstimatedBitrate()
+            .fetch_and_reset_last_estimated_bitrate()
             .is_none());
     }
 } // namespace webrtc

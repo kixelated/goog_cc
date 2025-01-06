@@ -6,7 +6,7 @@ pub struct IntervalBudget {
 }
 
 impl IntervalBudget {
-    const WindowMs: i64 = 500;
+    const WINDOW_MS: i64 = 500;
 
     pub fn new(initial_target_rate_kbps: i64, can_build_up_underuse: bool) -> Self {
         let mut this = Self {
@@ -21,14 +21,14 @@ impl IntervalBudget {
 
     pub fn set_target_rate_kbps(&mut self, target_rate_kbps: i64) {
         self.target_rate_kbps = target_rate_kbps;
-        self.max_bytes_in_budget = (Self::WindowMs * self.target_rate_kbps) / 8;
+        self.max_bytes_in_budget = (Self::WINDOW_MS * self.target_rate_kbps) / 8;
         self.bytes_remaining = std::cmp::min(
             std::cmp::max(-self.max_bytes_in_budget, self.bytes_remaining),
             self.max_bytes_in_budget,
         );
     }
 
-    pub fn IncreaseBudget(&mut self, delta_time_ms: i64) {
+    pub fn increase_budget(&mut self, delta_time_ms: i64) {
         let bytes: i64 = self.target_rate_kbps * delta_time_ms / 8;
         if self.bytes_remaining < 0 || self.can_build_up_underuse {
             // We overused last interval, compensate this interval.
@@ -40,7 +40,7 @@ impl IntervalBudget {
         }
     }
 
-    pub fn UseBudget(&mut self, bytes: usize) {
+    pub fn use_budget(&mut self, bytes: usize) {
         self.bytes_remaining = std::cmp::max(
             self.bytes_remaining - bytes as i64,
             -self.max_bytes_in_budget,

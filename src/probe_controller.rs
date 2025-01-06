@@ -84,24 +84,24 @@ impl Default for ProbeControllerConfig {
             step_size: 2.0,
             further_probe_threshold: 0.7,
             abort_further: false,
-            initial_probing: TimeDelta::Seconds(5),
-            initial_probe_duration: TimeDelta::Millis(100),
-            initial_min_probe_delta: TimeDelta::Millis(20),
-            alr_interval: TimeDelta::Seconds(5),
+            initial_probing: TimeDelta::from_seconds(5),
+            initial_probe_duration: TimeDelta::from_millis(100),
+            initial_min_probe_delta: TimeDelta::from_millis(20),
+            alr_interval: TimeDelta::from_seconds(5),
             alr_scale: 2.0,
-            network_state_interval: TimeDelta::PlusInfinity(),
+            network_state_interval: TimeDelta::plus_infinity(),
             est_lower_than_network_ratio: 0.0,
-            est_lower_than_network_interval: TimeDelta::Seconds(3),
+            est_lower_than_network_interval: TimeDelta::from_seconds(3),
             network_state_scale: 1.0,
-            network_state_probe_duration: TimeDelta::Millis(15),
-            network_state_min_probe_delta: TimeDelta::Millis(20),
+            network_state_probe_duration: TimeDelta::from_millis(15),
+            network_state_min_probe_delta: TimeDelta::from_millis(20),
             probe_max_allocation: true,
             alloc_p1: 1.0,
             alloc_p2: 2.0,
             alloc_current_bwe_limit: 2.0,
             min_probe_packets_sent: 5,
-            min_probe_duration: TimeDelta::Millis(15),
-            min_probe_delta: TimeDelta::Millis(2),
+            min_probe_duration: TimeDelta::from_millis(15),
+            min_probe_delta: TimeDelta::from_millis(2),
             loss_limited_scale: 1.5,
             skip_if_est_larger_than_fraction_of_max: 0.0,
             skip_max_allocated_scale: 1.0,
@@ -164,59 +164,59 @@ impl Default for ProbeController {
         let mut this = Self {
             network_available: false,
             state: State::Init,
-            min_bitrate_to_probe_further: DataRate::PlusInfinity(),
-            time_last_probing_initiated: Timestamp::MinusInfinity(),
-            estimated_bitrate: DataRate::Zero(),
+            min_bitrate_to_probe_further: DataRate::plus_infinity(),
+            time_last_probing_initiated: Timestamp::minus_infinity(),
+            estimated_bitrate: DataRate::zero(),
             network_estimate: None,
-            start_bitrate: DataRate::Zero(),
-            max_bitrate: DataRate::PlusInfinity(),
-            last_bwe_drop_probing_time: Timestamp::Zero(),
+            start_bitrate: DataRate::zero(),
+            max_bitrate: DataRate::plus_infinity(),
+            last_bwe_drop_probing_time: Timestamp::zero(),
             alr_start_time: None,
             alr_end_time: None,
             enable_periodic_alr_probing: false,
-            time_of_last_large_drop: Timestamp::MinusInfinity(),
-            bitrate_before_last_large_drop: DataRate::Zero(),
-            max_total_allocated_bitrate: DataRate::Zero(),
+            time_of_last_large_drop: Timestamp::minus_infinity(),
+            bitrate_before_last_large_drop: DataRate::zero(),
+            max_total_allocated_bitrate: DataRate::zero(),
             in_rapid_recovery_experiment: false,
             next_probe_cluster_id: 1,
             config: ProbeControllerConfig::default(),
             repeated_initial_probing_enabled: false,
-            last_allowed_repeated_initial_probe: Timestamp::MinusInfinity(),
+            last_allowed_repeated_initial_probe: Timestamp::minus_infinity(),
             bandwidth_limited_cause: BandwidthLimitedCause::DelayBasedLimited,
         };
-        this.Reset(Timestamp::Zero());
+        this.reset(Timestamp::zero());
         this
     }
 }
 
 impl ProbeController {
     // the measured results back.
-    const MaxWaitingTimeForProbingResult: TimeDelta = TimeDelta::Seconds(1);
+    const MAX_WAITING_TIME_FOR_PROBING_RESULT: TimeDelta = TimeDelta::from_seconds(1);
 
     // Default probing bitrate limit. Applied only when the application didn't
     // specify max bitrate.
-    const DefaultMaxProbingBitrate: DataRate = DataRate::KilobitsPerSec(5000);
+    const DEFAULT_MAX_PROBING_BITRATE: DataRate = DataRate::from_kilobits_per_sec(5000);
 
     // If the bitrate drops to a factor `kBitrateDropThreshold` or lower
     // and we recover within `kBitrateDropTimeoutMs`, then we'll send
     // a probe at a fraction `kProbeFractionAfterDrop` of the original bitrate.
-    const BitrateDropThreshold: f64 = 0.66;
-    const BitrateDropTimeout: TimeDelta = TimeDelta::Seconds(5);
-    const ProbeFractionAfterDrop: f64 = 0.85;
+    const BITRATE_DROP_THRESHOLD: f64 = 0.66;
+    const BITRATE_DROP_TIMEOUT: TimeDelta = TimeDelta::from_seconds(5);
+    const PROBE_FRACTION_AFTER_DROP: f64 = 0.85;
 
     // Timeout for probing after leaving ALR. If the bitrate drops significantly,
     // (as determined by the delay based estimator) and we leave ALR, then we will
     // send a probe if we recover within `kLeftAlrTimeoutMs` ms.
-    const AlrEndedTimeout: TimeDelta = TimeDelta::Seconds(3);
+    const ALR_ENDED_TIMEOUT: TimeDelta = TimeDelta::from_seconds(3);
 
     // The expected uncertainty of probe result (as a fraction of the target probe
     // This is a limit on how often probing can be done when there is a BW
     // drop detected in ALR.
-    const MinTimeBetweenAlrProbes: TimeDelta = TimeDelta::Seconds(5);
+    const MIN_TIME_BETWEEN_ALR_PROBES: TimeDelta = TimeDelta::from_seconds(5);
 
     // bitrate). Used to avoid probing if the probe bitrate is close to our current
     // estimate.
-    const ProbeUncertainty: f64 = 0.05;
+    const PROBE_UNCERTAINTY: f64 = 0.05;
 
     pub fn new(config: ProbeControllerConfig) -> Self {
         Self {
@@ -225,44 +225,44 @@ impl ProbeController {
         }
     }
 
-    pub fn SetBitrates(
+    pub fn set_bitrates(
         &mut self,
         min_bitrate: DataRate,
         start_bitrate: DataRate,
         max_bitrate: DataRate,
         at_time: Timestamp,
     ) -> Vec<ProbeClusterConfig> {
-        if start_bitrate > DataRate::Zero() {
+        if start_bitrate > DataRate::zero() {
             self.start_bitrate = start_bitrate;
             self.estimated_bitrate = start_bitrate;
-        } else if self.start_bitrate.IsZero() {
+        } else if self.start_bitrate.is_zero() {
             self.start_bitrate = min_bitrate;
         }
 
         // The reason we use the variable `old_max_bitrate_pbs` is because we
         // need to set `max_bitrate_` before we call InitiateProbing.
         let old_max_bitrate: DataRate = self.max_bitrate;
-        self.max_bitrate = if max_bitrate.IsFinite() {
+        self.max_bitrate = if max_bitrate.is_finite() {
             max_bitrate
         } else {
-            Self::DefaultMaxProbingBitrate
+            Self::DEFAULT_MAX_PROBING_BITRATE
         };
 
         match self.state {
             State::Init => {
                 if self.network_available {
-                    return self.InitiateExponentialProbing(at_time);
+                    return self.initiate_exponential_probing(at_time);
                 }
             }
             State::WaitingForProbingResult => (),
             State::ProbingComplete => {
                 // If the new max bitrate is higher than both the old max bitrate and the
                 // estimate then initiate probing.
-                if !self.estimated_bitrate.IsZero()
+                if !self.estimated_bitrate.is_zero()
                     && old_max_bitrate < self.max_bitrate
                     && self.estimated_bitrate < self.max_bitrate
                 {
-                    return self.InitiateProbing(at_time, &[self.max_bitrate], false);
+                    return self.initiate_probing(at_time, &[self.max_bitrate], false);
                 }
             }
         }
@@ -272,7 +272,7 @@ impl ProbeController {
     // The total bitrate, as opposed to the max bitrate, is the sum of the
     // configured bitrates for all active streams.
 
-    pub fn OnMaxTotalAllocatedBitrate(
+    pub fn on_max_total_allocated_bitrate(
         &mut self,
         max_total_allocated_bitrate: DataRate,
         at_time: Timestamp,
@@ -315,9 +315,9 @@ impl ProbeController {
 
             let allow_further_probing: bool = limited_by_current_bwe;
 
-            return self.InitiateProbing(at_time, &probes, allow_further_probing);
+            return self.initiate_probing(at_time, &probes, allow_further_probing);
         }
-        if !max_total_allocated_bitrate.IsZero() {
+        if !max_total_allocated_bitrate.is_zero() {
             self.last_allowed_repeated_initial_probe = at_time;
         }
 
@@ -325,31 +325,31 @@ impl ProbeController {
         vec![]
     }
 
-    pub fn OnNetworkAvailability(&mut self, msg: NetworkAvailability) -> Vec<ProbeClusterConfig> {
+    pub fn on_network_availability(&mut self, msg: NetworkAvailability) -> Vec<ProbeClusterConfig> {
         self.network_available = msg.network_available;
 
         if !self.network_available && matches!(self.state, State::WaitingForProbingResult) {
             self.state = State::ProbingComplete;
-            self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
+            self.min_bitrate_to_probe_further = DataRate::plus_infinity();
         }
 
         if self.network_available
             && matches!(self.state, State::Init)
-            && !self.start_bitrate.IsZero()
+            && !self.start_bitrate.is_zero()
         {
-            return self.InitiateExponentialProbing(msg.at_time);
+            return self.initiate_exponential_probing(msg.at_time);
         }
         vec![]
     }
 
-    pub fn SetEstimatedBitrate(
+    pub fn set_estimated_bitrate(
         &mut self,
         bitrate: DataRate,
         bandwidth_limited_cause: BandwidthLimitedCause,
         at_time: Timestamp,
     ) -> Vec<ProbeClusterConfig> {
         self.bandwidth_limited_cause = bandwidth_limited_cause;
-        if bitrate < Self::BitrateDropThreshold * self.estimated_bitrate {
+        if bitrate < Self::BITRATE_DROP_THRESHOLD * self.estimated_bitrate {
             self.time_of_last_large_drop = at_time;
             self.bitrate_before_last_large_drop = self.estimated_bitrate;
         }
@@ -360,20 +360,20 @@ impl ProbeController {
             // capacity unless we already reached the needed bitrate.
             if self.config.abort_further
                 && (bitrate > self.max_bitrate
-                    || (!self.max_total_allocated_bitrate.IsZero()
+                    || (!self.max_total_allocated_bitrate.is_zero()
                         && bitrate > 2 * self.max_total_allocated_bitrate))
             {
                 // No need to continue probing.
-                self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
+                self.min_bitrate_to_probe_further = DataRate::plus_infinity();
             }
             let network_state_estimate_probe_further_limit: DataRate = match self.network_estimate {
                 Some(network_estimate)
-                    if self.config.network_state_interval.IsFinite()
-                        && network_estimate.link_capacity_upper.IsFinite() =>
+                    if self.config.network_state_interval.is_finite()
+                        && network_estimate.link_capacity_upper.is_finite() =>
                 {
                     network_estimate.link_capacity_upper * self.config.further_probe_threshold
                 }
-                _ => DataRate::PlusInfinity(),
+                _ => DataRate::plus_infinity(),
             };
             tracing::info!(
                 "Measured bitrate: {:?} Minimum to probe further: {:?} upper limit: {:?}",
@@ -385,13 +385,13 @@ impl ProbeController {
             if bitrate > self.min_bitrate_to_probe_further
                 && bitrate <= network_state_estimate_probe_further_limit
             {
-                return self.InitiateProbing(at_time, &[self.config.step_size * bitrate], true);
+                return self.initiate_probing(at_time, &[self.config.step_size * bitrate], true);
             }
         }
         vec![]
     }
 
-    pub fn EnablePeriodicAlrProbing(&mut self, enable: bool) {
+    pub fn enable_periodic_alr_probing(&mut self, enable: bool) {
         self.enable_periodic_alr_probing = enable;
     }
 
@@ -400,18 +400,18 @@ impl ProbeController {
     // none zero max_total_allocated_bitrate (there are active streams being
     // sent.) Probe rate is up to max configured bitrate configured via
     // SetBitrates.
-    pub fn EnableRepeatedInitialProbing(&mut self, enable: bool) {
+    pub fn enable_repeated_initial_probing(&mut self, enable: bool) {
         self.repeated_initial_probing_enabled = enable;
     }
 
-    pub fn SetAlrStartTimeMs(&mut self, alr_start_time: Option<i64>) {
-        self.alr_start_time = alr_start_time.map(Timestamp::Millis);
+    pub fn set_alr_start_time_ms(&mut self, alr_start_time: Option<i64>) {
+        self.alr_start_time = alr_start_time.map(Timestamp::from_millis);
     }
-    pub fn SetAlrEndedTimeMs(&mut self, alr_end_time: i64) {
-        self.alr_end_time = Some(Timestamp::Millis(alr_end_time));
+    pub fn set_alr_ended_time_ms(&mut self, alr_end_time: i64) {
+        self.alr_end_time = Some(Timestamp::from_millis(alr_end_time));
     }
 
-    pub fn RequestProbe(&mut self, at_time: Timestamp) -> Vec<ProbeClusterConfig> {
+    pub fn request_probe(&mut self, at_time: Timestamp) -> Vec<ProbeClusterConfig> {
         // Called once we have returned to normal state after a large drop in
         // estimated bandwidth. The current response is to initiate a single probe
         // session (if not already probing) at the previous bitrate.
@@ -420,7 +420,7 @@ impl ProbeController {
         // real one from a competing flow or a network change.
         let in_alr: bool = self.alr_start_time.is_some();
         let alr_ended_recently: bool = match self.alr_end_time {
-            Some(alr_end_time) => at_time - alr_end_time < Self::AlrEndedTimeout,
+            Some(alr_end_time) => at_time - alr_end_time < Self::ALR_ENDED_TIMEOUT,
             _ => false,
         };
 
@@ -428,25 +428,25 @@ impl ProbeController {
             && matches!(self.state, State::ProbingComplete)
         {
             let suggested_probe: DataRate =
-                Self::ProbeFractionAfterDrop * self.bitrate_before_last_large_drop;
+                Self::PROBE_FRACTION_AFTER_DROP * self.bitrate_before_last_large_drop;
             let min_expected_probe_result: DataRate =
-                (1.0 - Self::ProbeUncertainty) * suggested_probe;
+                (1.0 - Self::PROBE_UNCERTAINTY) * suggested_probe;
             let time_since_drop: TimeDelta = at_time - self.time_of_last_large_drop;
             let time_since_probe: TimeDelta = at_time - self.last_bwe_drop_probing_time;
             if min_expected_probe_result > self.estimated_bitrate
-                && time_since_drop < Self::BitrateDropTimeout
-                && time_since_probe > Self::MinTimeBetweenAlrProbes
+                && time_since_drop < Self::BITRATE_DROP_TIMEOUT
+                && time_since_probe > Self::MIN_TIME_BETWEEN_ALR_PROBES
             {
                 tracing::info!("Detected big bandwidth drop, start probing.");
                 // Track how often we probe in response to bandwidth drop in ALR.
                 self.last_bwe_drop_probing_time = at_time;
-                return self.InitiateProbing(at_time, &[suggested_probe], false);
+                return self.initiate_probing(at_time, &[suggested_probe], false);
             }
         }
         vec![]
     }
 
-    pub fn SetNetworkStateEstimate(&mut self, estimate: NetworkStateEstimate) {
+    pub fn set_network_state_estimate(&mut self, estimate: NetworkStateEstimate) {
         self.network_estimate = Some(estimate);
     }
 
@@ -454,37 +454,37 @@ impl ProbeController {
     // created EXCEPT for configuration settings like
     // `enable_periodic_alr_probing_` `network_available_` and
     // `max_total_allocated_bitrate_`.
-    pub fn Reset(&mut self, at_time: Timestamp) {
+    pub fn reset(&mut self, at_time: Timestamp) {
         self.bandwidth_limited_cause = BandwidthLimitedCause::DelayBasedLimited;
         self.state = State::Init;
-        self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
-        self.time_last_probing_initiated = Timestamp::Zero();
-        self.estimated_bitrate = DataRate::Zero();
+        self.min_bitrate_to_probe_further = DataRate::plus_infinity();
+        self.time_last_probing_initiated = Timestamp::zero();
+        self.estimated_bitrate = DataRate::zero();
         self.network_estimate = None;
-        self.start_bitrate = DataRate::Zero();
-        self.max_bitrate = Self::DefaultMaxProbingBitrate;
+        self.start_bitrate = DataRate::zero();
+        self.max_bitrate = Self::DEFAULT_MAX_PROBING_BITRATE;
         let now: Timestamp = at_time;
         self.last_bwe_drop_probing_time = now;
         self.alr_end_time.take();
         self.time_of_last_large_drop = now;
-        self.bitrate_before_last_large_drop = DataRate::Zero();
+        self.bitrate_before_last_large_drop = DataRate::zero();
     }
 
-    pub fn Process(&mut self, at_time: Timestamp) -> Vec<ProbeClusterConfig> {
-        if at_time - self.time_last_probing_initiated > Self::MaxWaitingTimeForProbingResult
+    pub fn process(&mut self, at_time: Timestamp) -> Vec<ProbeClusterConfig> {
+        if at_time - self.time_last_probing_initiated > Self::MAX_WAITING_TIME_FOR_PROBING_RESULT
             && matches!(self.state, State::WaitingForProbingResult)
         {
             tracing::info!("kWaitingForProbingResult: timeout");
-            self.UpdateState(State::ProbingComplete);
+            self.update_state(State::ProbingComplete);
         }
-        if self.estimated_bitrate.IsZero() || !matches!(self.state, State::ProbingComplete) {
+        if self.estimated_bitrate.is_zero() || !matches!(self.state, State::ProbingComplete) {
             return vec![];
         }
-        if self.TimeForNextRepeatedInitialProbe(at_time) {
-            return self.InitiateProbing(at_time, &[self.estimated_bitrate * self.config.p1], true);
+        if self.time_for_next_repeated_initial_probe(at_time) {
+            return self.initiate_probing(at_time, &[self.estimated_bitrate * self.config.p1], true);
         }
-        if self.TimeForAlrProbe(at_time) || self.TimeForNetworkStateProbe(at_time) {
-            return self.InitiateProbing(
+        if self.time_for_alr_probe(at_time) || self.time_for_network_state_probe(at_time) {
+            return self.initiate_probing(
                 at_time,
                 &[self.estimated_bitrate * self.config.alr_scale],
                 true,
@@ -493,7 +493,7 @@ impl ProbeController {
         vec![]
     }
 
-    fn UpdateState(&mut self, new_state: State) {
+    fn update_state(&mut self, new_state: State) {
         match new_state {
             State::Init => {
                 self.state = State::Init;
@@ -503,14 +503,14 @@ impl ProbeController {
             }
             State::ProbingComplete => {
                 self.state = State::ProbingComplete;
-                self.min_bitrate_to_probe_further = DataRate::PlusInfinity();
+                self.min_bitrate_to_probe_further = DataRate::plus_infinity();
             }
         }
     }
-    fn InitiateExponentialProbing(&mut self, at_time: Timestamp) -> Vec<ProbeClusterConfig> {
+    fn initiate_exponential_probing(&mut self, at_time: Timestamp) -> Vec<ProbeClusterConfig> {
         assert!(self.network_available);
         assert!(matches!(self.state, State::Init));
-        assert!(self.start_bitrate > DataRate::Zero());
+        assert!(self.start_bitrate > DataRate::zero());
 
         // When probing at 1.8 Mbps ( 6x 300), this represents a threshold of
         // 1.2 Mbps to continue probing.
@@ -519,7 +519,7 @@ impl ProbeController {
             probes.push(self.config.p2 * self.start_bitrate);
         }
 
-        if self.repeated_initial_probing_enabled && self.max_total_allocated_bitrate.IsZero() {
+        if self.repeated_initial_probing_enabled && self.max_total_allocated_bitrate.is_zero() {
             self.last_allowed_repeated_initial_probe = at_time + self.config.initial_probing;
             tracing::info!(
                 "Repeated initial probing enabled, last allowed probe: {:?} now: {:?}",
@@ -528,9 +528,9 @@ impl ProbeController {
             );
         }
 
-        self.InitiateProbing(at_time, &probes, true)
+        self.initiate_probing(at_time, &probes, true)
     }
-    fn InitiateProbing(
+    fn initiate_probing(
         &mut self,
         now: Timestamp,
         bitrates_to_probe: &[DataRate],
@@ -540,8 +540,8 @@ impl ProbeController {
             let network_estimate: DataRate = self
                 .network_estimate
                 .map(|x| x.link_capacity_upper)
-                .unwrap_or(DataRate::PlusInfinity());
-            let max_probe_rate: DataRate = if self.max_total_allocated_bitrate.IsZero() {
+                .unwrap_or(DataRate::plus_infinity());
+            let max_probe_rate: DataRate = if self.max_total_allocated_bitrate.is_zero() {
                 self.max_bitrate
             } else {
                 std::cmp::min(
@@ -552,13 +552,13 @@ impl ProbeController {
             if std::cmp::min(network_estimate, self.estimated_bitrate)
                 > self.config.skip_if_est_larger_than_fraction_of_max * max_probe_rate
             {
-                self.UpdateState(State::ProbingComplete);
+                self.update_state(State::ProbingComplete);
                 return vec![];
             }
         }
 
         let mut max_probe_bitrate: DataRate = self.max_bitrate;
-        if self.max_total_allocated_bitrate > DataRate::Zero() {
+        if self.max_total_allocated_bitrate > DataRate::zero() {
             // If a max allocated bitrate has been configured, allow probing up to 2x
             // that rate. This allows some overhead to account for bursty streams,
             // which otherwise would have to ramp up when the overshoot is already in
@@ -589,9 +589,9 @@ impl ProbeController {
         };
 
         match self.network_estimate {
-            Some(network_estimate) if network_estimate.link_capacity_upper.IsFinite() => {
-                if self.config.network_state_interval.IsFinite() {
-                    if network_estimate.link_capacity_upper.IsZero() {
+            Some(network_estimate) if network_estimate.link_capacity_upper.is_finite() => {
+                if self.config.network_state_interval.is_finite() {
+                    if network_estimate.link_capacity_upper.is_zero() {
                         tracing::info!("Not sending probe, Network state estimate is zero");
                         return vec![];
                     }
@@ -609,26 +609,26 @@ impl ProbeController {
 
         let mut pending_probes: Vec<ProbeClusterConfig> = vec![];
         for mut bitrate in bitrates_to_probe.iter().cloned() {
-            assert!(!bitrate.IsZero());
+            assert!(!bitrate.is_zero());
             if bitrate >= max_probe_bitrate {
                 bitrate = max_probe_bitrate;
                 probe_further = false;
             }
-            pending_probes.push(self.CreateProbeClusterConfig(now, bitrate));
+            pending_probes.push(self.create_probe_cluster_config(now, bitrate));
         }
         self.time_last_probing_initiated = now;
         if probe_further {
-            self.UpdateState(State::WaitingForProbingResult);
+            self.update_state(State::WaitingForProbingResult);
             // Dont expect probe results to be larger than a fraction of the actual
             // probe rate.
             self.min_bitrate_to_probe_further = pending_probes.last().unwrap().target_data_rate
                 * self.config.further_probe_threshold;
         } else {
-            self.UpdateState(State::ProbingComplete);
+            self.update_state(State::ProbingComplete);
         }
         pending_probes
     }
-    fn TimeForAlrProbe(&self, at_time: Timestamp) -> bool {
+    fn time_for_alr_probe(&self, at_time: Timestamp) -> bool {
         if let Some(alr_start_time) = self.alr_start_time {
             if self.enable_periodic_alr_probing {
                 let next_probe_time: Timestamp =
@@ -639,9 +639,9 @@ impl ProbeController {
         }
         false
     }
-    fn TimeForNetworkStateProbe(&self, at_time: Timestamp) -> bool {
+    fn time_for_network_state_probe(&self, at_time: Timestamp) -> bool {
         let network_estimate = match self.network_estimate.as_ref() {
-            Some(network_estimate) if !network_estimate.link_capacity_upper.IsInfinite() => {
+            Some(network_estimate) if !network_estimate.link_capacity_upper.is_infinite() => {
                 network_estimate
             }
             _ => return false,
@@ -651,14 +651,14 @@ impl ProbeController {
             == BandwidthLimitedCause::DelayBasedLimited
             && self.estimated_bitrate
                 < self.config.est_lower_than_network_ratio * network_estimate.link_capacity_upper;
-        if probe_due_to_low_estimate && self.config.est_lower_than_network_interval.IsFinite() {
+        if probe_due_to_low_estimate && self.config.est_lower_than_network_interval.is_finite() {
             let next_probe_time: Timestamp =
                 self.time_last_probing_initiated + self.config.est_lower_than_network_interval;
             return at_time >= next_probe_time;
         }
 
         let periodic_probe: bool = self.estimated_bitrate < network_estimate.link_capacity_upper;
-        if periodic_probe && self.config.network_state_interval.IsFinite() {
+        if periodic_probe && self.config.network_state_interval.is_finite() {
             let next_probe_time: Timestamp =
                 self.time_last_probing_initiated + self.config.network_state_interval;
             return at_time >= next_probe_time;
@@ -666,19 +666,19 @@ impl ProbeController {
 
         false
     }
-    fn TimeForNextRepeatedInitialProbe(&self, at_time: Timestamp) -> bool {
+    fn time_for_next_repeated_initial_probe(&self, at_time: Timestamp) -> bool {
         if !matches!(self.state, State::WaitingForProbingResult)
             && self.last_allowed_repeated_initial_probe > at_time
         {
             let next_probe_time: Timestamp =
-                self.time_last_probing_initiated + Self::MaxWaitingTimeForProbingResult;
+                self.time_last_probing_initiated + Self::MAX_WAITING_TIME_FOR_PROBING_RESULT;
             if at_time >= next_probe_time {
                 return true;
             }
         }
         false
     }
-    fn CreateProbeClusterConfig(
+    fn create_probe_cluster_config(
         &mut self,
         at_time: Timestamp,
         bitrate: DataRate,
@@ -689,7 +689,7 @@ impl ProbeController {
 
         match self.network_estimate {
             Some(network_estimate)
-                if network_estimate.link_capacity_upper.IsFinite()
+                if network_estimate.link_capacity_upper.is_finite()
                     && network_estimate.link_capacity_upper >= bitrate =>
             {
                 config.target_duration = self.config.network_state_probe_duration;
@@ -716,44 +716,44 @@ impl ProbeController {
 #[cfg(test)]
 mod test {
     use super::*;
-    const MinBitrate: DataRate = DataRate::BitsPerSec(100);
-    const StartBitrate: DataRate = DataRate::BitsPerSec(300);
-    const MaxBitrate: DataRate = DataRate::BitsPerSec(10000);
+    const MIN_BITRATE: DataRate = DataRate::from_bits_per_sec(100);
+    const START_BITRATE: DataRate = DataRate::from_bits_per_sec(300);
+    const MAX_BITRATE: DataRate = DataRate::from_bits_per_sec(10000);
 
-    const ExponentialProbingTimeout: TimeDelta = TimeDelta::Seconds(5);
+    const EXPONENTIAL_PROBING_TIMEOUT: TimeDelta = TimeDelta::from_seconds(5);
 
-    const AlrProbeInterval: TimeDelta = TimeDelta::Seconds(5);
-    const AlrEndedTimeout: TimeDelta = TimeDelta::Seconds(3);
-    const BitrateDropTimeout: TimeDelta = TimeDelta::Seconds(5);
+    const ALR_PROBE_INTERVAL: TimeDelta = TimeDelta::from_seconds(5);
+    const ALR_ENDED_TIMEOUT: TimeDelta = TimeDelta::from_seconds(3);
+    const BITRATE_DROP_TIMEOUT: TimeDelta = TimeDelta::from_seconds(5);
 
     #[test]
-    fn InitiatesProbingAfterSetBitrates() {
-        let clock = Timestamp::Zero();
+    fn initiates_probing_after_set_bitrates() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(probes.len() >= 2);
     }
 
     #[test]
-    fn InitiatesProbingWhenNetworkAvailable() {
-        let clock = Timestamp::Zero();
+    fn initiates_probing_when_network_available() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
 
         let probes: Vec<ProbeClusterConfig> =
-            probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+            probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(probes.is_empty());
-        let probes = probe_controller.OnNetworkAvailability(NetworkAvailability {
+        let probes = probe_controller.on_network_availability(NetworkAvailability {
             network_available: true,
             ..Default::default()
         });
@@ -761,60 +761,61 @@ mod test {
     }
 
     #[test]
-    fn SetsDefaultTargetDurationAndTargetProbeCount() {
-        let clock = Timestamp::Zero();
+    fn sets_default_target_duration_and_target_probe_count() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
         let probes: Vec<ProbeClusterConfig> =
-            probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+            probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(probes.len() >= 2);
 
-        assert_eq!(probes[0].target_duration, TimeDelta::Millis(15));
+        assert_eq!(probes[0].target_duration, TimeDelta::from_millis(15));
         assert_eq!(probes[0].target_probe_count, 5);
     }
 
     #[test]
-    fn FieldTrialsOverrideDefaultTargetDurationAndTargetProbeCount() {
-        let clock = Timestamp::Zero();
+    fn field_trials_override_default_target_duration_and_target_probe_count() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             min_probe_packets_sent: 2,
-            min_probe_duration: TimeDelta::Millis(123),
+            min_probe_duration: TimeDelta::from_millis(123),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
         let probes: Vec<ProbeClusterConfig> =
-            probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+            probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(probes.len() >= 2);
 
-        assert_eq!(probes[0].target_duration, TimeDelta::Millis(123));
+        assert_eq!(probes[0].target_duration, TimeDelta::from_millis(123));
         assert_eq!(probes[0].target_probe_count, 2);
     }
 
     #[test]
-    fn ProbeOnlyWhenNetworkIsUp() {
-        let clock = Timestamp::Zero();
+    fn probe_only_when_network_is_up() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
-        let probes = probe_controller.OnNetworkAvailability(NetworkAvailability {
+        let probes = probe_controller.on_network_availability(NetworkAvailability {
             at_time: clock,
             network_available: false,
         });
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
         assert!(probes.is_empty());
-        let probes = probe_controller.OnNetworkAvailability(NetworkAvailability {
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.on_network_availability(NetworkAvailability {
             at_time: clock,
             network_available: true,
         });
@@ -822,250 +823,254 @@ mod test {
     }
 
     #[test]
-    fn CanConfigureInitialProbeRateFactor() {
-        let clock = Timestamp::Zero();
+    fn can_configure_initial_probe_rate_factor() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             p1: 2.0,
             p2: 3.0,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        assert_eq!(probes[0].target_data_rate, StartBitrate * 2);
-        assert_eq!(probes[1].target_data_rate, StartBitrate * 3);
+        assert_eq!(probes[0].target_data_rate, START_BITRATE * 2);
+        assert_eq!(probes[1].target_data_rate, START_BITRATE * 3);
     }
 
     #[test]
-    fn DisableSecondInitialProbeIfRateFactorZero() {
-        let clock = Timestamp::Zero();
+    fn disable_second_initial_probe_if_rate_factorzero() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             p1: 2.0,
             p2: 0.0,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate, StartBitrate * 2);
+        assert_eq!(probes[0].target_data_rate, START_BITRATE * 2);
     }
 
     #[test]
-    fn InitiatesProbingOnMaxBitrateIncrease() {
-        let mut clock = Timestamp::Zero();
+    fn initiates_probing_on_max_bitrate_increase() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         // Long enough to time out exponential probing.
-        clock += ExponentialProbingTimeout;
-        probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        probe_controller.Process(clock);
-        let probes = probe_controller.SetBitrates(
-            MinBitrate,
-            StartBitrate,
-            MaxBitrate + DataRate::BitsPerSec(100),
+        probe_controller.process(clock);
+        let probes = probe_controller.set_bitrates(
+            MIN_BITRATE,
+            START_BITRATE,
+            MAX_BITRATE + DataRate::from_bits_per_sec(100),
             clock,
         );
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate.bps(), MaxBitrate.bps() + 100);
+        assert_eq!(probes[0].target_data_rate.bps(), MAX_BITRATE.bps() + 100);
     }
 
     #[test]
-    fn ProbesOnMaxAllocatedBitrateIncreaseOnlyWhenInAlr() {
-        let mut clock = Timestamp::Zero();
+    fn probes_on_max_allocated_bitrate_increase_only_when_in_alr() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate - DataRate::BitsPerSec(1),
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE - DataRate::from_bits_per_sec(1),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
 
         // Wait long enough to time out exponential probing.
-        clock += ExponentialProbingTimeout;
-        let probes = probe_controller.Process(clock);
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         // Probe when in alr.
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
         let probes = probe_controller
-            .OnMaxTotalAllocatedBitrate(MaxBitrate + DataRate::BitsPerSec(1), clock);
+            .on_max_total_allocated_bitrate(MAX_BITRATE + DataRate::from_bits_per_sec(1), clock);
         assert_eq!(probes.len(), 2);
-        assert_eq!(probes[0].target_data_rate, MaxBitrate);
+        assert_eq!(probes[0].target_data_rate, MAX_BITRATE);
 
         // Do not probe when not in alr.
-        probe_controller.SetAlrStartTimeMs(None);
+        probe_controller.set_alr_start_time_ms(None);
         let probes = probe_controller
-            .OnMaxTotalAllocatedBitrate(MaxBitrate + DataRate::BitsPerSec(2), clock);
+            .on_max_total_allocated_bitrate(MAX_BITRATE + DataRate::from_bits_per_sec(2), clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe() {
-        let mut clock: Timestamp = Timestamp::Zero();
+    fn probes_on_max_allocated_bitrate_limited_by_current_bwe() {
+        let mut clock: Timestamp = Timestamp::zero();
 
-        assert!(MaxBitrate > 1.5 * StartBitrate);
+        assert!(MAX_BITRATE > 1.5 * START_BITRATE);
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
 
         // Wait long enough to time out exponential probing.
-        clock += ExponentialProbingTimeout;
-        let probes = probe_controller.Process(clock);
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         // Probe when in alr.
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        let probes = probe_controller.OnMaxTotalAllocatedBitrate(MaxBitrate, clock);
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        let probes = probe_controller.on_max_total_allocated_bitrate(MAX_BITRATE, clock);
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate, 2.0 * StartBitrate);
+        assert_eq!(probes[0].target_data_rate, 2.0 * START_BITRATE);
 
         // Continue probing if probe succeeds.
-        let probes = probe_controller.SetEstimatedBitrate(
-            1.5 * StartBitrate,
+        let probes = probe_controller.set_estimated_bitrate(
+            1.5 * START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert_eq!(probes.len(), 1);
-        assert!(probes[0].target_data_rate > 1.5 * StartBitrate);
+        assert!(probes[0].target_data_rate > 1.5 * START_BITRATE);
     }
 
     #[test]
-    fn CanDisableProbingOnMaxTotalAllocatedBitrateIncrease() {
-        let mut clock = Timestamp::Zero();
+    fn can_disable_probing_on_max_total_allocated_bitrate_increase() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             probe_max_allocation: false,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate - DataRate::BitsPerSec(1),
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE - DataRate::from_bits_per_sec(1),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        clock += ExponentialProbingTimeout;
-        let probes = probe_controller.Process(clock);
         assert!(probes.is_empty());
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
 
         // Do no probe, since probe_max_allocation:false.
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
         let probes = probe_controller
-            .OnMaxTotalAllocatedBitrate(MaxBitrate + DataRate::BitsPerSec(1), clock);
+            .on_max_total_allocated_bitrate(MAX_BITRATE + DataRate::from_bits_per_sec(1), clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn InitiatesProbingOnMaxBitrateIncreaseAtMaxBitrate() {
-        let mut clock = Timestamp::Zero();
+    fn initiates_probing_on_max_bitrate_increase_at_max_bitrate() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         // Long enough to time out exponential probing.
-        clock += ExponentialProbingTimeout;
-        probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        probe_controller.Process(clock);
-        probe_controller.SetEstimatedBitrate(
-            MaxBitrate,
+        probe_controller.process(clock);
+        probe_controller.set_estimated_bitrate(
+            MAX_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        let probes = probe_controller.SetBitrates(
-            MinBitrate,
-            StartBitrate,
-            MaxBitrate + DataRate::BitsPerSec(100),
+        let probes = probe_controller.set_bitrates(
+            MIN_BITRATE,
+            START_BITRATE,
+            MAX_BITRATE + DataRate::from_bits_per_sec(100),
             clock,
         );
         assert_eq!(probes.len(), 1);
         assert_eq!(
             probes[0].target_data_rate,
-            MaxBitrate + DataRate::BitsPerSec(100)
+            MAX_BITRATE + DataRate::from_bits_per_sec(100)
         );
     }
 
     #[test]
-    fn TestExponentialProbing() {
-        let clock = Timestamp::Zero();
+    fn test_exponential_probing() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
 
         // Repeated probe should only be sent when estimated bitrate climbs above
         // 0.7 * 6 * StartBitrate = 1260.
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1000),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1000),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1800),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1800),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
@@ -1074,34 +1079,34 @@ mod test {
     }
 
     #[test]
-    fn ExponentialProbingStopIfMaxBitrateLow() {
-        let clock = Timestamp::Zero();
+    fn exponential_probing_stop_if_max_bitrate_low() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             abort_further: true,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Repeated probe normally is sent when estimated bitrate climbs above
         // 0.7 * 6 * StartBitrate = 1260. But since max bitrate is low, expect
         // exponential probing to stop.
-        let probes = probe_controller.SetBitrates(
-            MinBitrate,
-            StartBitrate,
-            /*max_bitrate=*/ StartBitrate,
+        let probes = probe_controller.set_bitrates(
+            MIN_BITRATE,
+            START_BITRATE,
+            /*max_bitrate=*/ START_BITRATE,
             clock,
         );
         assert!(probes.is_empty());
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1800),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1800),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
@@ -1109,29 +1114,29 @@ mod test {
     }
 
     #[test]
-    fn ExponentialProbingStopIfMaxAllocatedBitrateLow() {
-        let clock = Timestamp::Zero();
+    fn exponential_probing_stop_if_max_allocated_bitrate_low() {
+        let clock = Timestamp::zero();
         let mut probe_controller: ProbeController = ProbeController::new(ProbeControllerConfig {
             abort_further: true,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Repeated probe normally is sent when estimated bitrate climbs above
         // 0.7 * 6 * StartBitrate = 1260. But since allocated bitrate i slow, expect
         // exponential probing to stop.
-        let probes = probe_controller.OnMaxTotalAllocatedBitrate(StartBitrate, clock);
+        let probes = probe_controller.on_max_total_allocated_bitrate(START_BITRATE, clock);
         assert!(probes.is_empty());
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1800),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1800),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
@@ -1139,56 +1144,56 @@ mod test {
     }
 
     #[test]
-    fn InitialProbingToLowMaxAllocatedbitrate() {
-        let clock = Timestamp::Zero();
+    fn initial_probing_to_low_max_allocatedbitrate() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Repeated probe is sent when estimated bitrate climbs above
         // 0.7 * 6 * StartBitrate = 1260.
-        let probes = probe_controller.OnMaxTotalAllocatedBitrate(StartBitrate, clock);
+        let probes = probe_controller.on_max_total_allocated_bitrate(START_BITRATE, clock);
         assert!(probes.is_empty());
 
         // If the inital probe result is received, a new probe is sent at 2x the
         // needed max bitrate.
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1800),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1800),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate.bps(), 2 * StartBitrate.bps());
+        assert_eq!(probes[0].target_data_rate.bps(), 2 * START_BITRATE.bps());
     }
 
     #[test]
-    fn InitialProbingTimeout() {
-        let mut clock = Timestamp::Zero();
+    fn initial_probing_timeout() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
         // Advance far enough to cause a time out in waiting for probing result.
-        clock += ExponentialProbingTimeout;
-        let probes = probe_controller.Process(clock);
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1800),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1800),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
@@ -1196,255 +1201,273 @@ mod test {
     }
 
     #[test]
-    fn RepeatedInitialProbingSendsNewProbeAfterTimeout() {
-        let mut clock = Timestamp::Zero();
+    fn repeated_initial_probing_sends_new_probe_after_timeout() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
-        probe_controller.EnableRepeatedInitialProbing(true);
+        probe_controller.enable_repeated_initial_probing(true);
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
         let start_time: Timestamp = clock;
         let mut last_probe_time: Timestamp = clock;
-        while clock < start_time + TimeDelta::Seconds(5) {
-            clock += TimeDelta::Millis(100);
-            let probes = probe_controller.Process(clock);
+        while clock < start_time + TimeDelta::from_seconds(5) {
+            clock += TimeDelta::from_millis(100);
+            let probes = probe_controller.process(clock);
             if !probes.is_empty() {
                 // Expect a probe every second.
-                assert_eq!(clock - last_probe_time, TimeDelta::SecondsFloat(1.1));
-                assert_eq!(probes[0].min_probe_delta, TimeDelta::Millis(20));
-                assert_eq!(probes[0].target_duration, TimeDelta::Millis(100));
+                assert_eq!(clock - last_probe_time, TimeDelta::from_seconds_float(1.1));
+                assert_eq!(probes[0].min_probe_delta, TimeDelta::from_millis(20));
+                assert_eq!(probes[0].target_duration, TimeDelta::from_millis(100));
                 last_probe_time = clock;
             } else {
-                assert!(clock - last_probe_time < TimeDelta::SecondsFloat(1.1));
+                assert!(clock - last_probe_time < TimeDelta::from_seconds_float(1.1));
             }
         }
-        clock += TimeDelta::Seconds(1);
+        clock += TimeDelta::from_seconds(1);
         // After 5s, repeated initial probing stops.
-        assert!(probe_controller.Process(clock).is_empty());
+        assert!(probe_controller.process(clock).is_empty());
     }
 
     #[test]
-    fn RepeatedInitialProbingStopIfMaxAllocatedBitrateSet() {
-        let mut clock = Timestamp::Zero();
+    fn repeated_initial_probing_stop_if_max_allocated_bitrate_set() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
-        probe_controller.EnableRepeatedInitialProbing(true);
+        probe_controller.enable_repeated_initial_probing(true);
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        let probes = probe_controller.OnMaxTotalAllocatedBitrate(MinBitrate, clock);
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        let probes = probe_controller.on_max_total_allocated_bitrate(MIN_BITRATE, clock);
+        assert!(probes.is_empty());
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn RequestProbeInAlr() {
-        let mut clock = Timestamp::Zero();
+    fn request_probe_in_alr() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(probes.len() >= 2);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        clock += AlrProbeInterval + TimeDelta::Millis(1);
-        let probes = probe_controller.Process(clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(250),
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        let probes = probe_controller.RequestProbe(clock);
+        assert!(probes.is_empty());
+
+        let probes = probe_controller.request_probe(clock);
+        assert_eq!(probes.len(), 1);
+        assert_eq!(probes[0].target_data_rate.bps_float(), 0.85 * 500.0);
+    }
+
+    #[test]
+    fn request_probe_when_alr_ended_recently() {
+        let mut clock = Timestamp::zero();
+        let mut probe_controller = ProbeController::new(ProbeControllerConfig {
+            ..Default::default()
+        });
+        assert!(probe_controller
+            .on_network_availability(NetworkAvailability {
+                network_available: true,
+                ..Default::default()
+            })
+            .is_empty());
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert_eq!(probes.len(), 2);
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
+            BandwidthLimitedCause::DelayBasedLimited,
+            clock,
+        );
+        assert!(probes.is_empty());
+
+        probe_controller.set_alr_start_time_ms(None);
+        clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
+
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(250),
+            BandwidthLimitedCause::DelayBasedLimited,
+            clock,
+        );
+        assert!(probes.is_empty());
+
+        probe_controller.set_alr_ended_time_ms(clock.ms());
+        clock += ALR_ENDED_TIMEOUT - TimeDelta::from_millis(1);
+        let probes = probe_controller.request_probe(clock);
 
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate.bps_float(), 0.85 * 500.0);
     }
 
     #[test]
-    fn RequestProbeWhenAlrEndedRecently() {
-        let mut clock = Timestamp::Zero();
+    fn request_probe_when_alr_not_ended_recently() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(None);
-        clock += AlrProbeInterval + TimeDelta::Millis(1);
-        let probes = probe_controller.Process(clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(250),
+        probe_controller.set_alr_start_time_ms(None);
+        clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        probe_controller.SetAlrEndedTimeMs(clock.ms());
-        clock += AlrEndedTimeout - TimeDelta::Millis(1);
-        let probes = probe_controller.RequestProbe(clock);
-
-        assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate.bps_float(), 0.85 * 500.0);
-    }
-
-    #[test]
-    fn RequestProbeWhenAlrNotEndedRecently() {
-        let mut clock = Timestamp::Zero();
-        let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            ..Default::default()
-        });
-        assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
-                network_available: true,
-                ..Default::default()
-            })
-            .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        assert_eq!(probes.len(), 2);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
-            BandwidthLimitedCause::DelayBasedLimited,
-            clock,
-        );
-
-        probe_controller.SetAlrStartTimeMs(None);
-        clock += AlrProbeInterval + TimeDelta::Millis(1);
-        let probes = probe_controller.Process(clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(250),
-            BandwidthLimitedCause::DelayBasedLimited,
-            clock,
-        );
-        probe_controller.SetAlrEndedTimeMs(clock.ms());
-        clock += AlrEndedTimeout + TimeDelta::Millis(1);
-        let probes = probe_controller.RequestProbe(clock);
+        assert!(probes.is_empty());
+        probe_controller.set_alr_ended_time_ms(clock.ms());
+        clock += ALR_ENDED_TIMEOUT + TimeDelta::from_millis(1);
+        let probes = probe_controller.request_probe(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn RequestProbeWhenBweDropNotRecent() {
-        let mut clock = Timestamp::Zero();
+    fn request_probe_when_bwe_drop_not_recent() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        clock += AlrProbeInterval + TimeDelta::Millis(1);
-        let probes = probe_controller.Process(clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(250),
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        clock += BitrateDropTimeout + TimeDelta::Millis(1);
-        let probes = probe_controller.RequestProbe(clock);
+        assert!(probes.is_empty());
+        clock += BITRATE_DROP_TIMEOUT + TimeDelta::from_millis(1);
+        let probes = probe_controller.request_probe(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn PeriodicProbing() {
-        let mut clock = Timestamp::Zero();
+    fn periodic_probing() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
 
         let start_time: Timestamp = clock;
 
         // Expect the controller to send a new probe after 5s has passed.
-        probe_controller.SetAlrStartTimeMs(Some(start_time.ms()));
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        probe_controller.set_alr_start_time_ms(Some(start_time.ms()));
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate.bps(), 1000);
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
-            BandwidthLimitedCause::DelayBasedLimited,
-            clock,
-        );
-
-        // The following probe should be sent at 10s into ALR.
-        probe_controller.SetAlrStartTimeMs(Some(start_time.ms()));
-        clock += TimeDelta::Seconds(4);
-        let probes = probe_controller.Process(clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(Some(start_time.ms()));
-        clock += TimeDelta::Seconds(1);
-        let probes = probe_controller.Process(clock);
+        // The following probe should be sent at 10s into ALR.
+        probe_controller.set_alr_start_time_ms(Some(start_time.ms()));
+        clock += TimeDelta::from_seconds(4);
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
+            BandwidthLimitedCause::DelayBasedLimited,
+            clock,
+        );
+        assert!(probes.is_empty());
+
+        probe_controller.set_alr_start_time_ms(Some(start_time.ms()));
+        clock += TimeDelta::from_seconds(1);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
@@ -1452,103 +1475,105 @@ mod test {
     }
 
     #[test]
-    fn PeriodicProbingAfterReset() {
-        let mut clock = Timestamp::Zero();
+    fn periodic_probing_after_reset() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
         let alr_start_time: Timestamp = clock;
 
-        probe_controller.SetAlrStartTimeMs(Some(alr_start_time.ms()));
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        probe_controller.Reset(clock);
+        probe_controller.set_alr_start_time_ms(Some(alr_start_time.ms()));
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        probe_controller.reset(clock);
 
-        clock += TimeDelta::Seconds(10);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(10);
+        let probes = probe_controller.process(clock);
         // Since bitrates are not yet set, no probe is sent event though we are in ALR
         // mode.
         assert!(probes.is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert_eq!(probes.len(), 2);
 
         // Make sure we use `kStartBitrateBps` as the estimated bitrate
         // until SetEstimatedBitrate is called with an updated estimate.
-        clock += TimeDelta::Seconds(10);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(10);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate, StartBitrate * 2);
+        assert_eq!(probes[0].target_data_rate, START_BITRATE * 2);
     }
 
     #[test]
-    fn NoProbesWhenTransportIsNotWritable() {
-        let mut clock = Timestamp::Zero();
+    fn no_probes_when_transport_is_not_writable() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
-        probe_controller.EnablePeriodicAlrProbing(true);
+        probe_controller.enable_periodic_alr_probing(true);
 
         let probes: Vec<ProbeClusterConfig> =
-            probe_controller.OnNetworkAvailability(NetworkAvailability {
+            probe_controller.on_network_availability(NetworkAvailability {
                 network_available: false,
                 ..Default::default()
             });
         assert!(probes.is_empty());
         assert!(probe_controller
-            .SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock)
+            .set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock)
             .is_empty());
-        clock += TimeDelta::Seconds(10);
-        assert!(probe_controller.Process(clock).is_empty());
+        clock += TimeDelta::from_seconds(10);
+        assert!(probe_controller.process(clock).is_empty());
 
         // Controller is reset after a network route change.
         // But, a probe should not be sent since the transport is not writable.
         // Transport is not writable until after DTLS negotiation completes.
         // However, the bitrate constraints may change.
-        probe_controller.Reset(clock);
+        probe_controller.reset(clock);
         assert!(probe_controller
-            .SetBitrates(2 * MinBitrate, 2 * StartBitrate, 2 * MaxBitrate, clock)
+            .set_bitrates(2 * MIN_BITRATE, 2 * START_BITRATE, 2 * MAX_BITRATE, clock)
             .is_empty());
-        clock += TimeDelta::Seconds(10);
-        assert!(probe_controller.Process(clock).is_empty());
+        clock += TimeDelta::from_seconds(10);
+        assert!(probe_controller.process(clock).is_empty());
     }
 
     #[test]
-    fn TestExponentialProbingOverflow() {
-        let clock = Timestamp::Zero();
+    fn test_exponential_probing_overflow() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        const MbpsMultiplier: DataRate = DataRate::KilobitsPerSec(1000);
-        let probes = probe_controller.SetBitrates(
-            MinBitrate,
-            10 * MbpsMultiplier,
-            100 * MbpsMultiplier,
+        const MBPS_MULTIPLIER: DataRate = DataRate::from_kilobits_per_sec(1000);
+        let probes = probe_controller.set_bitrates(
+            MIN_BITRATE,
+            10 * MBPS_MULTIPLIER,
+            100 * MBPS_MULTIPLIER,
             clock,
         );
+        assert!(probes.is_empty());
         // Verify that probe bitrate is capped at the specified max bitrate.
-        let probes = probe_controller.SetEstimatedBitrate(
-            60 * MbpsMultiplier,
+        let probes = probe_controller.set_estimated_bitrate(
+            60 * MBPS_MULTIPLIER,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate, 100 * MbpsMultiplier);
+        assert_eq!(probes[0].target_data_rate, 100 * MBPS_MULTIPLIER);
         // Verify that repeated probes aren't sent.
-        let probes = probe_controller.SetEstimatedBitrate(
-            100 * MbpsMultiplier,
+        let probes = probe_controller.set_estimated_bitrate(
+            100 * MBPS_MULTIPLIER,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
@@ -1556,58 +1581,60 @@ mod test {
     }
 
     #[test]
-    fn TestAllocatedBitrateCap() {
-        let mut clock = Timestamp::Zero();
+    fn test_allocated_bitrate_cap() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        const MbpsMultiplier: DataRate = DataRate::KilobitsPerSec(1000);
-        const MaxBitrate: DataRate = DataRate::KilobitsPerSec(100 * 1000);
+        const MBPS_MULTIPLIER: DataRate = DataRate::from_kilobits_per_sec(1000);
+        const MAX_BITRATE: DataRate = DataRate::from_kilobits_per_sec(100 * 1000);
         let probes =
-            probe_controller.SetBitrates(MinBitrate, 10 * MbpsMultiplier, MaxBitrate, clock);
+            probe_controller.set_bitrates(MIN_BITRATE, 10 * MBPS_MULTIPLIER, MAX_BITRATE, clock);
+            assert!(probes.is_empty());
 
         // Configure ALR for periodic probing.
-        probe_controller.EnablePeriodicAlrProbing(true);
+        probe_controller.enable_periodic_alr_probing(true);
         let alr_start_time: Timestamp = clock;
-        probe_controller.SetAlrStartTimeMs(Some(alr_start_time.ms()));
+        probe_controller.set_alr_start_time_ms(Some(alr_start_time.ms()));
 
-        let estimated_bitrate: DataRate = MaxBitrate / 10;
-        let probes = probe_controller.SetEstimatedBitrate(
+        let estimated_bitrate: DataRate = MAX_BITRATE / 10;
+        let probes = probe_controller.set_estimated_bitrate(
             estimated_bitrate,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
 
         // Set a max allocated bitrate below the current estimate.
-        let max_allocated: DataRate = estimated_bitrate - 1 * MbpsMultiplier;
-        let probes = probe_controller.OnMaxTotalAllocatedBitrate(max_allocated, clock);
+        let max_allocated: DataRate = estimated_bitrate - 1 * MBPS_MULTIPLIER;
+        let probes = probe_controller.on_max_total_allocated_bitrate(max_allocated, clock);
         assert!(probes.is_empty()); // No probe since lower than current max.
 
         // Probes such as ALR capped at 2x the max allocation limit.
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate, 2 * max_allocated);
 
         // Remove allocation limit.
         assert!(probe_controller
-            .OnMaxTotalAllocatedBitrate(DataRate::Zero(), clock)
+            .on_max_total_allocated_bitrate(DataRate::zero(), clock)
             .is_empty());
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate, estimated_bitrate * 2);
     }
 
     #[test]
-    fn ConfigurableProbingFieldTrial() {
-        let mut clock = Timestamp::Zero();
+    fn configurable_probing_field_trial() {
+        let mut clock = Timestamp::zero();
 
         // "WebRTC-Bwe-ProbingConfiguration/p1:2,p2:5,step_size:3,further_probe_threshold:0.8,alloc_p1:2,alloc_current_bwe_limit:1000.0,alloc_p2,min_probe_packets_sent:2/"
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
@@ -1622,16 +1649,16 @@ mod test {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(
-            MinBitrate,
-            StartBitrate,
-            DataRate::KilobitsPerSec(5000),
+        let probes = probe_controller.set_bitrates(
+            MIN_BITRATE,
+            START_BITRATE,
+            DataRate::from_kilobits_per_sec(5000),
             clock,
         );
         assert_eq!(probes.len(), 2);
@@ -1642,190 +1669,118 @@ mod test {
 
         // Repeated probe should only be sent when estimated bitrate climbs above
         // 0.8 * 5 * StartBitrateBps = 1200.
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1100),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1100),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert_eq!(probes.len(), 0);
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(1250),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(1250),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate.bps(), 3 * 1250);
 
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
         let probes =
-            probe_controller.OnMaxTotalAllocatedBitrate(DataRate::KilobitsPerSec(200), clock);
+            probe_controller.on_max_total_allocated_bitrate(DataRate::from_kilobits_per_sec(200), clock);
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate.bps(), 400_000);
     }
 
     #[test]
-    fn LimitAlrProbeWhenLossBasedBweLimited() {
-        let mut clock = Timestamp::Zero();
+    fn limit_alr_probe_when_loss_based_bwe_limited() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
         // Expect the controller to send a new probe after 5s has passed.
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::LossLimitedBweIncreasing,
             clock,
         );
-        clock += TimeDelta::Seconds(6);
-        let probes = probe_controller.Process(clock);
+        assert!(probes.is_empty());
+        clock += TimeDelta::from_seconds(6);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate, 1.5 * DataRate::BitsPerSec(500));
+        assert_eq!(probes[0].target_data_rate, 1.5 * DataRate::from_bits_per_sec(500));
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            1.5 * DataRate::BitsPerSec(500),
+        let probes = probe_controller.set_estimated_bitrate(
+            1.5 * DataRate::from_bits_per_sec(500),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        clock += TimeDelta::Seconds(6);
-        let probes = probe_controller.Process(clock);
+        assert!(probes.is_empty());
+        clock += TimeDelta::from_seconds(6);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
-        assert!(probes[0].target_data_rate > 1.5 * 1.5 * DataRate::BitsPerSec(500));
+        assert!(probes[0].target_data_rate > 1.5 * 1.5 * DataRate::from_bits_per_sec(500));
     }
 
     #[test]
-    fn PeriodicProbeAtUpperNetworkStateEstimate() {
-        let mut clock = Timestamp::Zero();
+    fn periodic_probe_at_upper_network_state_estimate() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::from_seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(5000),
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(5000),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
         // Expect the controller to send a new probe after 5s has passed.
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = DataRate::KilobitsPerSec(6);
-        probe_controller.SetNetworkStateEstimate(state_estimate);
+        state_estimate.link_capacity_upper = DataRate::from_kilobits_per_sec(6);
+        probe_controller.set_network_state_estimate(state_estimate);
 
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
         assert_eq!(
             probes[0].target_data_rate,
             state_estimate.link_capacity_upper
         );
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
-        assert_eq!(probes.len(), 1);
-        assert_eq!(
-            probes[0].target_data_rate,
-            state_estimate.link_capacity_upper
-        );
-    }
-
-    #[test]
-    fn LimitProbeAtUpperNetworkStateEstimateIfLossBasedLimited() {
-        let mut clock = Timestamp::Zero();
-        let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
-            ..Default::default()
-        });
-        assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
-                network_available: true,
-                ..Default::default()
-            })
-            .is_empty());
-
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
-            BandwidthLimitedCause::DelayBasedLimited,
-            clock,
-        );
-        // Expect the controller to send a new probe after 5s has passed.
-        let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = DataRate::BitsPerSec(700);
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
-        assert_eq!(probes.len(), 1);
-
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::BitsPerSec(500),
-            BandwidthLimitedCause::LossLimitedBweIncreasing,
-            clock,
-        );
-        // Expect the controller to send a new probe after 5s has passed.
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
-        assert!(!probes.is_empty());
-        assert_eq!(probes[0].target_data_rate, DataRate::BitsPerSec(700));
-    }
-
-    #[test]
-    fn AlrProbesLimitedByNetworkStateEstimate() {
-        let mut clock = Timestamp::Zero();
-        let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
-            ..Default::default()
-        });
-        assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
-                network_available: true,
-                ..Default::default()
-            })
-            .is_empty());
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::KilobitsPerSec(6),
-            BandwidthLimitedCause::DelayBasedLimited,
-            clock,
-        );
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
-        assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate, MaxBitrate);
-
-        let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = DataRate::BitsPerSec(8000);
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
         assert_eq!(
             probes[0].target_data_rate,
@@ -1834,168 +1789,259 @@ mod test {
     }
 
     #[test]
-    fn CanSetLongerProbeDurationAfterNetworkStateEstimate() {
-        let mut clock = Timestamp::Zero();
+    fn limit_probe_at_upper_network_state_estimate_if_loss_based_limited() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
-            network_state_probe_duration: TimeDelta::Millis(100),
+            network_state_interval: TimeDelta::from_seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            DataRate::KilobitsPerSec(5),
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
+            BandwidthLimitedCause::DelayBasedLimited,
+            clock,
+        );
+        assert!(probes.is_empty());
+        // Expect the controller to send a new probe after 5s has passed.
+        let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
+        state_estimate.link_capacity_upper = DataRate::from_bits_per_sec(700);
+        probe_controller.set_network_state_estimate(state_estimate);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
+        assert_eq!(probes.len(), 1);
+
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_bits_per_sec(500),
+            BandwidthLimitedCause::LossLimitedBweIncreasing,
+            clock,
+        );
+        assert!(probes.is_empty());
+        // Expect the controller to send a new probe after 5s has passed.
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
+        assert!(!probes.is_empty());
+        assert_eq!(probes[0].target_data_rate, DataRate::from_bits_per_sec(700));
+    }
+
+    #[test]
+    fn alr_probes_limited_by_network_state_estimate() {
+        let mut clock = Timestamp::zero();
+        let mut probe_controller = ProbeController::new(ProbeControllerConfig {
+            network_state_interval: TimeDelta::from_seconds(5),
+            ..Default::default()
+        });
+        assert!(probe_controller
+            .on_network_availability(NetworkAvailability {
+                network_available: true,
+                ..Default::default()
+            })
+            .is_empty());
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_kilobits_per_sec(6),
+            BandwidthLimitedCause::DelayBasedLimited,
+            clock,
+        );
+        assert!(probes.is_empty());
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
+        assert_eq!(probes.len(), 1);
+        assert_eq!(probes[0].target_data_rate, MAX_BITRATE);
+
+        let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
+        state_estimate.link_capacity_upper = DataRate::from_bits_per_sec(8000);
+        probe_controller.set_network_state_estimate(state_estimate);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
+        assert_eq!(probes.len(), 1);
+        assert_eq!(
+            probes[0].target_data_rate,
+            state_estimate.link_capacity_upper
+        );
+    }
+
+    #[test]
+    fn can_set_longer_probe_duration_after_network_state_estimate() {
+        let mut clock = Timestamp::zero();
+        let mut probe_controller = ProbeController::new(ProbeControllerConfig {
+            network_state_interval: TimeDelta::from_seconds(5),
+            network_state_probe_duration: TimeDelta::from_millis(100),
+            ..Default::default()
+        });
+        assert!(probe_controller
+            .on_network_availability(NetworkAvailability {
+                network_available: true,
+                ..Default::default()
+            })
+            .is_empty());
+
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            DataRate::from_kilobits_per_sec(5),
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(!probes.is_empty());
-        assert!(probes[0].target_duration < TimeDelta::Millis(100));
+        assert!(probes[0].target_duration < TimeDelta::from_millis(100));
 
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = DataRate::KilobitsPerSec(6);
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        state_estimate.link_capacity_upper = DataRate::from_kilobits_per_sec(6);
+        probe_controller.set_network_state_estimate(state_estimate);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_duration, TimeDelta::Millis(100));
+        assert_eq!(probes[0].target_duration, TimeDelta::from_millis(100));
     }
 
     #[test]
-    fn ProbeInAlrIfLossBasedIncreasing() {
-        let mut clock = Timestamp::Zero();
+    fn probe_in_alr_if_loss_based_increasing() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::LossLimitedBweIncreasing,
             clock,
         );
+        assert!(probes.is_empty());
 
         // Wait long enough to time out exponential probing.
-        clock += ExponentialProbingTimeout;
-        let probes = probe_controller.Process(clock);
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         // Probe when in alr.
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        clock += AlrProbeInterval + TimeDelta::Millis(1);
-        let probes = probe_controller.Process(clock);
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        assert_eq!(probes[0].target_data_rate, 1.5 * StartBitrate);
+        assert_eq!(probes[0].target_data_rate, 1.5 * START_BITRATE);
     }
 
     #[test]
-    fn NotProbeWhenInAlrIfLossBasedDecreases() {
-        let mut clock = Timestamp::Zero();
+    fn not_probe_when_in_alr_if_loss_based_decreases() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::LossLimitedBwe,
             clock,
         );
+        assert!(probes.is_empty());
 
         // Wait long enough to time out exponential probing.
-        clock += ExponentialProbingTimeout;
-        let probes = probe_controller.Process(clock);
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         // Not probe in alr when loss based estimate decreases.
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        clock += AlrProbeInterval + TimeDelta::Millis(1);
-        let probes = probe_controller.Process(clock);
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn NotProbeIfLossBasedIncreasingOutsideAlr() {
-        let mut clock = Timestamp::Zero();
+    fn not_probe_if_loss_based_increasing_outside_alr() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::LossLimitedBweIncreasing,
             clock,
         );
-
-        // Wait long enough to time out exponential probing.
-        clock += ExponentialProbingTimeout;
-        let probes = probe_controller.Process(clock);
         assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(None);
-        clock += AlrProbeInterval + TimeDelta::Millis(1);
-        let probes = probe_controller.Process(clock);
+        // Wait long enough to time out exponential probing.
+        clock += EXPONENTIAL_PROBING_TIMEOUT;
+        let probes = probe_controller.process(clock);
+        assert!(probes.is_empty());
+
+        probe_controller.set_alr_start_time_ms(None);
+        clock += ALR_PROBE_INTERVAL + TimeDelta::from_millis(1);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn ProbeFurtherWhenLossBasedIsSameAsDelayBasedEstimate() {
-        let mut clock = Timestamp::Zero();
+    fn probe_further_when_loss_based_is_same_as_delay_based_estimate() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::from_seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Need to wait at least one second before process can trigger a new probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = 5 * StartBitrate;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        state_estimate.link_capacity_upper = 5 * START_BITRATE;
+        probe_controller.set_network_state_estimate(state_estimate);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
 
         let probe_target_rate: DataRate = probes[0].target_data_rate;
         assert!(probe_target_rate < state_estimate.link_capacity_upper);
         // Expect that more probes are sent if BWE is the same as delay based
         // estimate.
-        let probes = probe_controller.SetEstimatedBitrate(
+        let probes = probe_controller.set_estimated_bitrate(
             probe_target_rate,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
@@ -2005,94 +2051,97 @@ mod test {
     }
 
     #[test]
-    fn ProbeIfEstimateLowerThanNetworkStateEstimate() {
+    fn probe_if_estimate_lower_than_network_state_estimate() {
         // Periodic probe every 1 second if estimate is lower than 50% of the
         // NetworkStateEstimate.
-        let mut clock = Timestamp::Zero();
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            est_lower_than_network_interval: TimeDelta::Seconds(1),
+            est_lower_than_network_interval: TimeDelta::from_seconds(1),
             est_lower_than_network_ratio: 0.5,
             // limit_probe_target_rate_to_loss_bwe: true,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        let probes = probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        assert!(probes.is_empty());
+        let probes = probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
         // Need to wait at least one second before process can trigger a new probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = StartBitrate;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        let probes = probe_controller.Process(clock);
+        state_estimate.link_capacity_upper = START_BITRATE;
+        probe_controller.set_network_state_estimate(state_estimate);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
-        state_estimate.link_capacity_upper = StartBitrate * 3;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        let probes = probe_controller.Process(clock);
+        state_estimate.link_capacity_upper = START_BITRATE * 3;
+        probe_controller.set_network_state_estimate(state_estimate);
+        let probes = probe_controller.process(clock);
         assert_eq!(probes.len(), 1);
-        assert!(probes[0].target_data_rate > StartBitrate);
+        assert!(probes[0].target_data_rate > START_BITRATE);
 
         // If network state not increased, send another probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
 
         // Stop probing if estimate increase. We might probe further here though.
-        let probes = probe_controller.SetEstimatedBitrate(
-            2 * StartBitrate,
+        let probes = probe_controller.set_estimated_bitrate(
+            2 * START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
         // No more periodic probes.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn DontProbeFurtherWhenLossLimited() {
-        let mut clock = Timestamp::Zero();
+    fn dont_probe_further_when_loss_limited() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::from_seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Need to wait at least one second before process can trigger a new probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = 3 * StartBitrate;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        state_estimate.link_capacity_upper = 3 * START_BITRATE;
+        probe_controller.set_network_state_estimate(state_estimate);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
         assert!(probes[0].target_data_rate < state_estimate.link_capacity_upper);
         // Expect that no more probes are sent immediately if BWE is loss limited.
-        let probes = probe_controller.SetEstimatedBitrate(
+        let probes = probe_controller.set_estimated_bitrate(
             probes[0].target_data_rate,
             BandwidthLimitedCause::LossLimitedBwe,
             clock,
@@ -2101,36 +2150,36 @@ mod test {
     }
 
     #[test]
-    fn ProbeFurtherWhenDelayBasedLimited() {
-        let mut clock = Timestamp::Zero();
+    fn probe_further_when_delay_based_limited() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
+            network_state_interval: TimeDelta::from_seconds(5),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Need to wait at least one second before process can trigger a new probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = 3 * StartBitrate;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        state_estimate.link_capacity_upper = 3 * START_BITRATE;
+        probe_controller.set_network_state_estimate(state_estimate);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
         assert!(probes[0].target_data_rate < state_estimate.link_capacity_upper);
         // Since the probe was successfull, expect to continue probing.
-        let probes = probe_controller.SetEstimatedBitrate(
+        let probes = probe_controller.set_estimated_bitrate(
             probes[0].target_data_rate,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
@@ -2143,54 +2192,54 @@ mod test {
     }
 
     #[test]
-    fn ProbeAfterTimeoutIfNetworkStateEstimateIncreaseAfterProbeSent() {
-        let mut clock = Timestamp::Zero();
+    fn probe_after_timeout_if_network_state_estimate_increase_after_probe_sent() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
-            est_lower_than_network_interval: TimeDelta::Seconds(3),
+            network_state_interval: TimeDelta::from_seconds(5),
+            est_lower_than_network_interval: TimeDelta::from_seconds(3),
             est_lower_than_network_ratio: 0.7,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
         state_estimate.link_capacity_upper = 1.2 * probes[0].target_data_rate / 2.0;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
+        probe_controller.set_network_state_estimate(state_estimate);
         // No immediate further probing since probe result is low.
-        let probes = probe_controller.SetEstimatedBitrate(
+        let probes = probe_controller.set_estimated_bitrate(
             probes[0].target_data_rate / 2,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
         assert!(probes[0].target_data_rate <= state_estimate.link_capacity_upper);
         // If the network state estimate increase, even before the probe result,
         // expect a new probe after `est_lower_than_network_interval` timeout.
-        state_estimate.link_capacity_upper = 3 * StartBitrate;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        let probes = probe_controller.SetEstimatedBitrate(
+        state_estimate.link_capacity_upper = 3 * START_BITRATE;
+        probe_controller.set_network_state_estimate(state_estimate);
+        let probes = probe_controller.set_estimated_bitrate(
             probes[0].target_data_rate,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
-        clock += TimeDelta::Seconds(3);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(3);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
 
         // But no more probes if estimate is close to the link capacity.
-        let probes = probe_controller.SetEstimatedBitrate(
+        let probes = probe_controller.set_estimated_bitrate(
             state_estimate.link_capacity_upper * 0.9,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
@@ -2199,347 +2248,349 @@ mod test {
     }
 
     #[test]
-    fn SkipProbeFurtherIfAlreadyProbedToMaxRate() {
-        let mut clock = Timestamp::Zero();
+    fn skip_probe_further_if_already_probed_to_max_rate() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(2),
+            network_state_interval: TimeDelta::from_seconds(2),
             skip_if_est_larger_than_fraction_of_max: 0.9,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
-        probe_controller.SetNetworkStateEstimate(NetworkStateEstimate {
-            link_capacity_upper: 2 * MaxBitrate,
+        probe_controller.set_network_state_estimate(NetworkStateEstimate {
+            link_capacity_upper: 2 * MAX_BITRATE,
             ..Default::default()
         });
 
         // Attempt to probe up to max rate.
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate * 0.8,
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE * 0.8,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(!probes.is_empty());
-        assert_eq!(probes[0].target_data_rate, MaxBitrate);
+        assert_eq!(probes[0].target_data_rate, MAX_BITRATE);
 
         // If the probe result arrives, dont expect a new probe immediately since we
         // already tried to probe at the max rate.
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate * 0.8,
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE * 0.8,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
-        clock += TimeDelta::Millis(1000);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1000);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
         // But when enough time has passed, expect a new probe.
-        clock += TimeDelta::Millis(1000);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1000);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
     }
 
     #[test]
-    fn MaxAllocatedBitrateNotReset() {
-        let clock = Timestamp::Zero();
+    fn max_allocated_bitrate_not_reset() {
+        let clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
-        let probes = probe_controller.OnMaxTotalAllocatedBitrate(StartBitrate / 4, clock);
-        probe_controller.Reset(clock);
+        let probes = probe_controller.on_max_total_allocated_bitrate(START_BITRATE / 4, clock);
+        assert!(probes.is_empty());
+        probe_controller.reset(clock);
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
-        assert_eq!(probes[0].target_data_rate, StartBitrate / 4 * 2);
+        assert_eq!(probes[0].target_data_rate, START_BITRATE / 4 * 2);
     }
 
     #[test]
-    fn SkipAlrProbeIfEstimateLargerThanMaxProbe() {
-        let mut clock = Timestamp::Zero();
+    fn skip_alr_probe_if_estimate_larger_than_max_probe() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             skip_if_est_larger_than_fraction_of_max: 0.9,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate,
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        clock += TimeDelta::Seconds(10);
-        let probes = probe_controller.Process(clock);
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        clock += TimeDelta::from_seconds(10);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         // But if the max rate increase, A new probe is sent.
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, 2 * MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, 2 * MAX_BITRATE, clock);
         assert!(!probes.is_empty());
     }
 
     #[test]
-    fn SkipAlrProbeIfEstimateLargerThanFractionOfMaxAllocated() {
-        let mut clock = Timestamp::Zero();
+    fn skip_alr_probe_if_estimate_larger_than_fraction_of_max_allocated() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             skip_if_est_larger_than_fraction_of_max: 1.0,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.EnablePeriodicAlrProbing(true);
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        probe_controller.enable_periodic_alr_probing(true);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate / 2,
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE / 2,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
+        assert!(probes.is_empty());
 
-        clock += TimeDelta::Seconds(10);
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        let probes = probe_controller.OnMaxTotalAllocatedBitrate(MaxBitrate / 2, clock);
+        clock += TimeDelta::from_seconds(10);
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        let probes = probe_controller.on_max_total_allocated_bitrate(MAX_BITRATE / 2, clock);
         // No probes since total allocated is not higher than the current estimate.
         assert!(probes.is_empty());
-        clock += TimeDelta::Seconds(2);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(2);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         // But if the max allocated increase, A new probe is sent.
         let probes = probe_controller
-            .OnMaxTotalAllocatedBitrate(MaxBitrate / 2 + DataRate::BitsPerSec(1), clock);
+            .on_max_total_allocated_bitrate(MAX_BITRATE / 2 + DataRate::from_bits_per_sec(1), clock);
         assert!(!probes.is_empty());
     }
 
     #[test]
-    fn SkipNetworkStateProbeIfEstimateLargerThanMaxProbe() {
-        let mut clock = Timestamp::Zero();
+    fn skip_network_state_probe_if_estimate_larger_than_max_probe() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(2),
+            network_state_interval: TimeDelta::from_seconds(2),
             skip_if_est_larger_than_fraction_of_max: 0.9,
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
-        probe_controller.SetNetworkStateEstimate(NetworkStateEstimate {
-            link_capacity_upper: 2 * MaxBitrate,
+        probe_controller.set_network_state_estimate(NetworkStateEstimate {
+            link_capacity_upper: 2 * MAX_BITRATE,
             ..Default::default()
         });
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate,
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
-        clock += TimeDelta::Seconds(10);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(10);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn SendsProbeIfNetworkStateEstimateLowerThanMaxProbe() {
-        let mut clock = Timestamp::Zero();
+    fn sends_probe_if_network_state_estimate_lower_than_max_probe() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(2),
+            network_state_interval: TimeDelta::from_seconds(2),
             skip_if_est_larger_than_fraction_of_max: 0.9,
-            network_state_probe_duration: TimeDelta::Millis(100),
-            network_state_min_probe_delta: TimeDelta::Millis(20),
+            network_state_probe_duration: TimeDelta::from_millis(100),
+            network_state_min_probe_delta: TimeDelta::from_millis(20),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
-        probe_controller.SetNetworkStateEstimate(NetworkStateEstimate {
-            link_capacity_upper: 2 * MaxBitrate,
+        probe_controller.set_network_state_estimate(NetworkStateEstimate {
+            link_capacity_upper: 2 * MAX_BITRATE,
             ..Default::default()
         });
-        let probes = probe_controller.SetEstimatedBitrate(
-            MaxBitrate,
+        let probes = probe_controller.set_estimated_bitrate(
+            MAX_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
 
         // Need to wait at least two seconds before process can trigger a new probe.
-        clock += TimeDelta::Millis(2100);
+        clock += TimeDelta::from_millis(2100);
 
-        let probes = probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        let probes = probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
         assert!(probes.is_empty());
-        probe_controller.SetNetworkStateEstimate(NetworkStateEstimate {
-            link_capacity_upper: 2 * StartBitrate,
+        probe_controller.set_network_state_estimate(NetworkStateEstimate {
+            link_capacity_upper: 2 * START_BITRATE,
             ..Default::default()
         });
-        let probes = probe_controller.Process(clock);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
-        assert!(probes[0].target_data_rate <= 2 * StartBitrate);
+        assert!(probes[0].target_data_rate <= 2 * START_BITRATE);
         // Expect probe durations to be picked from field trial probe target is lower
         // or equal to the network state estimate.
-        assert_eq!(probes[0].min_probe_delta, TimeDelta::Millis(20));
-        assert_eq!(probes[0].target_duration, TimeDelta::Millis(100));
+        assert_eq!(probes[0].min_probe_delta, TimeDelta::from_millis(20));
+        assert_eq!(probes[0].target_duration, TimeDelta::from_millis(100));
     }
 
     #[test]
-    fn ProbeNotLimitedByNetworkStateEsimateIfLowerThantCurrent() {
-        let mut clock = Timestamp::Zero();
+    fn probe_not_limited_by_network_state_esimate_if_lower_thant_current() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
-            network_state_interval: TimeDelta::Seconds(5),
-            network_state_probe_duration: TimeDelta::Millis(100),
-            network_state_min_probe_delta: TimeDelta::Millis(20),
+            network_state_interval: TimeDelta::from_seconds(5),
+            network_state_probe_duration: TimeDelta::from_millis(100),
+            network_state_min_probe_delta: TimeDelta::from_millis(20),
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
-        probe_controller.EnablePeriodicAlrProbing(true);
-        probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
-        probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        probe_controller.enable_periodic_alr_probing(true);
+        probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
+        probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimited,
             clock,
         );
-        probe_controller.SetNetworkStateEstimate(NetworkStateEstimate {
-            link_capacity_upper: StartBitrate,
+        probe_controller.set_network_state_estimate(NetworkStateEstimate {
+            link_capacity_upper: START_BITRATE,
             ..Default::default()
         });
         // Need to wait at least one second before process can trigger a new probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
-        probe_controller.SetAlrStartTimeMs(Some(clock.ms()));
-        probe_controller.SetNetworkStateEstimate(NetworkStateEstimate {
-            link_capacity_upper: StartBitrate / 2,
+        probe_controller.set_alr_start_time_ms(Some(clock.ms()));
+        probe_controller.set_network_state_estimate(NetworkStateEstimate {
+            link_capacity_upper: START_BITRATE / 2,
             ..Default::default()
         });
-        clock += TimeDelta::Seconds(6);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(6);
+        let probes = probe_controller.process(clock);
         assert!(!probes.is_empty());
-        assert_eq!(probes[0].target_data_rate, StartBitrate);
+        assert_eq!(probes[0].target_data_rate, START_BITRATE);
         // Expect probe durations to be default since network state estimate is lower
         // than the probe rate.
-        assert_eq!(probes[0].min_probe_delta, TimeDelta::Millis(2));
-        assert_eq!(probes[0].target_duration, TimeDelta::Millis(15));
+        assert_eq!(probes[0].min_probe_delta, TimeDelta::from_millis(2));
+        assert_eq!(probes[0].target_duration, TimeDelta::from_millis(15));
     }
 
     #[test]
-    fn DontProbeIfDelayIncreased() {
-        let mut clock = Timestamp::Zero();
+    fn dont_probe_if_delay_increased() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Need to wait at least one second before process can trigger a new probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = 3 * StartBitrate;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        let probes = probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        state_estimate.link_capacity_upper = 3 * START_BITRATE;
+        probe_controller.set_network_state_estimate(state_estimate);
+        let probes = probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::DelayBasedLimitedDelayIncreased,
             clock,
         );
         assert!(probes.is_empty());
 
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
     }
 
     #[test]
-    fn DontProbeIfHighRtt() {
-        let mut clock = Timestamp::Zero();
+    fn dont_probe_if_high_rtt() {
+        let mut clock = Timestamp::zero();
         let mut probe_controller = ProbeController::new(ProbeControllerConfig {
             ..Default::default()
         });
         assert!(probe_controller
-            .OnNetworkAvailability(NetworkAvailability {
+            .on_network_availability(NetworkAvailability {
                 network_available: true,
                 ..Default::default()
             })
             .is_empty());
 
-        let probes = probe_controller.SetBitrates(MinBitrate, StartBitrate, MaxBitrate, clock);
+        let probes = probe_controller.set_bitrates(MIN_BITRATE, START_BITRATE, MAX_BITRATE, clock);
         assert!(!probes.is_empty());
 
         // Need to wait at least one second before process can trigger a new probe.
-        clock += TimeDelta::Millis(1100);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_millis(1100);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
         let mut state_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        state_estimate.link_capacity_upper = 3 * StartBitrate;
-        probe_controller.SetNetworkStateEstimate(state_estimate);
-        let probes = probe_controller.SetEstimatedBitrate(
-            StartBitrate,
+        state_estimate.link_capacity_upper = 3 * START_BITRATE;
+        probe_controller.set_network_state_estimate(state_estimate);
+        let probes = probe_controller.set_estimated_bitrate(
+            START_BITRATE,
             BandwidthLimitedCause::RttBasedBackOffHighRtt,
             clock,
         );
         assert!(probes.is_empty());
 
-        clock += TimeDelta::Seconds(5);
-        let probes = probe_controller.Process(clock);
+        clock += TimeDelta::from_seconds(5);
+        let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
     }
 }

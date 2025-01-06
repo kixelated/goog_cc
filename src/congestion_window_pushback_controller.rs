@@ -44,23 +44,23 @@ impl CongestionWindowPushbackController {
         Self {
             add_pacing: field_trials.add_pacing_to_congestion_window_pushback,
             min_pushback_target_bitrate_bps: rate_control_settings
-                .CongestionWindowMinPushbackTargetBitrateBps(),
-            current_data_window: rate_control_settings.CongestionWindowInitialDataWindow(),
+                .congestion_window_min_pushback_target_bitrate_bps(),
+            current_data_window: rate_control_settings.congestion_window_initial_data_window(),
             outstanding_bytes: 0,
             pacing_bytes: 0,
             encoding_rate_ratio: 1.0,
         }
     }
 
-    pub fn UpdateOutstandingData(&mut self, outstanding_bytes: i64) {
+    pub fn update_outstanding_data(&mut self, outstanding_bytes: i64) {
         self.outstanding_bytes = outstanding_bytes;
     }
-    pub fn UpdatePacingQueue(&mut self, pacing_bytes: i64) {
+    pub fn update_pacing_queue(&mut self, pacing_bytes: i64) {
         self.pacing_bytes = pacing_bytes;
     }
-    pub fn UpdateTargetBitrate(&mut self, mut bitrate_bps: u32) -> u32 {
+    pub fn update_target_bitrate(&mut self, mut bitrate_bps: u32) -> u32 {
         let data_window = match self.current_data_window {
-            Some(data_window) if !data_window.IsZero() => data_window,
+            Some(data_window) if !data_window.is_zero() => data_window,
             _ => return bitrate_bps,
         };
         let mut total_bytes: i64 = self.outstanding_bytes;
@@ -91,7 +91,7 @@ impl CongestionWindowPushbackController {
         bitrate_bps
     }
 
-    pub fn SetDataWindow(&mut self, data_window: DataSize) {
+    pub fn set_data_window(&mut self, data_window: DataSize) {
         self.current_data_window = Some(data_window);
     }
 }
@@ -101,83 +101,83 @@ mod test {
     use super::*;
 
     #[test]
-    fn FullCongestionWindow() {
+    fn full_congestion_window() {
         let mut cwnd_controller = CongestionWindowPushbackController::default();
 
-        cwnd_controller.UpdateOutstandingData(100000);
-        cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
+        cwnd_controller.update_outstanding_data(100000);
+        cwnd_controller.set_data_window(DataSize::from_bytes(50000));
 
         let mut bitrate_bps: u32 = 80000;
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert_eq!(72000, bitrate_bps);
 
-        cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        cwnd_controller.set_data_window(DataSize::from_bytes(50000));
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert_eq!((72000.0 * 0.9 * 0.9) as u32, bitrate_bps);
     }
 
     #[test]
-    fn NormalCongestionWindow() {
+    fn normal_congestion_window() {
         let mut cwnd_controller = CongestionWindowPushbackController::default();
 
-        cwnd_controller.UpdateOutstandingData(199999);
-        cwnd_controller.SetDataWindow(DataSize::Bytes(200000));
+        cwnd_controller.update_outstanding_data(199999);
+        cwnd_controller.set_data_window(DataSize::from_bytes(200000));
 
         let mut bitrate_bps: u32 = 80000;
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert_eq!(80000, bitrate_bps);
     }
 
     #[test]
-    fn LowBitrate() {
+    fn low_bitrate() {
         let mut cwnd_controller = CongestionWindowPushbackController::default();
 
-        cwnd_controller.UpdateOutstandingData(100000);
-        cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
+        cwnd_controller.update_outstanding_data(100000);
+        cwnd_controller.set_data_window(DataSize::from_bytes(50000));
 
         let mut bitrate_bps: u32 = 35000;
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert_eq!((35000.0 * 0.9) as u32, bitrate_bps);
 
-        cwnd_controller.SetDataWindow(DataSize::Bytes(20000));
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        cwnd_controller.set_data_window(DataSize::from_bytes(20000));
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert_eq!(30000, bitrate_bps);
     }
 
     #[test]
-    fn NoPushbackOnDataWindowUnset() {
+    fn no_pushback_on_data_window_unset() {
         let mut cwnd_controller = CongestionWindowPushbackController::default();
 
-        cwnd_controller.UpdateOutstandingData(100_000_000); // Large number
+        cwnd_controller.update_outstanding_data(100_000_000); // Large number
 
         let mut bitrate_bps: u32 = 80000;
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert_eq!(80000, bitrate_bps);
     }
 
     #[test]
-    fn PushbackOnInititialDataWindow() {
+    fn pushback_on_inititial_data_window() {
         let mut cwnd_controller = CongestionWindowPushbackController::default();
-        cwnd_controller.SetDataWindow(DataSize::Bytes(100000));
-        cwnd_controller.UpdateOutstandingData(100_000_000); // Large number
+        cwnd_controller.set_data_window(DataSize::from_bytes(100000));
+        cwnd_controller.update_outstanding_data(100_000_000); // Large number
 
         let mut bitrate_bps: u32 = 80000;
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert!(80000 > bitrate_bps);
     }
 
     #[test]
-    fn PushbackDropFrame() {
+    fn pushback_drop_frame() {
         let mut cwnd_controller = CongestionWindowPushbackController::default();
         // Not sure what this is meant to test.  The DropFrame field is not used.
         //CongestionWindowPushbackController cwnd_controller(
         //    ExplicitKeyValueConfig("WebRTC-CongestionWindow/DropFrame:true/"));
 
-        cwnd_controller.UpdateOutstandingData(100_000_000); // Large number
-        cwnd_controller.SetDataWindow(DataSize::Bytes(50000));
+        cwnd_controller.update_outstanding_data(100_000_000); // Large number
+        cwnd_controller.set_data_window(DataSize::from_bytes(50000));
 
         let mut bitrate_bps: u32 = 80000;
-        bitrate_bps = cwnd_controller.UpdateTargetBitrate(bitrate_bps);
+        bitrate_bps = cwnd_controller.update_target_bitrate(bitrate_bps);
         assert!(80000 > bitrate_bps);
     }
 }

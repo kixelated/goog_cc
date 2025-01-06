@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use crate::api::units::LatestTimestamp;
+use crate::api::units::latest_timestamp;
 
 #[derive(Clone, Copy, Debug)]
 struct TimestampGroup {
@@ -20,7 +20,7 @@ struct TimestampGroup {
     pub last_system_time_ms: i64,
 }
 impl TimestampGroup {
-    pub fn IsFirstPacket(&self) -> bool {
+    pub fn is_first_packet(&self) -> bool {
         self.complete_time_ms == -1
     }
 }
@@ -52,11 +52,11 @@ pub struct InterArrival {
 impl InterArrival {
     // After this many packet groups received out of order InterArrival will
     // reset, assuming that clocks have made a jump.
-    pub const ReorderedResetThreshold: usize = 3;
-    pub const ArrivalTimeOffsetThresholdMs: i64 = 3000;
+    pub const REORDERED_RESET_THRESHOLD: usize = 3;
+    pub const ARRIVAL_TIME_OFFSET_THRESHOLD_MS: i64 = 3000;
 
-    const BurstDeltaThresholdMs: i64 = 5;
-    const MaxBurstDurationMs: i64 = 100;
+    const BURST_DELTA_THRESHOLD_MS: i64 = 5;
+    const MAX_BURST_DURATION_MS: i64 = 100;
 
     // A timestamp group is defined as all packets with a timestamp which are at
     // most timestamp_group_length_ticks older than the first timestamp in that
@@ -79,7 +79,7 @@ impl InterArrival {
     // `timestamp_delta` (output) is the computed timestamp delta.
     // `arrival_time_delta_ms` (output) is the computed arrival-time delta.
     // `packet_size_delta` (output) is the computed size delta.
-    pub fn ComputeDeltas(
+    pub fn compute_deltas(
         &mut self,
         timestamp: u32,
         arrival_time_ms: i64,
@@ -90,15 +90,15 @@ impl InterArrival {
         packet_size_delta: &mut i64,
     ) -> bool {
         let mut calculated_deltas = false;
-        if self.current_timestamp_group.IsFirstPacket() {
+        if self.current_timestamp_group.is_first_packet() {
             // We don't have enough data to update the filter, so we store it until we
             // have two frames of data to process.
             self.current_timestamp_group.timestamp = timestamp;
             self.current_timestamp_group.first_timestamp = timestamp;
             self.current_timestamp_group.first_arrival_ms = arrival_time_ms;
-        } else if !self.PacketInOrder(timestamp) {
+        } else if !self.packet_in_order(timestamp) {
             return false;
-        } else if self.NewTimestampGroup(arrival_time_ms, timestamp) {
+        } else if self.new_timestamp_group(arrival_time_ms, timestamp) {
             // First packet of a later frame, the previous frame sample is ready.
             if self.prev_timestamp_group.complete_time_ms >= 0 {
                 *timestamp_delta = self
@@ -112,26 +112,26 @@ impl InterArrival {
                 let system_time_delta_ms: i64 = self.current_timestamp_group.last_system_time_ms
                     - self.prev_timestamp_group.last_system_time_ms;
                 if *arrival_time_delta_ms - system_time_delta_ms
-                    >= Self::ArrivalTimeOffsetThresholdMs
+                    >= Self::ARRIVAL_TIME_OFFSET_THRESHOLD_MS
                 {
                     tracing::warn!(
                         "The arrival time clock offset has changed (diff = {} ms), resetting.",
                         *arrival_time_delta_ms - system_time_delta_ms
                     );
-                    self.Reset();
+                    self.reset();
                     return false;
                 }
                 if *arrival_time_delta_ms < 0 {
                     // The group of packets has been reordered since receiving its local
                     // arrival timestamp.
                     self.num_consecutive_reordered_packets += 1;
-                    if self.num_consecutive_reordered_packets >= Self::ReorderedResetThreshold {
+                    if self.num_consecutive_reordered_packets >= Self::REORDERED_RESET_THRESHOLD {
                         tracing::warn!(
                             "Packets are being reordered on the path from the
                  socket to the bandwidth estimator. Ignoring this
                  packet for bandwidth estimation, resetting."
                         );
-                        self.Reset();
+                        self.reset();
                     }
                     return false;
                 } else {
@@ -150,7 +150,7 @@ impl InterArrival {
             self.current_timestamp_group.size = 0;
         } else {
             self.current_timestamp_group.timestamp =
-                LatestTimestamp(self.current_timestamp_group.timestamp, timestamp);
+                latest_timestamp(self.current_timestamp_group.timestamp, timestamp);
         }
         // Accumulate the frame size.
         self.current_timestamp_group.size += packet_size;
@@ -161,8 +161,8 @@ impl InterArrival {
     }
 
     // Returns true if the packet with timestamp `timestamp` arrived in order.
-    fn PacketInOrder(&self, timestamp: u32) -> bool {
-        if self.current_timestamp_group.IsFirstPacket() {
+    fn packet_in_order(&self, timestamp: u32) -> bool {
+        if self.current_timestamp_group.is_first_packet() {
             true
         } else {
             // Assume that a diff which is bigger than half the timestamp interval
@@ -176,10 +176,10 @@ impl InterArrival {
 
     // Returns true if the last packet was the end of the current batch and the
     // packet with `timestamp` is the first of a new batch.
-    fn NewTimestampGroup(&self, arrival_time_ms: i64, timestamp: u32) -> bool {
-        if self.current_timestamp_group.IsFirstPacket() {
+    fn new_timestamp_group(&self, arrival_time_ms: i64, timestamp: u32) -> bool {
+        if self.current_timestamp_group.is_first_packet() {
             false
-        } else if self.BelongsToBurst(arrival_time_ms, timestamp) {
+        } else if self.belongs_to_burst(arrival_time_ms, timestamp) {
             return false;
         } else {
             let timestamp_diff: u32 =
@@ -188,7 +188,7 @@ impl InterArrival {
         }
     }
 
-    fn BelongsToBurst(&self, arrival_time_ms: i64, timestamp: u32) -> bool {
+    fn belongs_to_burst(&self, arrival_time_ms: i64, timestamp: u32) -> bool {
         assert!(self.current_timestamp_group.complete_time_ms >= 0);
         let arrival_time_delta_ms: i64 =
             arrival_time_ms - self.current_timestamp_group.complete_time_ms;
@@ -199,16 +199,16 @@ impl InterArrival {
         }
         let propagation_delta_ms: i64 = arrival_time_delta_ms - ts_delta_ms;
         if propagation_delta_ms < 0
-            && arrival_time_delta_ms <= Self::BurstDeltaThresholdMs
+            && arrival_time_delta_ms <= Self::BURST_DELTA_THRESHOLD_MS
             && arrival_time_ms - self.current_timestamp_group.first_arrival_ms
-                < Self::MaxBurstDurationMs
+                < Self::MAX_BURST_DURATION_MS
         {
             return true;
         }
         false
     }
 
-    fn Reset(&mut self) {
+    fn reset(&mut self) {
         self.num_consecutive_reordered_packets = 0;
         self.current_timestamp_group = TimestampGroup::default();
         self.prev_timestamp_group = TimestampGroup::default();
@@ -221,16 +221,16 @@ mod test {
 
     use super::*;
 
-    const TimestampGroupLengthUs: i64 = 5000;
-    const MinStep: i64 = 20;
-    const TriggerNewGroupUs: i64 = TimestampGroupLengthUs + MinStep;
-    const BurstThresholdMs: i64 = 5;
-    const AbsSendTimeFraction: i64 = 18;
-    const AbsSendTimeInterArrivalUpshift: i64 = 8;
-    const InterArrivalShift: i64 = AbsSendTimeFraction + AbsSendTimeInterArrivalUpshift;
+    const TIMESTAMP_GROUP_LENGTH_US: i64 = 5000;
+    const MIN_STEP: i64 = 20;
+    const TRIGGER_NEW_GROUP_US: i64 = TIMESTAMP_GROUP_LENGTH_US + MIN_STEP;
+    const BURST_THRESHOLD_MS: i64 = 5;
+    const ABS_SEND_TIME_FRACTION: i64 = 18;
+    const ABS_SEND_TIME_INTER_ARRIVAL_UPSHIFT: i64 = 8;
+    const INTER_ARRIVAL_SHIFT: i64 = ABS_SEND_TIME_FRACTION + ABS_SEND_TIME_INTER_ARRIVAL_UPSHIFT;
 
-    const RtpTimestampToMs: f64 = 1.0 / 90.0;
-    const AstToMs: f64 = 1000.0 / (1 << InterArrivalShift) as f64;
+    const RTP_TIMESTAMP_TO_MS: f64 = 1.0 / 90.0;
+    const AST_TO_MS: f64 = 1000.0 / (1 << INTER_ARRIVAL_SHIFT) as f64;
 
     struct InterArrivalTest {
         pub inter_arrival: InterArrival,
@@ -241,29 +241,29 @@ mod test {
     impl InterArrivalTest {
         pub fn new() -> Self {
             Self {
-                inter_arrival: InterArrival::new((TimestampGroupLengthUs / 1000) as u32, 1.0),
+                inter_arrival: InterArrival::new((TIMESTAMP_GROUP_LENGTH_US / 1000) as u32, 1.0),
                 inter_arrival_rtp: InterArrival::new(
-                    Self::MakeRtpTimestamp(TimestampGroupLengthUs),
-                    RtpTimestampToMs,
+                    Self::make_rtp_timestamp(TIMESTAMP_GROUP_LENGTH_US),
+                    RTP_TIMESTAMP_TO_MS,
                 ),
                 inter_arrival_ast: InterArrival::new(
-                    Self::MakeAbsSendTime(TimestampGroupLengthUs),
-                    AstToMs,
+                    Self::make_abs_send_time(TIMESTAMP_GROUP_LENGTH_US),
+                    AST_TO_MS,
                 ),
             }
         }
         // Test that neither inter_arrival instance complete the timestamp group from
         // the given data.
-        pub fn ExpectFalse(&mut self, timestamp_us: i64, arrival_time_ms: i64, packet_size: usize) {
-            Self::InternalExpectFalse(
+        pub fn expect_false(&mut self, timestamp_us: i64, arrival_time_ms: i64, packet_size: usize) {
+            Self::internal_expect_false(
                 &mut self.inter_arrival_rtp,
-                Self::MakeRtpTimestamp(timestamp_us),
+                Self::make_rtp_timestamp(timestamp_us),
                 arrival_time_ms,
                 packet_size,
             );
-            Self::InternalExpectFalse(
+            Self::internal_expect_false(
                 &mut self.inter_arrival_ast,
-                Self::MakeAbsSendTime(timestamp_us),
+                Self::make_abs_send_time(timestamp_us),
                 arrival_time_ms,
                 packet_size,
             );
@@ -273,7 +273,7 @@ mod test {
         // the given data and that all returned deltas are as expected (except
         // delta: Timestamp, which is rounded from us to different ranges and must
         // match within an interval, given in |timestamp_near].
-        pub fn ExpectTrue(
+        pub fn expect_true(
             &mut self,
             timestamp_us: i64,
             arrival_time_ms: i64,
@@ -283,29 +283,29 @@ mod test {
             expected_packet_size_delta: i64,
             timestamp_near: u32,
         ) {
-            Self::InternalExpectTrue(
+            Self::internal_expect_true(
                 &mut self.inter_arrival_rtp,
-                Self::MakeRtpTimestamp(timestamp_us),
+                Self::make_rtp_timestamp(timestamp_us),
                 arrival_time_ms,
                 packet_size,
-                Self::MakeRtpTimestamp(expected_timestamp_delta_us),
+                Self::make_rtp_timestamp(expected_timestamp_delta_us),
                 expected_arrival_time_delta_ms,
                 expected_packet_size_delta,
                 timestamp_near,
             );
-            Self::InternalExpectTrue(
+            Self::internal_expect_true(
                 &mut self.inter_arrival_ast,
-                Self::MakeAbsSendTime(timestamp_us),
+                Self::make_abs_send_time(timestamp_us),
                 arrival_time_ms,
                 packet_size,
-                Self::MakeAbsSendTime(expected_timestamp_delta_us),
+                Self::make_abs_send_time(expected_timestamp_delta_us),
                 expected_arrival_time_delta_ms,
                 expected_packet_size_delta,
                 timestamp_near << 8,
             );
         }
 
-        pub fn WrapTestHelper(
+        pub fn wrap_test_helper(
             &mut self,
             wrap_start_us: i64,
             timestamp_near: u32,
@@ -316,15 +316,15 @@ mod test {
 
             // G1
             let mut arrival_time: i64 = 17;
-            self.ExpectFalse(0, arrival_time, 1);
+            self.expect_false(0, arrival_time, 1);
 
             // G2
-            arrival_time += BurstThresholdMs + 1;
-            self.ExpectFalse(wrap_start_us / 4, arrival_time, 1);
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            self.expect_false(wrap_start_us / 4, arrival_time, 1);
 
             // G3
-            arrival_time += BurstThresholdMs + 1;
-            self.ExpectTrue(
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            self.expect_true(
                 wrap_start_us / 2,
                 arrival_time,
                 1,
@@ -335,9 +335,9 @@ mod test {
             );
 
             // G4
-            arrival_time += BurstThresholdMs + 1;
+            arrival_time += BURST_THRESHOLD_MS + 1;
             let g4_arrival_time: i64 = arrival_time;
-            self.ExpectTrue(
+            self.expect_true(
                 wrap_start_us / 2 + wrap_start_us / 4,
                 arrival_time,
                 1,
@@ -348,8 +348,8 @@ mod test {
             );
 
             // G5
-            arrival_time += BurstThresholdMs + 1;
-            self.ExpectTrue(
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            self.expect_true(
                 wrap_start_us,
                 arrival_time,
                 2,
@@ -360,65 +360,65 @@ mod test {
             );
             for i in 0..10 {
                 // Slowly step across the wrap point.
-                arrival_time += BurstThresholdMs + 1;
+                arrival_time += BURST_THRESHOLD_MS + 1;
                 if unorderly_within_group {
                     // These packets arrive with timestamps in decreasing order but are
                     // nevertheless accumulated to group because their timestamps are higher
                     // than the initial timestamp of the group.
-                    self.ExpectFalse(wrap_start_us + MinStep * (9 - i), arrival_time, 1);
+                    self.expect_false(wrap_start_us + MIN_STEP * (9 - i), arrival_time, 1);
                 } else {
-                    self.ExpectFalse(wrap_start_us + MinStep * i, arrival_time, 1);
+                    self.expect_false(wrap_start_us + MIN_STEP * i, arrival_time, 1);
                 }
             }
             let g5_arrival_time: i64 = arrival_time;
 
             // This packet is out of order and should be dropped.
-            arrival_time += BurstThresholdMs + 1;
-            self.ExpectFalse(wrap_start_us - 100, arrival_time, 100);
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            self.expect_false(wrap_start_us - 100, arrival_time, 100);
 
             // G6
-            arrival_time += BurstThresholdMs + 1;
+            arrival_time += BURST_THRESHOLD_MS + 1;
             let g6_arrival_time: i64 = arrival_time;
 
-            self.ExpectTrue(
-                wrap_start_us + TriggerNewGroupUs,
+            self.expect_true(
+                wrap_start_us + TRIGGER_NEW_GROUP_US,
                 arrival_time,
                 10,
-                wrap_start_us / 4 + 9 * MinStep,
+                wrap_start_us / 4 + 9 * MIN_STEP,
                 g5_arrival_time - g4_arrival_time,
                 (2 + 10) - 1, // Delta G5-G4
                 timestamp_near,
             );
 
             // This packet is out of order and should be dropped.
-            arrival_time += BurstThresholdMs + 1;
-            self.ExpectFalse(wrap_start_us + TimestampGroupLengthUs, arrival_time, 100);
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            self.expect_false(wrap_start_us + TIMESTAMP_GROUP_LENGTH_US, arrival_time, 100);
 
             // G7
-            arrival_time += BurstThresholdMs + 1;
-            self.ExpectTrue(
-                wrap_start_us + 2 * TriggerNewGroupUs,
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            self.expect_true(
+                wrap_start_us + 2 * TRIGGER_NEW_GROUP_US,
                 arrival_time,
                 100,
                 // Delta G6-G5
-                TriggerNewGroupUs - 9 * MinStep,
+                TRIGGER_NEW_GROUP_US - 9 * MIN_STEP,
                 g6_arrival_time - g5_arrival_time,
                 10 - (2 + 10),
                 timestamp_near,
             );
         }
 
-        fn MakeRtpTimestamp(us: i64) -> u32 {
+        fn make_rtp_timestamp(us: i64) -> u32 {
             ((us * 90 + 500) as u64 / 1000) as u32
         }
 
-        fn MakeAbsSendTime(us: i64) -> u32 {
+        fn make_abs_send_time(us: i64) -> u32 {
             let absolute_send_time: u32 =
                 ((((us as u64) << 18) + 500000) / 1000000) as u32 & 0x00FFFFFF;
             absolute_send_time << 8
         }
 
-        fn InternalExpectFalse(
+        fn internal_expect_false(
             inter_arrival: &mut InterArrival,
             timestamp: u32,
             arrival_time_ms: i64,
@@ -427,7 +427,7 @@ mod test {
             let mut dummy_timestamp: u32 = 101;
             let mut dummy_arrival_time_ms: i64 = 303;
             let mut dummy_packet_size: i64 = 909;
-            let computed: bool = inter_arrival.ComputeDeltas(
+            let computed: bool = inter_arrival.compute_deltas(
                 timestamp,
                 arrival_time_ms,
                 arrival_time_ms,
@@ -442,7 +442,7 @@ mod test {
             assert_eq!(909, dummy_packet_size);
         }
 
-        fn InternalExpectTrue(
+        fn internal_expect_true(
             inter_arrival: &mut InterArrival,
             timestamp: u32,
             arrival_time_ms: i64,
@@ -455,7 +455,7 @@ mod test {
             let mut delta_timestamp: u32 = 101;
             let mut delta_arrival_time_ms: i64 = 303;
             let mut delta_packet_size: i64 = 909;
-            let computed: bool = inter_arrival.ComputeDeltas(
+            let computed: bool = inter_arrival.compute_deltas(
                 timestamp,
                 arrival_time_ms,
                 arrival_time_ms,
@@ -476,34 +476,34 @@ mod test {
     }
 
     #[test]
-    fn FirstPacket() {
+    fn first_packet() {
         let mut test = InterArrivalTest::new();
-        test.ExpectFalse(0, 17, 1);
+        test.expect_false(0, 17, 1);
     }
 
     #[test]
-    fn FirstGroup() {
+    fn first_group() {
         let mut test = InterArrivalTest::new();
         // G1
         let mut arrival_time: i64 = 17;
         let g1_arrival_time: i64 = arrival_time;
-        test.ExpectFalse(0, arrival_time, 1);
+        test.expect_false(0, arrival_time, 1);
 
         // G2
-        arrival_time += BurstThresholdMs + 1;
+        arrival_time += BURST_THRESHOLD_MS + 1;
         let g2_arrival_time: i64 = arrival_time;
-        test.ExpectFalse(TriggerNewGroupUs, arrival_time, 2);
+        test.expect_false(TRIGGER_NEW_GROUP_US, arrival_time, 2);
 
         // G3
         // Only once the first packet of the third group arrives, do we see the deltas
         // between the first two.
-        arrival_time += BurstThresholdMs + 1;
-        test.ExpectTrue(
-            2 * TriggerNewGroupUs,
+        arrival_time += BURST_THRESHOLD_MS + 1;
+        test.expect_true(
+            2 * TRIGGER_NEW_GROUP_US,
             arrival_time,
             1,
             // Delta G2-G1
-            TriggerNewGroupUs,
+            TRIGGER_NEW_GROUP_US,
             g2_arrival_time - g1_arrival_time,
             1,
             0,
@@ -511,27 +511,27 @@ mod test {
     }
 
     #[test]
-    fn SecondGroup() {
+    fn second_group() {
         let mut test = InterArrivalTest::new();
         // G1
         let mut arrival_time: i64 = 17;
         let g1_arrival_time: i64 = arrival_time;
-        test.ExpectFalse(0, arrival_time, 1);
+        test.expect_false(0, arrival_time, 1);
 
         // G2
-        arrival_time += BurstThresholdMs + 1;
+        arrival_time += BURST_THRESHOLD_MS + 1;
         let g2_arrival_time: i64 = arrival_time;
-        test.ExpectFalse(TriggerNewGroupUs, arrival_time, 2);
+        test.expect_false(TRIGGER_NEW_GROUP_US, arrival_time, 2);
 
         // G3
-        arrival_time += BurstThresholdMs + 1;
+        arrival_time += BURST_THRESHOLD_MS + 1;
         let g3_arrival_time: i64 = arrival_time;
-        test.ExpectTrue(
-            2 * TriggerNewGroupUs,
+        test.expect_true(
+            2 * TRIGGER_NEW_GROUP_US,
             arrival_time,
             1,
             // Delta G2-G1
-            TriggerNewGroupUs,
+            TRIGGER_NEW_GROUP_US,
             g2_arrival_time - g1_arrival_time,
             1,
             0,
@@ -539,13 +539,13 @@ mod test {
 
         // G4
         // First packet of 4th group yields deltas between group 2 and 3.
-        arrival_time += BurstThresholdMs + 1;
-        test.ExpectTrue(
-            3 * TriggerNewGroupUs,
+        arrival_time += BURST_THRESHOLD_MS + 1;
+        test.expect_true(
+            3 * TRIGGER_NEW_GROUP_US,
             arrival_time,
             2,
             // Delta G3-G2
-            TriggerNewGroupUs,
+            TRIGGER_NEW_GROUP_US,
             g3_arrival_time - g2_arrival_time,
             -1,
             0,
@@ -553,30 +553,30 @@ mod test {
     }
 
     #[test]
-    fn AccumulatedGroup() {
+    fn accumulated_group() {
         let mut test = InterArrivalTest::new();
         // G1
         let mut arrival_time: i64 = 17;
         let g1_arrival_time: i64 = arrival_time;
-        test.ExpectFalse(0, arrival_time, 1);
+        test.expect_false(0, arrival_time, 1);
 
         // G2
-        arrival_time += BurstThresholdMs + 1;
-        test.ExpectFalse(TriggerNewGroupUs, 28, 2);
-        let mut timestamp: i64 = TriggerNewGroupUs;
-        for i in 0..10 {
+        arrival_time += BURST_THRESHOLD_MS + 1;
+        test.expect_false(TRIGGER_NEW_GROUP_US, 28, 2);
+        let mut timestamp: i64 = TRIGGER_NEW_GROUP_US;
+        for _ in 0..10 {
             // A bunch of packets arriving within the same group.
-            arrival_time += BurstThresholdMs + 1;
-            timestamp += MinStep;
-            test.ExpectFalse(timestamp, arrival_time, 1);
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            timestamp += MIN_STEP;
+            test.expect_false(timestamp, arrival_time, 1);
         }
         let g2_arrival_time: i64 = arrival_time;
         let g2_timestamp: i64 = timestamp;
 
         // G3
         arrival_time = 500;
-        test.ExpectTrue(
-            2 * TriggerNewGroupUs,
+        test.expect_true(
+            2 * TRIGGER_NEW_GROUP_US,
             arrival_time,
             100,
             g2_timestamp,
@@ -587,35 +587,35 @@ mod test {
     }
 
     #[test]
-    fn OutOfOrderPacket() {
+    fn out_of_order_packet() {
         let mut test = InterArrivalTest::new();
         // G1
         let mut arrival_time: i64 = 17;
         let mut timestamp: i64 = 0;
-        test.ExpectFalse(timestamp, arrival_time, 1);
+        test.expect_false(timestamp, arrival_time, 1);
         let g1_timestamp: i64 = timestamp;
         let g1_arrival_time: i64 = arrival_time;
 
         // G2
         arrival_time += 11;
-        timestamp += TriggerNewGroupUs;
-        test.ExpectFalse(timestamp, 28, 2);
-        for i in 0..10 {
-            arrival_time += BurstThresholdMs + 1;
-            timestamp += MinStep;
-            test.ExpectFalse(timestamp, arrival_time, 1);
+        timestamp += TRIGGER_NEW_GROUP_US;
+        test.expect_false(timestamp, 28, 2);
+        for _ in 0..10 {
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            timestamp += MIN_STEP;
+            test.expect_false(timestamp, arrival_time, 1);
         }
         let g2_timestamp: i64 = timestamp;
         let g2_arrival_time: i64 = arrival_time;
 
         // This packet is out of order and should be dropped.
         arrival_time = 281;
-        test.ExpectFalse(g1_timestamp, arrival_time, 100);
+        test.expect_false(g1_timestamp, arrival_time, 100);
 
         // G3
         arrival_time = 500;
-        timestamp = 2 * TriggerNewGroupUs;
-        test.ExpectTrue(
+        timestamp = 2 * TRIGGER_NEW_GROUP_US;
+        test.expect_true(
             timestamp,
             arrival_time,
             100,
@@ -628,40 +628,40 @@ mod test {
     }
 
     #[test]
-    fn OutOfOrderWithinGroup() {
+    fn out_of_order_within_group() {
         let mut test = InterArrivalTest::new();
         // G1
         let mut arrival_time: i64 = 17;
         let mut timestamp: i64 = 0;
-        test.ExpectFalse(timestamp, arrival_time, 1);
+        test.expect_false(timestamp, arrival_time, 1);
         let g1_timestamp: i64 = timestamp;
         let g1_arrival_time: i64 = arrival_time;
 
         // G2
-        timestamp += TriggerNewGroupUs;
+        timestamp += TRIGGER_NEW_GROUP_US;
         arrival_time += 11;
-        test.ExpectFalse(TriggerNewGroupUs, 28, 2);
-        timestamp += 10 * MinStep;
+        test.expect_false(TRIGGER_NEW_GROUP_US, 28, 2);
+        timestamp += 10 * MIN_STEP;
         let g2_timestamp: i64 = timestamp;
-        for i in 0..10 {
+        for _ in 0..10 {
             // These packets arrive with timestamps in decreasing order but are
             // nevertheless accumulated to group because their timestamps are higher
             // than the initial timestamp of the group.
-            arrival_time += BurstThresholdMs + 1;
-            test.ExpectFalse(timestamp, arrival_time, 1);
-            timestamp -= MinStep;
+            arrival_time += BURST_THRESHOLD_MS + 1;
+            test.expect_false(timestamp, arrival_time, 1);
+            timestamp -= MIN_STEP;
         }
         let g2_arrival_time: i64 = arrival_time;
 
         // However, this packet is deemed out of order and should be dropped.
         arrival_time = 281;
         timestamp = g1_timestamp;
-        test.ExpectFalse(timestamp, arrival_time, 100);
+        test.expect_false(timestamp, arrival_time, 100);
 
         // G3
-        timestamp = 2 * TriggerNewGroupUs;
+        timestamp = 2 * TRIGGER_NEW_GROUP_US;
         arrival_time = 500;
-        test.ExpectTrue(
+        test.expect_true(
             timestamp,
             arrival_time,
             100,
@@ -673,28 +673,28 @@ mod test {
     }
 
     #[test]
-    fn TwoBursts() {
+    fn two_bursts() {
         let mut test = InterArrivalTest::new();
         // G1
         let g1_arrival_time: i64 = 17;
-        test.ExpectFalse(0, g1_arrival_time, 1);
+        test.expect_false(0, g1_arrival_time, 1);
 
         // G2
-        let mut timestamp: i64 = TriggerNewGroupUs;
+        let mut timestamp: i64 = TRIGGER_NEW_GROUP_US;
         let mut arrival_time: i64 = 100; // Simulate no packets arriving for 100 ms.
-        for i in 0..10 {
+        for _ in 0..10 {
             // A bunch of packets arriving in one burst (within 5 ms apart).
             timestamp += 30000;
-            arrival_time += BurstThresholdMs;
-            test.ExpectFalse(timestamp, arrival_time, 1);
+            arrival_time += BURST_THRESHOLD_MS;
+            test.expect_false(timestamp, arrival_time, 1);
         }
         let g2_arrival_time: i64 = arrival_time;
         let g2_timestamp: i64 = timestamp;
 
         // G3
         timestamp += 30000;
-        arrival_time += BurstThresholdMs + 1;
-        test.ExpectTrue(
+        arrival_time += BURST_THRESHOLD_MS + 1;
+        test.expect_true(
             timestamp,
             arrival_time,
             100,
@@ -706,20 +706,20 @@ mod test {
     }
 
     #[test]
-    fn NoBursts() {
+    fn no_bursts() {
         let mut test = InterArrivalTest::new();
         // G1
-        test.ExpectFalse(0, 17, 1);
+        test.expect_false(0, 17, 1);
 
         // G2
-        let timestamp: i64 = TriggerNewGroupUs;
+        let timestamp: i64 = TRIGGER_NEW_GROUP_US;
         let arrival_time: i64 = 28;
-        test.ExpectFalse(timestamp, arrival_time, 2);
+        test.expect_false(timestamp, arrival_time, 2);
 
         // G3
-        test.ExpectTrue(
-            TriggerNewGroupUs + 30000,
-            arrival_time + BurstThresholdMs + 1,
+        test.expect_true(
+            TRIGGER_NEW_GROUP_US + 30000,
+            arrival_time + BURST_THRESHOLD_MS + 1,
             100,
             timestamp,
             arrival_time - 17,
@@ -730,37 +730,37 @@ mod test {
 
     // Yields 0xfffffffe when converted to internal representation in
     // self.inter_arrival_rtp and self.inter_arrival_ast respectively.
-    const StartRtpTimestampWrapUs: i64 = 47721858827;
-    const StartAbsSendTimeWrapUs: i64 = 63999995;
+    const START_RTP_TIMESTAMP_WRAP_US: i64 = 47721858827;
+    const START_ABS_SEND_TIME_WRAP_US: i64 = 63999995;
 
     #[test]
-    fn RtpTimestampWrap() {
+    fn rtp_timestamp_wrap() {
         let mut test = InterArrivalTest::new();
-        test.WrapTestHelper(StartRtpTimestampWrapUs, 1, false);
+        test.wrap_test_helper(START_RTP_TIMESTAMP_WRAP_US, 1, false);
     }
 
     #[test]
-    fn AbsSendTimeWrap() {
+    fn abs_send_time_wrap() {
         let mut test = InterArrivalTest::new();
-        test.WrapTestHelper(StartAbsSendTimeWrapUs, 1, false);
+        test.wrap_test_helper(START_ABS_SEND_TIME_WRAP_US, 1, false);
     }
 
     #[test]
-    fn RtpTimestampWrapOutOfOrderWithinGroup() {
+    fn rtp_timestamp_wrap_out_of_order_within_group() {
         let mut test = InterArrivalTest::new();
-        test.WrapTestHelper(StartRtpTimestampWrapUs, 1, true);
+        test.wrap_test_helper(START_RTP_TIMESTAMP_WRAP_US, 1, true);
     }
 
     #[test]
-    fn AbsSendTimeWrapOutOfOrderWithinGroup() {
+    fn abs_send_time_wrap_out_of_order_within_group() {
         let mut test = InterArrivalTest::new();
-        test.WrapTestHelper(StartAbsSendTimeWrapUs, 1, true);
+        test.wrap_test_helper(START_ABS_SEND_TIME_WRAP_US, 1, true);
     }
 
     #[test]
-    fn PositiveArrivalTimeJump() {
+    fn positive_arrival_time_jump() {
         let mut test = InterArrivalTest::new();
-        const PacketSize: usize = 1000;
+        const PACKET_SIZE: usize = 1000;
         let mut send_time_ms: u32 = 10000;
         let mut arrival_time_ms: i64 = 20000;
         let mut system_time_ms: i64 = 30000;
@@ -768,55 +768,55 @@ mod test {
         let mut send_delta: u32 = 0;
         let mut arrival_delta: i64 = 0;
         let mut size_delta: i64 = 0;
-        assert!(!test.inter_arrival.ComputeDeltas(
+        assert!(!test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
 
-        const TimeDeltaMs: i64 = 30;
-        send_time_ms += TimeDeltaMs as u32;
-        arrival_time_ms += TimeDeltaMs;
-        system_time_ms += TimeDeltaMs;
-        assert!(!test.inter_arrival.ComputeDeltas(
+        const TIME_DELTA_MS: i64 = 30;
+        send_time_ms += TIME_DELTA_MS as u32;
+        arrival_time_ms += TIME_DELTA_MS;
+        system_time_ms += TIME_DELTA_MS;
+        assert!(!test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
 
-        send_time_ms += TimeDeltaMs as u32;
-        arrival_time_ms += TimeDeltaMs + InterArrival::ArrivalTimeOffsetThresholdMs;
-        system_time_ms += TimeDeltaMs;
-        assert!(test.inter_arrival.ComputeDeltas(
+        send_time_ms += TIME_DELTA_MS as u32;
+        arrival_time_ms += TIME_DELTA_MS + InterArrival::ARRIVAL_TIME_OFFSET_THRESHOLD_MS;
+        system_time_ms += TIME_DELTA_MS;
+        assert!(test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
-        assert_eq!(TimeDeltaMs, send_delta as i64);
-        assert_eq!(TimeDeltaMs, arrival_delta);
+        assert_eq!(TIME_DELTA_MS, send_delta as i64);
+        assert_eq!(TIME_DELTA_MS, arrival_delta);
         assert_eq!(size_delta, 0);
 
-        send_time_ms += TimeDeltaMs as u32;
-        arrival_time_ms += TimeDeltaMs;
-        system_time_ms += TimeDeltaMs;
+        send_time_ms += TIME_DELTA_MS as u32;
+        arrival_time_ms += TIME_DELTA_MS;
+        system_time_ms += TIME_DELTA_MS;
         // The previous arrival time jump should now be detected and cause a reset.
-        assert!(!test.inter_arrival.ComputeDeltas(
+        assert!(!test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
@@ -824,42 +824,42 @@ mod test {
 
         // The two next packets will not give a valid delta since we're in the initial
         // state.
-        for i in 0..2 {
-            send_time_ms += TimeDeltaMs as u32;
-            arrival_time_ms += TimeDeltaMs;
-            system_time_ms += TimeDeltaMs;
-            assert!(!test.inter_arrival.ComputeDeltas(
+        for _ in 0..2 {
+            send_time_ms += TIME_DELTA_MS as u32;
+            arrival_time_ms += TIME_DELTA_MS;
+            system_time_ms += TIME_DELTA_MS;
+            assert!(!test.inter_arrival.compute_deltas(
                 send_time_ms,
                 arrival_time_ms,
                 system_time_ms,
-                PacketSize,
+                PACKET_SIZE,
                 &mut send_delta,
                 &mut arrival_delta,
                 &mut size_delta
             ));
         }
 
-        send_time_ms += TimeDeltaMs as u32;
-        arrival_time_ms += TimeDeltaMs;
-        system_time_ms += TimeDeltaMs;
-        assert!(test.inter_arrival.ComputeDeltas(
+        send_time_ms += TIME_DELTA_MS as u32;
+        arrival_time_ms += TIME_DELTA_MS;
+        system_time_ms += TIME_DELTA_MS;
+        assert!(test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
-        assert_eq!(TimeDeltaMs, send_delta as _);
-        assert_eq!(TimeDeltaMs, arrival_delta);
+        assert_eq!(TIME_DELTA_MS, send_delta as _);
+        assert_eq!(TIME_DELTA_MS, arrival_delta);
         assert_eq!(size_delta, 0);
     }
 
     #[test]
-    fn NegativeArrivalTimeJump() {
+    fn negative_arrival_time_jump() {
         let mut test = InterArrivalTest::new();
-        const PacketSize: usize = 1000;
+        const PACKET_SIZE: usize = 1000;
         let mut send_time_ms: u32 = 10000;
         let mut arrival_time_ms: i64 = 20000;
         let mut system_time_ms: i64 = 30000;
@@ -867,79 +867,79 @@ mod test {
         let mut send_delta: u32 = 0;
         let mut arrival_delta: i64 = 0;
         let mut size_delta: i64 = 0;
-        assert!(!test.inter_arrival.ComputeDeltas(
+        assert!(!test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
 
-        const TimeDeltaMs: i64 = 30;
-        send_time_ms += TimeDeltaMs as u32;
-        arrival_time_ms += TimeDeltaMs;
-        system_time_ms += TimeDeltaMs;
-        assert!(!test.inter_arrival.ComputeDeltas(
+        const TIME_DELTA_MS: i64 = 30;
+        send_time_ms += TIME_DELTA_MS as u32;
+        arrival_time_ms += TIME_DELTA_MS;
+        system_time_ms += TIME_DELTA_MS;
+        assert!(!test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
 
-        send_time_ms += TimeDeltaMs as u32;
-        arrival_time_ms += TimeDeltaMs;
-        system_time_ms += TimeDeltaMs;
-        assert!(test.inter_arrival.ComputeDeltas(
+        send_time_ms += TIME_DELTA_MS as u32;
+        arrival_time_ms += TIME_DELTA_MS;
+        system_time_ms += TIME_DELTA_MS;
+        assert!(test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
-        assert_eq!(TimeDeltaMs, send_delta as _);
-        assert_eq!(TimeDeltaMs, arrival_delta);
+        assert_eq!(TIME_DELTA_MS, send_delta as _);
+        assert_eq!(TIME_DELTA_MS, arrival_delta);
         assert_eq!(size_delta, 0);
 
         // Three out of order will fail, after that we will be reset and two more will
         // fail before we get our first valid delta after the reset.
         arrival_time_ms -= 1000;
-        for i in 0..InterArrival::ReorderedResetThreshold + 3 {
-            send_time_ms += TimeDeltaMs as u32;
-            arrival_time_ms += TimeDeltaMs;
-            system_time_ms += TimeDeltaMs;
+        for _ in 0..InterArrival::REORDERED_RESET_THRESHOLD + 3 {
+            send_time_ms += TIME_DELTA_MS as u32;
+            arrival_time_ms += TIME_DELTA_MS;
+            system_time_ms += TIME_DELTA_MS;
             // The previous arrival time jump should now be detected and cause a reset.
-            assert!(!test.inter_arrival.ComputeDeltas(
+            assert!(!test.inter_arrival.compute_deltas(
                 send_time_ms,
                 arrival_time_ms,
                 system_time_ms,
-                PacketSize,
+                PACKET_SIZE,
                 &mut send_delta,
                 &mut arrival_delta,
                 &mut size_delta
             ));
         }
 
-        send_time_ms += TimeDeltaMs as u32;
-        arrival_time_ms += TimeDeltaMs;
-        system_time_ms += TimeDeltaMs;
-        assert!(test.inter_arrival.ComputeDeltas(
+        send_time_ms += TIME_DELTA_MS as u32;
+        arrival_time_ms += TIME_DELTA_MS;
+        system_time_ms += TIME_DELTA_MS;
+        assert!(test.inter_arrival.compute_deltas(
             send_time_ms,
             arrival_time_ms,
             system_time_ms,
-            PacketSize,
+            PACKET_SIZE,
             &mut send_delta,
             &mut arrival_delta,
             &mut size_delta
         ));
-        assert_eq!(TimeDeltaMs, send_delta as _);
-        assert_eq!(TimeDeltaMs, arrival_delta);
+        assert_eq!(TIME_DELTA_MS, send_delta as _);
+        assert_eq!(TIME_DELTA_MS, arrival_delta);
         assert_eq!(size_delta, 0);
     }
 }

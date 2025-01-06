@@ -70,9 +70,6 @@ pub struct RateControlSettings {
 }
 
 impl RateControlSettings {
-    const DefaultAcceptedQueueMs: i64 = 350;
-    const DefaultMinPushbackTargetBitrateBps: i64 = 30000;
-
     // const char kCongestionWindowDefaultFieldTrialString[] =
     //"QueueSize:350,MinBitrate:30000,DropFrame:true";
     //const char kUseBaseHeavyVp8Tl3RateAllocationFieldTrialName[] =
@@ -92,34 +89,34 @@ impl RateControlSettings {
     // When CongestionWindowPushback is enabled, the pacer is oblivious to
     // the congestion window. The relation between outstanding data and
     // the congestion window affects encoder allocations directly.
-    pub fn UseCongestionWindow(&self) -> bool {
+    pub fn use_congestion_window(&self) -> bool {
         self.congestion_window_config.queue_size_ms > 0
     }
-    pub fn GetCongestionWindowAdditionalTimeMs(&self) -> i64 {
+    pub fn get_congestion_window_additional_time_ms(&self) -> i64 {
         self.congestion_window_config.queue_size_ms
     }
-    pub fn UseCongestionWindowPushback(&self) -> bool {
+    pub fn use_congestion_window_pushback(&self) -> bool {
         self.congestion_window_config.queue_size_ms > 0
             && self.congestion_window_config.min_bitrate_bps > 0
     }
-    pub fn UseCongestionWindowDropFrameOnly(&self) -> bool {
+    pub fn use_congestion_window_drop_frame_only(&self) -> bool {
         self.congestion_window_config.drop_frame_only
     }
-    pub fn CongestionWindowMinPushbackTargetBitrateBps(&self) -> u32 {
+    pub fn congestion_window_min_pushback_target_bitrate_bps(&self) -> u32 {
         self.congestion_window_config.min_bitrate_bps as _
     }
-    pub fn CongestionWindowInitialDataWindow(&self) -> Option<DataSize> {
+    pub fn congestion_window_initial_data_window(&self) -> Option<DataSize> {
         self.congestion_window_config.initial_data_window
     }
 
-    pub fn GetPacingFactor(&self) -> Option<f64> {
+    pub fn get_pacing_factor(&self) -> Option<f64> {
         self.video_config.pacing_factor
     }
-    pub fn UseAlrProbing(&self) -> bool {
+    pub fn use_alr_probing(&self) -> bool {
         self.video_config.alr_probing
     }
 
-    pub fn LibvpxVp8QpMax(&self) -> Option<i64> {
+    pub fn libvpx_vp8_qp_max(&self) -> Option<i64> {
         if let Some(vp8_qp_max) = self.video_config.vp8_qp_max {
             if !(0..=63).contains(&vp8_qp_max) {
                 tracing::warn!("Unsupported vp8_qp_max_ value, ignored.");
@@ -128,7 +125,7 @@ impl RateControlSettings {
         }
         self.video_config.vp8_qp_max
     }
-    pub fn LibvpxVp8MinPixels(&self) -> Option<i64> {
+    pub fn libvpx_vp8_min_pixels(&self) -> Option<i64> {
         if let Some(vp8_min_pixels) = self.video_config.vp8_min_pixels {
             if vp8_min_pixels < 1 {
                 tracing::warn!("Unsupported vp8_min_pixels_ value, ignored.");
@@ -137,30 +134,30 @@ impl RateControlSettings {
         }
         self.video_config.vp8_min_pixels
     }
-    pub fn LibvpxVp8TrustedRateController(&self) -> bool {
+    pub fn libvpx_vp8_trusted_rate_controller(&self) -> bool {
         self.video_config.trust_vp8
     }
-    pub fn Vp8BoostBaseLayerQuality(&self) -> bool {
+    pub fn vp8_boost_base_layer_quality(&self) -> bool {
         self.video_config.vp8_s0_boost
     }
-    pub fn Vp8DynamicRateSettings(&self) -> bool {
+    pub fn vp8_dynamic_rate_settings(&self) -> bool {
         todo!();
     }
-    pub fn LibvpxVp9TrustedRateController(&self) -> bool {
+    pub fn libvpx_vp9_trusted_rate_controller(&self) -> bool {
         self.video_config.trust_vp9
     }
-    pub fn Vp9DynamicRateSettings(&self) -> bool {
+    pub fn vp9_dynamic_rate_settings(&self) -> bool {
         todo!();
     }
 
-    pub fn Vp8BaseHeavyTl3RateAllocation(&self) -> bool {
+    pub fn vp8_base_heavy_tl3_rate_allocation(&self) -> bool {
         self.video_config.vp8_base_heavy_tl3_alloc
     }
 
-    pub fn UseEncoderBitrateAdjuster(&self) -> bool {
+    pub fn use_encoder_bitrate_adjuster(&self) -> bool {
         self.video_config.bitrate_adjuster
     }
-    pub fn BitrateAdjusterCanUseNetworkHeadroom(&self) -> bool {
+    pub fn bitrate_adjuster_can_use_network_headroom(&self) -> bool {
         self.video_config.adjuster_use_headroom
     }
 }

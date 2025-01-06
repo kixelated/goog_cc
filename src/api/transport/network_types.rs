@@ -40,7 +40,7 @@ pub struct StreamsConfig {
 impl Default for StreamsConfig {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
+            at_time: Timestamp::plus_infinity(),
             requests_alr_probing: None,
             enable_repeated_initial_probing: None,
             pacing_factor: None,
@@ -64,7 +64,7 @@ pub struct TargetRateConstraints {
 impl Default for TargetRateConstraints {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
+            at_time: Timestamp::plus_infinity(),
             min_data_rate: None,
             max_data_rate: None,
             starting_rate: None,
@@ -80,7 +80,7 @@ pub struct NetworkAvailability {
 impl Default for NetworkAvailability {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
+            at_time: Timestamp::plus_infinity(),
             network_available: false,
         }
     }
@@ -96,7 +96,7 @@ pub struct NetworkRouteChange {
 impl Default for NetworkRouteChange {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
+            at_time: Timestamp::plus_infinity(),
             constraints: TargetRateConstraints::default(),
         }
     }
@@ -112,7 +112,7 @@ pub struct PacedPacketInfo {
 }
 
 impl PacedPacketInfo {
-    pub const NotAProbe: i64 = -1;
+    pub const NOT_APROBE: i64 = -1;
 
     pub const fn new(
         probe_cluster_id: i64,
@@ -120,7 +120,7 @@ impl PacedPacketInfo {
         probe_cluster_min_bytes: i64,
     ) -> Self {
         Self {
-            send_bitrate: DataRate::BitsPerSec(0),
+            send_bitrate: DataRate::from_bits_per_sec(0),
             probe_cluster_id,
             probe_cluster_min_probes,
             probe_cluster_min_bytes,
@@ -132,8 +132,8 @@ impl PacedPacketInfo {
 impl Default for PacedPacketInfo {
     fn default() -> Self {
         Self {
-            send_bitrate: DataRate::BitsPerSec(0),
-            probe_cluster_id: Self::NotAProbe,
+            send_bitrate: DataRate::from_bits_per_sec(0),
+            probe_cluster_id: Self::NOT_APROBE,
             probe_cluster_min_probes: -1,
             probe_cluster_min_bytes: -1,
             probe_cluster_bytes_sent: 0,
@@ -173,13 +173,13 @@ pub struct SentPacket {
 impl Default for SentPacket {
     fn default() -> Self {
         Self {
-            send_time: Timestamp::PlusInfinity(),
-            size: DataSize::Zero(),
-            prior_unacked_data: DataSize::Zero(),
+            send_time: Timestamp::plus_infinity(),
+            size: DataSize::zero(),
+            prior_unacked_data: DataSize::zero(),
             pacing_info: PacedPacketInfo::default(),
             audio: false,
             sequence_number: 0,
-            data_in_flight: DataSize::Zero(),
+            data_in_flight: DataSize::zero(),
         }
     }
 }
@@ -193,9 +193,9 @@ pub struct ReceivedPacket {
 impl Default for ReceivedPacket {
     fn default() -> Self {
         Self {
-            send_time: Timestamp::MinusInfinity(),
-            receive_time: Timestamp::PlusInfinity(),
-            size: DataSize::Zero(),
+            send_time: Timestamp::minus_infinity(),
+            receive_time: Timestamp::plus_infinity(),
+            size: DataSize::zero(),
         }
     }
 }
@@ -210,8 +210,8 @@ pub struct RemoteBitrateReport {
 impl Default for RemoteBitrateReport {
     fn default() -> Self {
         Self {
-            receive_time: Timestamp::PlusInfinity(),
-            bandwidth: DataRate::Infinity(),
+            receive_time: Timestamp::plus_infinity(),
+            bandwidth: DataRate::infinity(),
         }
     }
 }
@@ -225,8 +225,8 @@ pub struct RoundTripTimeUpdate {
 impl Default for RoundTripTimeUpdate {
     fn default() -> Self {
         Self {
-            receive_time: Timestamp::PlusInfinity(),
-            round_trip_time: TimeDelta::PlusInfinity(),
+            receive_time: Timestamp::plus_infinity(),
+            round_trip_time: TimeDelta::plus_infinity(),
             smoothed: false,
         }
     }
@@ -243,9 +243,9 @@ pub struct TransportLossReport {
 impl Default for TransportLossReport {
     fn default() -> Self {
         Self {
-            receive_time: Timestamp::PlusInfinity(),
-            start_time: Timestamp::PlusInfinity(),
-            end_time: Timestamp::PlusInfinity(),
+            receive_time: Timestamp::plus_infinity(),
+            start_time: Timestamp::plus_infinity(),
+            end_time: Timestamp::plus_infinity(),
             packets_lost_delta: 0,
             packets_received_delta: 0,
         }
@@ -260,8 +260,8 @@ pub struct PacketResult {
 }
 
 impl PacketResult {
-    pub const fn IsReceived(&self) -> bool {
-        !self.receive_time.IsPlusInfinity()
+    pub const fn is_received(&self) -> bool {
+        !self.receive_time.is_plus_infinity()
     }
 }
 
@@ -269,7 +269,7 @@ impl Default for PacketResult {
     fn default() -> Self {
         Self {
             sent_packet: SentPacket::default(),
-            receive_time: Timestamp::PlusInfinity(),
+            receive_time: Timestamp::plus_infinity(),
             ecn: EcnMarking::NotEct,
         }
     }
@@ -313,8 +313,8 @@ pub struct TransportPacketsFeedback {
 impl Default for TransportPacketsFeedback {
     fn default() -> Self {
         Self {
-            feedback_time: Timestamp::PlusInfinity(),
-            data_in_flight: DataSize::Zero(),
+            feedback_time: Timestamp::plus_infinity(),
+            data_in_flight: DataSize::zero(),
             packet_feedbacks: Vec::new(),
             sendless_arrival_times: Vec::new(),
         }
@@ -323,20 +323,20 @@ impl Default for TransportPacketsFeedback {
 
 impl TransportPacketsFeedback {
     // NOTE: These returned Vec copies in the original C++ code. Use collect() if you want that behavior.
-    pub fn ReceivedWithSendInfo(&self) -> impl Iterator<Item = &PacketResult> {
-        self.packet_feedbacks.iter().filter(|fb| fb.IsReceived())
+    pub fn received_with_send_info(&self) -> impl Iterator<Item = &PacketResult> {
+        self.packet_feedbacks.iter().filter(|fb| fb.is_received())
     }
 
-    pub fn LostWithSendInfo(&self) -> impl Iterator<Item = &PacketResult> {
-        self.packet_feedbacks.iter().filter(|fb| !fb.IsReceived())
+    pub fn lost_with_send_info(&self) -> impl Iterator<Item = &PacketResult> {
+        self.packet_feedbacks.iter().filter(|fb| !fb.is_received())
     }
 
-    pub fn PacketsWithFeedback(&self) -> &Vec<PacketResult> {
+    pub fn packets_with_feedback(&self) -> &Vec<PacketResult> {
         &self.packet_feedbacks
     }
 
-    pub fn SortedByReceiveTime(&self) -> Vec<PacketResult> {
-        let mut res: Vec<PacketResult> = self.ReceivedWithSendInfo().cloned().collect();
+    pub fn sorted_by_receive_time(&self) -> Vec<PacketResult> {
+        let mut res: Vec<PacketResult> = self.received_with_send_info().cloned().collect();
         res.sort_by(|a, b| a.receive_time.cmp(&b.receive_time));
         res
     }
@@ -355,10 +355,10 @@ pub struct NetworkEstimate {
 impl Default for NetworkEstimate {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
-            bandwidth: DataRate::Infinity(),
-            round_trip_time: TimeDelta::PlusInfinity(),
-            bwe_period: TimeDelta::PlusInfinity(),
+            at_time: Timestamp::plus_infinity(),
+            bandwidth: DataRate::infinity(),
+            round_trip_time: TimeDelta::plus_infinity(),
+            bwe_period: TimeDelta::plus_infinity(),
             loss_rate_ratio: 0.0,
         }
     }
@@ -376,10 +376,10 @@ pub struct PacerConfig {
 impl Default for PacerConfig {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
-            data_window: DataSize::Infinity(),
-            time_window: TimeDelta::PlusInfinity(),
-            pad_window: DataSize::Zero(),
+            at_time: Timestamp::plus_infinity(),
+            data_window: DataSize::infinity(),
+            time_window: TimeDelta::plus_infinity(),
+            pad_window: DataSize::zero(),
         }
     }
 }
@@ -407,10 +407,10 @@ pub struct ProbeClusterConfig {
 impl Default for ProbeClusterConfig {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
-            target_data_rate: DataRate::Zero(),
-            target_duration: TimeDelta::Zero(),
-            min_probe_delta: TimeDelta::Millis(2),
+            at_time: Timestamp::plus_infinity(),
+            target_data_rate: DataRate::zero(),
+            target_duration: TimeDelta::zero(),
+            min_probe_delta: TimeDelta::from_millis(2),
             target_probe_count: 0,
             id: 0,
         }
@@ -429,10 +429,10 @@ pub struct TargetTransferRate {
 impl Default for TargetTransferRate {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
+            at_time: Timestamp::plus_infinity(),
             network_estimate: NetworkEstimate::default(),
-            target_rate: DataRate::Zero(),
-            stable_target_rate: DataRate::Zero(),
+            target_rate: DataRate::zero(),
+            stable_target_rate: DataRate::zero(),
             cwnd_reduce_ratio: 0.0,
         }
     }
@@ -467,7 +467,7 @@ pub struct ProcessInterval {
 impl Default for ProcessInterval {
     fn default() -> Self {
         Self {
-            at_time: Timestamp::PlusInfinity(),
+            at_time: Timestamp::plus_infinity(),
             pacer_queue: None,
         }
     }
@@ -507,21 +507,21 @@ impl Default for NetworkStateEstimate {
     fn default() -> Self {
         Self {
             confidence: f64::NAN,
-            update_time: Timestamp::MinusInfinity(),
-            last_receive_time: Timestamp::MinusInfinity(),
-            last_send_time: Timestamp::MinusInfinity(),
-            link_capacity: DataRate::MinusInfinity(),
-            link_capacity_lower: DataRate::MinusInfinity(),
-            link_capacity_upper: DataRate::MinusInfinity(),
-            pre_link_buffer_delay: TimeDelta::MinusInfinity(),
-            post_link_buffer_delay: TimeDelta::MinusInfinity(),
-            propagation_delay: TimeDelta::MinusInfinity(),
-            time_delta: TimeDelta::MinusInfinity(),
-            last_feed_time: Timestamp::MinusInfinity(),
+            update_time: Timestamp::minus_infinity(),
+            last_receive_time: Timestamp::minus_infinity(),
+            last_send_time: Timestamp::minus_infinity(),
+            link_capacity: DataRate::minus_infinity(),
+            link_capacity_lower: DataRate::minus_infinity(),
+            link_capacity_upper: DataRate::minus_infinity(),
+            pre_link_buffer_delay: TimeDelta::minus_infinity(),
+            post_link_buffer_delay: TimeDelta::minus_infinity(),
+            propagation_delay: TimeDelta::minus_infinity(),
+            time_delta: TimeDelta::minus_infinity(),
+            last_feed_time: Timestamp::minus_infinity(),
             cross_delay_rate: f64::NAN,
             spike_delay_rate: f64::NAN,
-            link_capacity_std_dev: DataRate::MinusInfinity(),
-            link_capacity_min: DataRate::MinusInfinity(),
+            link_capacity_std_dev: DataRate::minus_infinity(),
+            link_capacity_min: DataRate::minus_infinity(),
             cross_traffic_ratio: f64::NAN,
         }
     }

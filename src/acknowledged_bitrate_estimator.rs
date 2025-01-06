@@ -30,14 +30,14 @@ impl AcknowledgedBitrateEstimatorInterface for AcknowledgedBitrateEstimator {
         for packet in packet_feedback.iter() {
             if let Some(alr_ended_time) = self.alr_ended_time {
                 if packet.sent_packet.send_time > alr_ended_time {
-                    self.bitrate_estimator.ExpectFastRateChange();
+                    self.bitrate_estimator.expect_fast_rate_change();
                     self.alr_ended_time = None;
                 }
             }
             let mut acknowledged_estimate = packet.sent_packet.size;
             acknowledged_estimate += packet.sent_packet.prior_unacked_data;
             self.bitrate_estimator
-                .Update(packet.receive_time, acknowledged_estimate, self.in_alr);
+                .update(packet.receive_time, acknowledged_estimate, self.in_alr);
         }
     }
 
@@ -46,7 +46,7 @@ impl AcknowledgedBitrateEstimatorInterface for AcknowledgedBitrateEstimator {
     }
 
     fn peek_rate(&self) -> Option<DataRate> {
-        self.bitrate_estimator.PeekRate()
+        self.bitrate_estimator.peek_rate()
     }
 
     fn set_alr_ended_time(&mut self, alr_ended_time: Timestamp) {

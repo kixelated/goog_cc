@@ -24,23 +24,23 @@ pub struct BitrateEstimatorConfig {
 }
 
 impl BitrateEstimatorConfig {
-    const InitialRateWindowMs: i64 = 500;
-    const RateWindowMs: i64 = 150;
-    const MinRateWindowMs: i64 = 150;
-    const MaxRateWindowMs: i64 = 1000;
+    const INITIAL_RATE_WINDOW_MS: i64 = 500;
+    const RATE_WINDOW_MS: i64 = 150;
+    const MIN_RATE_WINDOW_MS: i64 = 150;
+    const MAX_RATE_WINDOW_MS: i64 = 1000;
 }
 
 impl Default for BitrateEstimatorConfig {
     fn default() -> Self {
         Self {
-            initial_window_ms: Self::InitialRateWindowMs,
-            window_ms: Self::RateWindowMs,
+            initial_window_ms: Self::INITIAL_RATE_WINDOW_MS,
+            window_ms: Self::RATE_WINDOW_MS,
             scale: 10.0,
             scale_alr: 10.0,   // scale
             scale_small: 10.0, // scale
-            small_thresh: DataSize::Zero(),
-            symmetry_cap: DataRate::Zero(),
-            floor: DataRate::Zero(),
+            small_thresh: DataSize::zero(),
+            symmetry_cap: DataRate::zero(),
+            floor: DataRate::zero(),
         }
     }
 }
@@ -49,10 +49,10 @@ impl BitrateEstimatorConfig {
     pub fn validate(&mut self) {
         self.initial_window_ms = self
             .initial_window_ms
-            .clamp(Self::MaxRateWindowMs, Self::MaxRateWindowMs);
+            .clamp(Self::MAX_RATE_WINDOW_MS, Self::MAX_RATE_WINDOW_MS);
         self.window_ms = self
             .window_ms
-            .clamp(Self::MinRateWindowMs, Self::MaxRateWindowMs);
+            .clamp(Self::MIN_RATE_WINDOW_MS, Self::MAX_RATE_WINDOW_MS);
     }
 }
 
@@ -103,7 +103,7 @@ impl BitrateEstimator {
         }
     }
 
-    pub fn Update(&mut self, at_time: Timestamp, amount: DataSize, in_alr: bool) {
+    pub fn update(&mut self, at_time: Timestamp, amount: DataSize, in_alr: bool) {
         let mut rate_window_ms: i64 = self.noninitial_window_ms;
         // We use a larger window at the beginning to get a more stable sample that
         // we can use to initialize the estimate.
@@ -111,7 +111,7 @@ impl BitrateEstimator {
             rate_window_ms = self.initial_window_ms;
         }
         let mut is_small_sample: bool = false;
-        let bitrate_sample_kbps: f64 = self.UpdateWindow(
+        let bitrate_sample_kbps: f64 = self.update_window(
             at_time.ms(),
             amount.bytes(),
             rate_window_ms,
@@ -163,23 +163,23 @@ impl BitrateEstimator {
         if self.bitrate_estimate_kbps < 0.0 {
             return None;
         }
-        Some(DataRate::KilobitsPerSecFloat(self.bitrate_estimate_kbps))
+        Some(DataRate::from_kilobits_per_sec_float(self.bitrate_estimate_kbps))
     }
 
-    pub fn PeekRate(&self) -> Option<DataRate> {
+    pub fn peek_rate(&self) -> Option<DataRate> {
         if self.current_window_ms > 0 {
-            return Some(DataSize::Bytes(self.sum) / TimeDelta::Millis(self.current_window_ms));
+            return Some(DataSize::from_bytes(self.sum) / TimeDelta::from_millis(self.current_window_ms));
         }
         None
     }
 
-    pub fn ExpectFastRateChange(&mut self) {
+    pub fn expect_fast_rate_change(&mut self) {
         // By setting the bitrate-estimate variance to a higher value we allow the
         // bitrate to change fast for the next few samples.
         self.bitrate_estimate_var += 200.0;
     }
 
-    fn UpdateWindow(
+    fn update_window(
         &mut self,
         now_ms: i64,
         bytes: i64,

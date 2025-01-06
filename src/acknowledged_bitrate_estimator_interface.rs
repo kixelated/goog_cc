@@ -14,7 +14,7 @@ use crate::api::{
 };
 
 pub trait AcknowledgedBitrateEstimatorInterface {
-    fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]);
+    fn incoming_packet_feedback(&mut self, packet_feedback: &[PacketResult]);
     fn bitrate(&self) -> Option<DataRate>;
     fn peek_rate(&self) -> Option<DataRate>;
     fn set_alr(&mut self, in_alr: bool);

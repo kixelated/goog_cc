@@ -60,8 +60,8 @@ impl Default for RobustThroughputEstimatorSettings {
             enabled: true,
             window_packets: 20,
             max_window_packets: 500,
-            window_duration: TimeDelta::Seconds(1),
-            max_window_duration: TimeDelta::Seconds(5),
+            window_duration: TimeDelta::from_seconds(1),
+            max_window_duration: TimeDelta::from_seconds(5),
             required_packets: 10,
             unacked_weight: 1.0,
         }
@@ -90,17 +90,17 @@ impl RobustThroughputEstimatorSettings {
         }
         self.required_packets = self.required_packets.min(self.window_packets);
 
-        if self.window_duration < TimeDelta::Millis(100)
-            || TimeDelta::Millis(3000) < self.window_duration
+        if self.window_duration < TimeDelta::from_millis(100)
+            || TimeDelta::from_millis(3000) < self.window_duration
         {
             tracing::warn!("Window duration must be between 100 and 3000 ms");
-            self.window_duration = TimeDelta::Millis(750);
+            self.window_duration = TimeDelta::from_millis(750);
         }
-        if self.max_window_duration < TimeDelta::Seconds(1)
-            || TimeDelta::Seconds(15) < self.max_window_duration
+        if self.max_window_duration < TimeDelta::from_seconds(1)
+            || TimeDelta::from_seconds(15) < self.max_window_duration
         {
             tracing::warn!("Max window duration must be between 1 and 15 s");
-            self.max_window_duration = TimeDelta::Seconds(5);
+            self.max_window_duration = TimeDelta::from_seconds(5);
         }
         self.window_duration = self.window_duration.min(self.max_window_duration);
 
@@ -130,11 +130,11 @@ impl RobustThroughputEstimator {
         Self {
             settings,
             window: VecDeque::new(),
-            latest_discarded_send_time: Timestamp::MinusInfinity(),
+            latest_discarded_send_time: Timestamp::minus_infinity(),
         }
     }
 
-    fn FirstPacketOutsideWindow(&self) -> bool {
+    fn first_packet_outside_window(&self) -> bool {
         if self.window.is_empty() {
             return false;
         }
@@ -156,15 +156,15 @@ impl RobustThroughputEstimator {
 }
 
 impl AcknowledgedBitrateEstimatorInterface for RobustThroughputEstimator {
-    fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]) {
-        //assert!(packet_feedback_vector.is_sorted_by_key(|x| x.receive_time));
-        for packet in packet_feedback_vector {
+    fn incoming_packet_feedback(&mut self, packet_feedback: &[PacketResult]) {
+        //assert!(packet_feedback.is_sorted_by_key(|x| x.receive_time));
+        for packet in packet_feedback {
             // Ignore packets without valid send or receive times.
             // (This should not happen in production since lost packets are filtered
             // out before passing the feedback vector to the throughput estimator.
             // However, explicitly handling this case makes the estimator more robust
             // and avoids a hard-to-detect bad state.)
-            if packet.receive_time.IsInfinite() || packet.sent_packet.send_time.IsInfinite() {
+            if packet.receive_time.is_infinite() || packet.sent_packet.send_time.is_infinite() {
                 continue;
             }
 
@@ -184,21 +184,21 @@ impl AcknowledgedBitrateEstimatorInterface for RobustThroughputEstimator {
                 }
             }
 
-            const MaxReorderingTime: TimeDelta = TimeDelta::Seconds(1);
+            const MAX_REORDERING_TIME: TimeDelta = TimeDelta::from_seconds(1);
             let receive_delta: TimeDelta =
                 self.window.back().unwrap().receive_time - packet.receive_time;
-            if receive_delta > MaxReorderingTime {
+            if receive_delta > MAX_REORDERING_TIME {
                 tracing::warn!(
                     "Severe packet re-ordering or timestamps offset changed: {:?}",
                     receive_delta
                 );
                 self.window.clear();
-                self.latest_discarded_send_time = Timestamp::MinusInfinity();
+                self.latest_discarded_send_time = Timestamp::minus_infinity();
             }
         }
 
         // Remove old packets.
-        while self.FirstPacketOutsideWindow() {
+        while self.first_packet_outside_window() {
             self.latest_discarded_send_time = std::cmp::max(
                 self.latest_discarded_send_time,
                 self.window.front().unwrap().sent_packet.send_time,
@@ -212,8 +212,8 @@ impl AcknowledgedBitrateEstimatorInterface for RobustThroughputEstimator {
             return None;
         }
 
-        let mut largest_recv_gap = TimeDelta::Zero();
-        let mut second_largest_recv_gap = TimeDelta::Zero();
+        let mut largest_recv_gap = TimeDelta::zero();
+        let mut second_largest_recv_gap = TimeDelta::zero();
         for i in 1..self.window.len() {
             // Find receive time gaps.
             let gap: TimeDelta = self.window[i].receive_time - self.window[i - 1].receive_time;
@@ -225,14 +225,14 @@ impl AcknowledgedBitrateEstimatorInterface for RobustThroughputEstimator {
             }
         }
 
-        let mut first_send_time: Timestamp = Timestamp::PlusInfinity();
-        let mut last_send_time: Timestamp = Timestamp::MinusInfinity();
-        let mut first_recv_time: Timestamp = Timestamp::PlusInfinity();
-        let mut last_recv_time: Timestamp = Timestamp::MinusInfinity();
-        let mut recv_size: DataSize = DataSize::Bytes(0);
-        let mut send_size: DataSize = DataSize::Bytes(0);
-        let mut first_recv_size: DataSize = DataSize::Bytes(0);
-        let mut last_send_size: DataSize = DataSize::Bytes(0);
+        let mut first_send_time: Timestamp = Timestamp::plus_infinity();
+        let mut last_send_time: Timestamp = Timestamp::minus_infinity();
+        let mut first_recv_time: Timestamp = Timestamp::plus_infinity();
+        let mut last_recv_time: Timestamp = Timestamp::minus_infinity();
+        let mut recv_size: DataSize = DataSize::from_bytes(0);
+        let mut send_size: DataSize = DataSize::from_bytes(0);
+        let mut first_recv_size: DataSize = DataSize::from_bytes(0);
+        let mut last_send_size: DataSize = DataSize::from_bytes(0);
         let mut num_sent_packets_in_window: usize = 0;
         for packet in &self.window {
             if packet.receive_time < first_recv_time {
@@ -287,21 +287,21 @@ impl AcknowledgedBitrateEstimatorInterface for RobustThroughputEstimator {
         // by a burst of delayed packets), don't cause the estimate to drop.
         // This could cause an overestimation, which we guard against by
         // never returning an estimate above the send rate.
-        assert!(first_recv_time.IsFinite());
-        assert!(last_recv_time.IsFinite());
+        assert!(first_recv_time.is_finite());
+        assert!(last_recv_time.is_finite());
         let mut recv_duration: TimeDelta =
             (last_recv_time - first_recv_time) - largest_recv_gap + second_largest_recv_gap;
-        recv_duration = std::cmp::max(recv_duration, TimeDelta::Millis(1));
+        recv_duration = std::cmp::max(recv_duration, TimeDelta::from_millis(1));
 
         if num_sent_packets_in_window < self.settings.required_packets {
             // Too few send times to calculate a reliable send rate.
             return Some(recv_size / recv_duration);
         }
 
-        assert!(first_send_time.IsFinite());
-        assert!(last_send_time.IsFinite());
+        assert!(first_send_time.is_finite());
+        assert!(last_send_time.is_finite());
         let mut send_duration: TimeDelta = last_send_time - first_send_time;
-        send_duration = std::cmp::max(send_duration, TimeDelta::Millis(1));
+        send_duration = std::cmp::max(send_duration, TimeDelta::from_millis(1));
 
         Some(std::cmp::min(
             send_size / send_duration,
@@ -338,26 +338,26 @@ mod test {
     impl Default for FeedbackGenerator {
         fn default() -> Self {
             Self {
-                send_clock: Timestamp::Millis(100000),
-                recv_clock: Timestamp::Millis(10000),
+                send_clock: Timestamp::from_millis(100000),
+                recv_clock: Timestamp::from_millis(10000),
                 sequence_number: 100,
             }
         }
     }
 
     impl FeedbackGenerator {
-        fn CreateFeedbackVector(
+        fn create_feedback(
             &mut self,
             number_of_packets: usize,
             packet_size: DataSize,
             send_rate: DataRate,
             recv_rate: DataRate,
         ) -> Vec<PacketResult> {
-            let mut packet_feedback_vector = Vec::with_capacity(number_of_packets);
+            let mut packet_feedback = Vec::with_capacity(number_of_packets);
 
-            for i in 0..number_of_packets {
+            for _ in 0..number_of_packets {
                 self.recv_clock += packet_size / recv_rate;
-                packet_feedback_vector.push(PacketResult {
+                packet_feedback.push(PacketResult {
                     sent_packet: SentPacket {
                         send_time: self.send_clock,
                         sequence_number: self.sequence_number,
@@ -371,47 +371,47 @@ mod test {
                 self.sequence_number += 1;
             }
 
-            packet_feedback_vector
+            packet_feedback
         }
 
-        fn CurrentReceiveClock(&self) -> Timestamp {
+        fn current_receive_clock(&self) -> Timestamp {
             self.recv_clock
         }
 
-        fn AdvanceReceiveClock(&mut self, delta: TimeDelta) {
+        fn advance_receive_clock(&mut self, delta: TimeDelta) {
             self.recv_clock += delta;
         }
 
-        fn AdvanceSendClock(&mut self, delta: TimeDelta) {
+        fn advance_send_clock(&mut self, delta: TimeDelta) {
             self.send_clock += delta;
         }
     }
 
     #[test]
-    fn InitialEstimate() {
+    fn initial_estimate() {
         let mut feedback_generator = FeedbackGenerator::default();
 
         let mut throughput_estimator = RobustThroughputEstimator::default();
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
         // No estimate until the estimator has enough data.
         let packet_feedback: Vec<PacketResult> =
-            feedback_generator.CreateFeedbackVector(9, DataSize::Bytes(1000), send_rate, recv_rate);
+            feedback_generator.create_feedback(9, DataSize::from_bytes(1000), send_rate, recv_rate);
         throughput_estimator.incoming_packet_feedback(&packet_feedback);
         assert!(throughput_estimator.bitrate().is_none());
 
         // Estimate once `required_packets` packets have been received.
         let packet_feedback =
-            feedback_generator.CreateFeedbackVector(1, DataSize::Bytes(1000), send_rate, recv_rate);
+            feedback_generator.create_feedback(1, DataSize::from_bytes(1000), send_rate, recv_rate);
         throughput_estimator.incoming_packet_feedback(&packet_feedback);
         let throughput = throughput_estimator.bitrate();
         assert_eq!(throughput.unwrap(), send_rate);
 
         // Estimate remains stable when send and receive rates are stable.
-        let packet_feedback = feedback_generator.CreateFeedbackVector(
+        let packet_feedback = feedback_generator.create_feedback(
             15,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -421,17 +421,17 @@ mod test {
     }
 
     #[test]
-    fn EstimateAdapts() {
+    fn estimate_adapts() {
         let mut feedback_generator = FeedbackGenerator::default();
         let mut throughput_estimator = RobustThroughputEstimator::default();
 
         // 1 second, 800kbps, estimate is stable.
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
-        for i in 0..10 {
-            let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        for _ in 0..10 {
+            let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
                 10,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -441,27 +441,27 @@ mod test {
         }
 
         // 1 second, 1600kbps, estimate increases
-        let send_rate = DataRate::BytesPerSec(200000);
-        let recv_rate = DataRate::BytesPerSec(200000);
-        for i in 0..20 {
-            let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let send_rate = DataRate::from_bytes_per_sec(200000);
+        let recv_rate = DataRate::from_bytes_per_sec(200000);
+        for _ in 0..20 {
+            let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
                 10,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
             throughput_estimator.incoming_packet_feedback(&packet_feedback);
             let throughput = throughput_estimator.bitrate();
             assert!(throughput.is_some());
-            assert!(throughput.unwrap() >= DataRate::BytesPerSec(100000));
+            assert!(throughput.unwrap() >= DataRate::from_bytes_per_sec(100000));
             assert!(throughput.unwrap() <= send_rate);
         }
 
         // 1 second, 1600kbps, estimate is stable
-        for i in 0..20 {
-            let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        for _ in 0..20 {
+            let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
                 10,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -471,29 +471,29 @@ mod test {
         }
 
         // 1 second, 400kbps, estimate decreases
-        let send_rate = DataRate::BytesPerSec(50000);
-        let recv_rate = DataRate::BytesPerSec(50000);
-        for i in 0..5 {
-            let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let send_rate = DataRate::from_bytes_per_sec(50000);
+        let recv_rate = DataRate::from_bytes_per_sec(50000);
+        for _ in 0..5 {
+            let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
                 10,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
             throughput_estimator.incoming_packet_feedback(&packet_feedback);
             let throughput = throughput_estimator.bitrate();
             assert!(throughput.is_some());
-            assert!(throughput.unwrap() <= DataRate::BytesPerSec(200000));
+            assert!(throughput.unwrap() <= DataRate::from_bytes_per_sec(200000));
             assert!(throughput.unwrap() >= send_rate);
         }
 
         // 1 second, 400kbps, estimate is stable
-        let send_rate = DataRate::BytesPerSec(50000);
-        let recv_rate = DataRate::BytesPerSec(50000);
-        for i in 0..5 {
-            let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let send_rate = DataRate::from_bytes_per_sec(50000);
+        let recv_rate = DataRate::from_bytes_per_sec(50000);
+        for _ in 0..5 {
+            let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
                 10,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -504,15 +504,15 @@ mod test {
     }
 
     #[test]
-    fn CappedByReceiveRate() {
+    fn capped_by_receive_rate() {
         let mut feedback_generator = FeedbackGenerator::default();
         let mut throughput_estimator = RobustThroughputEstimator::default();
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(25000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(25000);
 
-        let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -527,15 +527,15 @@ mod test {
     }
 
     #[test]
-    fn CappedBySendRate() {
+    fn capped_by_send_rate() {
         let mut feedback_generator = FeedbackGenerator::default();
         let mut throughput_estimator = RobustThroughputEstimator::default();
-        let send_rate: DataRate = DataRate::BytesPerSec(50000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(50000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
-        let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -550,22 +550,22 @@ mod test {
     }
 
     #[test]
-    fn DelaySpike() {
+    fn delay_spike() {
         let mut feedback_generator = FeedbackGenerator::default();
         // This test uses a 500ms window to amplify the effect
         // of a delay spike.
         let settings = RobustThroughputEstimatorSettings {
             enabled: true,
-            window_duration: TimeDelta::Millis(500),
+            window_duration: TimeDelta::from_millis(500),
             ..Default::default()
         };
         let mut throughput_estimator = RobustThroughputEstimator::new(settings);
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
-        let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -574,17 +574,17 @@ mod test {
         assert_eq!(throughput.unwrap(), send_rate);
 
         // Delay spike. 25 packets sent, but none received.
-        feedback_generator.AdvanceReceiveClock(TimeDelta::Millis(250));
+        feedback_generator.advance_receive_clock(TimeDelta::from_millis(250));
 
         // Deliver all of the packets during the next 50 ms. (During this time,
         // we'll have sent an additional 5 packets, so we need to receive 30
         // packets at 1000 bytes each in 50 ms, i.e. 600000 bytes per second).
-        let recv_rate = DataRate::BytesPerSec(600000);
+        let recv_rate = DataRate::from_bytes_per_sec(600000);
         // Estimate should not drop.
-        for i in 0..30 {
-            let packet_feedback = feedback_generator.CreateFeedbackVector(
+        for _ in 0..30 {
+            let packet_feedback = feedback_generator.create_feedback(
                 1,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -601,11 +601,11 @@ mod test {
         // Delivery at normal rate. When the packets received before the gap
         // has left the estimator's window, the receive rate will be high, but the
         // estimate should be capped by the send rate.
-        let recv_rate = DataRate::BytesPerSec(100000);
-        for i in 0..20 {
-            let packet_feedback = feedback_generator.CreateFeedbackVector(
+        let recv_rate = DataRate::from_bytes_per_sec(100000);
+        for _ in 0..20 {
+            let packet_feedback = feedback_generator.create_feedback(
                 5,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -621,15 +621,15 @@ mod test {
     }
 
     #[test]
-    fn HighLoss() {
+    fn high_loss() {
         let mut feedback_generator = FeedbackGenerator::default();
         let mut throughput_estimator = RobustThroughputEstimator::default();
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
-        let mut packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let mut packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -637,7 +637,7 @@ mod test {
         // 50% loss
         for i in 0..packet_feedback.len() {
             if i % 2 == 1 {
-                packet_feedback[i].receive_time = Timestamp::PlusInfinity();
+                packet_feedback[i].receive_time = Timestamp::plus_infinity();
             }
         }
 
@@ -653,15 +653,15 @@ mod test {
     }
 
     #[test]
-    fn ReorderedFeedback() {
+    fn reordered_feedback() {
         let mut feedback_generator = FeedbackGenerator::default();
         let mut throughput_estimator = RobustThroughputEstimator::default();
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
-        let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -669,15 +669,15 @@ mod test {
         let throughput = throughput_estimator.bitrate();
         assert_eq!(throughput.unwrap(), send_rate);
 
-        let delayed_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let delayed_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             10,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
-        let packet_feedback = feedback_generator.CreateFeedbackVector(
+        let packet_feedback = feedback_generator.create_feedback(
             10,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -695,10 +695,10 @@ mod test {
         assert_eq!(throughput.unwrap(), send_rate);
 
         // It should then remain stable (as if the feedbacks weren't reordered.)
-        for i in 0..10 {
-            let packet_feedback = feedback_generator.CreateFeedbackVector(
+        for _ in 0..10 {
+            let packet_feedback = feedback_generator.create_feedback(
                 15,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -709,26 +709,26 @@ mod test {
     }
 
     #[test]
-    fn DeepReordering() {
+    fn deep_reordering() {
         let mut feedback_generator = FeedbackGenerator::default();
         // This test uses a 500ms window to amplify the
         // effect of reordering.
         let settings = RobustThroughputEstimatorSettings {
             enabled: true,
-            window_duration: TimeDelta::Millis(500),
+            window_duration: TimeDelta::from_millis(500),
             ..Default::default()
         };
         let mut throughput_estimator = RobustThroughputEstimator::new(settings);
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
         let mut delayed_packets: Vec<PacketResult> =
-            feedback_generator.CreateFeedbackVector(1, DataSize::Bytes(1000), send_rate, recv_rate);
+            feedback_generator.create_feedback(1, DataSize::from_bytes(1000), send_rate, recv_rate);
 
-        for i in 0..10 {
-            let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        for _ in 0..10 {
+            let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
                 10,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -742,7 +742,7 @@ mod test {
         // ms before the second oldest packet. However, the send rate
         // should not drop.
         delayed_packets.first_mut().unwrap().receive_time =
-            feedback_generator.CurrentReceiveClock();
+            feedback_generator.current_receive_clock();
         throughput_estimator.incoming_packet_feedback(&delayed_packets);
         let throughput = throughput_estimator.bitrate();
         assert!(throughput.is_some());
@@ -753,10 +753,10 @@ mod test {
         ); // Allow 5% error
 
         // Thoughput should stay stable.
-        for i in 0..10 {
-            let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        for _ in 0..10 {
+            let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
                 10,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );
@@ -770,28 +770,29 @@ mod test {
             ); // Allow 5% error
         }
     }
+
     #[test]
-    fn ResetsIfReceiveClockChangeBackwards() {
+    fn resets_if_receive_clock_change_backwards() {
         let mut feedback_generator = FeedbackGenerator::default();
         let mut throughput_estimator = RobustThroughputEstimator::default();
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
-        let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
         throughput_estimator.incoming_packet_feedback(&packet_feedback);
         assert_eq!(throughput_estimator.bitrate().unwrap(), send_rate);
 
-        feedback_generator.AdvanceReceiveClock(TimeDelta::Seconds(-2));
-        let send_rate = DataRate::BytesPerSec(200000);
-        let recv_rate = DataRate::BytesPerSec(200000);
-        let packet_feedback = feedback_generator.CreateFeedbackVector(
+        feedback_generator.advance_receive_clock(TimeDelta::from_seconds(-2));
+        let send_rate = DataRate::from_bytes_per_sec(200000);
+        let recv_rate = DataRate::from_bytes_per_sec(200000);
+        let packet_feedback = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -800,15 +801,15 @@ mod test {
     }
 
     #[test]
-    fn StreamPausedAndResumed() {
+    fn stream_paused_and_resumed() {
         let mut feedback_generator = FeedbackGenerator::default();
         let mut throughput_estimator = RobustThroughputEstimator::default();
-        let send_rate: DataRate = DataRate::BytesPerSec(100000);
-        let recv_rate: DataRate = DataRate::BytesPerSec(100000);
+        let send_rate: DataRate = DataRate::from_bytes_per_sec(100000);
+        let recv_rate: DataRate = DataRate::from_bytes_per_sec(100000);
 
-        let packet_feedback: Vec<PacketResult> = feedback_generator.CreateFeedbackVector(
+        let packet_feedback: Vec<PacketResult> = feedback_generator.create_feedback(
             20,
-            DataSize::Bytes(1000),
+            DataSize::from_bytes(1000),
             send_rate,
             recv_rate,
         );
@@ -823,22 +824,22 @@ mod test {
         ); // Allow 5% error
 
         // No packets sent or feedback received for 60s.
-        feedback_generator.AdvanceSendClock(TimeDelta::Seconds(60));
-        feedback_generator.AdvanceReceiveClock(TimeDelta::Seconds(60));
+        feedback_generator.advance_send_clock(TimeDelta::from_seconds(60));
+        feedback_generator.advance_receive_clock(TimeDelta::from_seconds(60));
 
         // Resume sending packets at the same rate as before. The estimate
         // will initially be invalid, due to lack of recent data.
         let packet_feedback =
-            feedback_generator.CreateFeedbackVector(5, DataSize::Bytes(1000), send_rate, recv_rate);
+            feedback_generator.create_feedback(5, DataSize::from_bytes(1000), send_rate, recv_rate);
         throughput_estimator.incoming_packet_feedback(&packet_feedback);
         let throughput = throughput_estimator.bitrate();
         assert!(throughput.is_none());
 
         // But be back to the normal level once we have enough data.
-        for i in 0..4 {
-            let packet_feedback = feedback_generator.CreateFeedbackVector(
+        for _ in 0..4 {
+            let packet_feedback = feedback_generator.create_feedback(
                 5,
-                DataSize::Bytes(1000),
+                DataSize::from_bytes(1000),
                 send_rate,
                 recv_rate,
             );

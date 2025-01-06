@@ -13,8 +13,8 @@ use crate::api::{
     units::{DataRate, TimeDelta},
 };
 
-pub const CongestionControllerMinBitrate: DataRate = DataRate::BitsPerSec(5_000);
-pub const BitrateWindow: TimeDelta = TimeDelta::Seconds(1);
+pub const CONGESTION_CONTROLLER_MIN_BITRATE: DataRate = DataRate::from_bits_per_sec(5_000);
+pub const BITRATE_WINDOW: TimeDelta = TimeDelta::from_seconds(1);
 
 pub enum BweNames {
     ReceiverNoExtension = 0,
