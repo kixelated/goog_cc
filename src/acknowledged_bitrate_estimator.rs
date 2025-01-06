@@ -25,7 +25,7 @@ pub struct AcknowledgedBitrateEstimator {
 
 impl AcknowledgedBitrateEstimatorInterface for AcknowledgedBitrateEstimator {
     fn incoming_packet_feedback(&mut self, packet_feedback: &[PacketResult]) {
-        assert!(packet_feedback.is_sorted_by_key(|x| x.receive_time));
+        //assert!(packet_feedback.is_sorted_by_key(|x| x.receive_time));
 
         for packet in packet_feedback.iter() {
             if let Some(alr_ended_time) = self.alr_ended_time {

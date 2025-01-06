@@ -21,7 +21,7 @@ impl Frequency {
         Self::FromValue(value)
     }
 
-    pub const fn MilliHertzFloat(value: f64) -> Self {
+    pub fn MilliHertzFloat(value: f64) -> Self {
         Self::FromValueFloat(value)
     }
 
@@ -29,7 +29,7 @@ impl Frequency {
         Self::FromFraction(1_000, value)
     }
 
-    pub const fn HertzFloat(value: f64) -> Self {
+    pub fn HertzFloat(value: f64) -> Self {
         Self::FromFractionFloat(1_000.0, value)
     }
 
@@ -37,7 +37,7 @@ impl Frequency {
         Self::FromFraction(1_000_000, value)
     }
 
-    pub const fn KiloHertzFloat(value: f64) -> Self {
+    pub fn KiloHertzFloat(value: f64) -> Self {
         Self::FromFractionFloat(1_000_000.0, value)
     }
 
@@ -45,7 +45,7 @@ impl Frequency {
         self.ToFraction(1000)
     }
 
-    pub const fn hertz_float(&self) -> f64 {
+    pub fn hertz_float(&self) -> f64 {
         self.ToFractionFloat(1000.0)
     }
 
@@ -234,7 +234,7 @@ mod test {
     }
     #[test]
     fn Rounding() {
-        const freq_high: Frequency = Frequency::HertzFloat(23.976);
+        let freq_high: Frequency = Frequency::HertzFloat(23.976);
         assert_eq!(freq_high.hertz(), 24);
         assert_eq!(
             freq_high.RoundDownTo(Frequency::Hertz(1)),
@@ -246,7 +246,7 @@ mod test {
             Frequency::Hertz(24)
         );
 
-        const freq_low: Frequency = Frequency::HertzFloat(23.4);
+        let freq_low: Frequency = Frequency::HertzFloat(23.4);
         assert_eq!(freq_low.hertz(), 23);
         assert_eq!(
             freq_low.RoundDownTo(Frequency::Hertz(1)),
@@ -262,7 +262,7 @@ mod test {
     #[test]
     fn InfinityOperations() {
         const Value: f64 = 267.0;
-        const finite: Frequency = Frequency::HertzFloat(Value);
+        let finite: Frequency = Frequency::HertzFloat(Value);
         assert!((Frequency::PlusInfinity() + finite).IsPlusInfinity());
         assert!((Frequency::PlusInfinity() - finite).IsPlusInfinity());
         assert!((finite + Frequency::PlusInfinity()).IsPlusInfinity());

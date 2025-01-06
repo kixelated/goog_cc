@@ -253,7 +253,7 @@ impl AimdRateControl {
     // Returns the increase rate when used bandwidth is near the link capacity.
     pub fn GetNearMaxIncreaseRateBpsPerSecond(&self) -> f64 {
         assert!(!self.current_bitrate.IsZero());
-        const FrameInterval: TimeDelta = TimeDelta::SecondsFloat(1.0 / 30.0);
+        let FrameInterval: TimeDelta = TimeDelta::SecondsFloat(1.0 / 30.0);
         let frame_size: DataSize = self.current_bitrate * FrameInterval;
         const PacketSize: DataSize = DataSize::Bytes(1200);
         let packets_per_frame: f64 = (frame_size / PacketSize).ceil();

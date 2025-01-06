@@ -26,7 +26,7 @@ impl TimeDelta {
         Self::FromFraction(60_000_000, value)
     }
 
-    pub const fn MinutesFloat(value: f64) -> Self {
+    pub fn MinutesFloat(value: f64) -> Self {
         Self::FromFractionFloat(60_000_000.0, value)
     }
 
@@ -34,7 +34,7 @@ impl TimeDelta {
         Self::FromFraction(1_000_000, value)
     }
 
-    pub const fn SecondsFloat(value: f64) -> Self {
+    pub fn SecondsFloat(value: f64) -> Self {
         Self::FromFractionFloat(1_000_000.0, value)
     }
 
@@ -42,7 +42,7 @@ impl TimeDelta {
         Self::FromFraction(1_000, value)
     }
 
-    pub const fn MillisFloat(value: f64) -> Self {
+    pub fn MillisFloat(value: f64) -> Self {
         Self::FromFractionFloat(1_000.0, value)
     }
 
@@ -50,7 +50,7 @@ impl TimeDelta {
         Self::FromValue(value)
     }
 
-    pub const fn MicrosFloat(value: f64) -> Self {
+    pub fn MicrosFloat(value: f64) -> Self {
         Self::FromValueFloat(value)
     }
 
@@ -58,7 +58,7 @@ impl TimeDelta {
         self.ToFraction(1_000_000)
     }
 
-    pub const fn seconds_float(&self) -> f64 {
+    pub fn seconds_float(&self) -> f64 {
         self.ToFractionFloat(1_000_000.0)
     }
 
@@ -66,7 +66,7 @@ impl TimeDelta {
         self.ToFraction(1_000)
     }
 
-    pub const fn ms_float(&self) -> f64 {
+    pub fn ms_float(&self) -> f64 {
         self.ToFractionFloat(1_000.0)
     }
 
@@ -82,7 +82,7 @@ impl TimeDelta {
         self.ToMultiple(1000)
     }
 
-    pub const fn ns_float(&self) -> f64 {
+    pub fn ns_float(&self) -> f64 {
         self.ToMultipleFloat(1000.0)
     }
 

@@ -19,7 +19,7 @@ impl DataSize {
         Self::FromValue(value)
     }
 
-    pub const fn BytesFloat(value: f64) -> Self {
+    pub fn BytesFloat(value: f64) -> Self {
         Self::FromValueFloat(value)
     }
 

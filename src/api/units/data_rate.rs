@@ -26,7 +26,7 @@ impl DataRate {
         Self::FromValue(value)
     }
 
-    pub const fn BitsPerSecFloat(value: f64) -> Self {
+    pub fn BitsPerSecFloat(value: f64) -> Self {
         Self::FromValueFloat(value)
     }
 
@@ -34,7 +34,7 @@ impl DataRate {
         Self::FromFraction(8, value)
     }
 
-    pub const fn BytesPerSecFloat(value: f64) -> Self {
+    pub fn BytesPerSecFloat(value: f64) -> Self {
         Self::FromFractionFloat(8.0, value)
     }
 
@@ -42,7 +42,7 @@ impl DataRate {
         Self::FromFraction(1000, value)
     }
 
-    pub const fn KilobitsPerSecFloat(value: f64) -> Self {
+    pub fn KilobitsPerSecFloat(value: f64) -> Self {
         Self::FromFractionFloat(1000.0, value)
     }
 
@@ -62,7 +62,7 @@ impl DataRate {
         self.ToFraction(8)
     }
 
-    pub const fn bytes_per_sec_float(&self) -> f64 {
+    pub fn bytes_per_sec_float(&self) -> f64 {
         self.ToFractionFloat(8.0)
     }
 
@@ -70,7 +70,7 @@ impl DataRate {
         self.ToFraction(1000)
     }
 
-    pub const fn kbps_float(&self) -> f64 {
+    pub fn kbps_float(&self) -> f64 {
         self.ToFractionFloat(1000.0)
     }
 

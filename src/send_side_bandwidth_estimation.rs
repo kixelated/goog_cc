@@ -773,7 +773,7 @@ mod test {
         bwe.UpdateRtt(TimeDelta::Millis(50), Timestamp::Millis(now_ms));
 
         // Initial REMB applies immediately.
-        if (use_delay_based) {
+        if use_delay_based {
             bwe.UpdateDelayBasedEstimate(Timestamp::Millis(now_ms), DataRate::BitsPerSec(RembBps));
         } else {
             bwe.UpdateReceiverEstimate(Timestamp::Millis(now_ms), DataRate::BitsPerSec(RembBps));
@@ -783,7 +783,7 @@ mod test {
 
         // Second REMB doesn't apply immediately.
         now_ms += 2001;
-        if (use_delay_based) {
+        if use_delay_based {
             bwe.UpdateDelayBasedEstimate(
                 Timestamp::Millis(now_ms),
                 DataRate::BitsPerSec(SecondRembBps),

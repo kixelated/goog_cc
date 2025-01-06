@@ -60,7 +60,7 @@ macro_rules! unit_base {
                 Self::FromValue(value * denominator)
             }
 
-            const fn FromFractionFloat(denominator: f64, value: f64) -> Self {
+            fn FromFractionFloat(denominator: f64, value: f64) -> Self {
                 Self::FromValueFloat(value * denominator)
             }
 
@@ -85,7 +85,7 @@ macro_rules! unit_base {
                 result
             }
 
-            const fn ToFractionFloat(&self, denominator: f64) -> f64 {
+            fn ToFractionFloat(&self, denominator: f64) -> f64 {
                 assert!(denominator >= 0.0);
                 self.ToValueFloat() / denominator
             }
@@ -104,7 +104,7 @@ macro_rules! unit_base {
                 self.ToValue() * factor
             }
 
-            pub const fn ToMultipleFloat(&self, factor: f64) -> f64 {
+            pub fn ToMultipleFloat(&self, factor: f64) -> f64 {
                 assert!(factor >= 0.0);
                 self.ToValueFloat() * factor
             }
@@ -118,7 +118,7 @@ macro_rules! unit_base {
                 Self(value)
             }
 
-            const fn FromValueFloat(value: f64) -> Self {
+            fn FromValueFloat(value: f64) -> Self {
                 assert!(!value.is_nan());
 
                 if value == f64::INFINITY {
@@ -400,7 +400,7 @@ mod test {
             self.ToFraction(1000)
         }
 
-        pub const fn ToKiloFloat(&self) -> f64 {
+        pub fn ToKiloFloat(&self) -> f64 {
             self.ToFractionFloat(1000.0)
         }
 
@@ -412,7 +412,7 @@ mod test {
             self.ToMultiple(1000)
         }
 
-        pub const fn ToMilliFloat(&self) -> f64 {
+        pub fn ToMilliFloat(&self) -> f64 {
             self.ToMultipleFloat(1000.0)
         }
     }

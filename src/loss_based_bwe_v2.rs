@@ -1414,7 +1414,7 @@ mod test {
                 first_packet_timestamp + ObservationDurationLowerBound;
             enough_feedback[1].receive_time =
                 first_packet_timestamp + 2 * ObservationDurationLowerBound;
-            return enough_feedback;
+            enough_feedback
         }
 
         fn CreatePacketResultsWith10pPacketLossRate(
@@ -1434,7 +1434,7 @@ mod test {
             }
             enough_feedback[9].receive_time = Timestamp::PlusInfinity();
             enough_feedback[9].sent_packet.size = lost_packet_size;
-            return enough_feedback;
+            enough_feedback
         }
 
         fn CreatePacketResultsWith50pPacketLossRate(
@@ -1454,7 +1454,7 @@ mod test {
             enough_feedback[0].receive_time =
                 first_packet_timestamp + ObservationDurationLowerBound;
             enough_feedback[1].receive_time = Timestamp::PlusInfinity();
-            return enough_feedback;
+            enough_feedback
         }
 
         fn CreatePacketResultsWith100pLossRate(
@@ -1468,7 +1468,7 @@ mod test {
                 enough_feedback[i].sent_packet.sequence_number = self.transport_sequence_number;
                 enough_feedback[i].sent_packet.size = DataSize::Bytes(PacketSize);
                 enough_feedback[i].sent_packet.send_time =
-                    first_packet_timestamp + TimeDelta::Millis(i * 10 as _);
+                    first_packet_timestamp + TimeDelta::Millis(i as i64 * 10);
                 enough_feedback[i].receive_time = Timestamp::PlusInfinity();
             }
             self.transport_sequence_number += 1;
@@ -1478,14 +1478,14 @@ mod test {
             enough_feedback[num_packets - 1].sent_packet.send_time =
                 first_packet_timestamp + ObservationDurationLowerBound;
             enough_feedback[num_packets - 1].receive_time = Timestamp::PlusInfinity();
-            return enough_feedback;
+            enough_feedback
         }
     }
 
     #[test]
     fn EnabledWhenGivenValidConfigurationValues() {
         let config = Config(true, true);
-        let mut loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
+        let loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
 
         assert!(loss_based_bandwidth_estimator.IsEnabled());
     }
@@ -1493,7 +1493,7 @@ mod test {
     #[test]
     fn DisabledWhenGivenDisabledConfiguration() {
         let config = Config(false, true);
-        let mut loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
+        let loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
 
         assert!(!loss_based_bandwidth_estimator.IsEnabled());
     }
@@ -1501,7 +1501,7 @@ mod test {
     #[test]
     fn DisabledWhenGivenNonValidConfigurationValues() {
         let config = Config(true, false);
-        let mut loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
+        let loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
 
         assert!(!loss_based_bandwidth_estimator.IsEnabled());
     }
@@ -1531,7 +1531,7 @@ mod test {
             delay_based_candidate: false,
             ..Default::default()
         };
-        let mut loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
+        let loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
         assert!(!loss_based_bandwidth_estimator.IsEnabled());
     }
 
@@ -2221,7 +2221,7 @@ mod test {
         loss_based_bandwidth_estimator.SetAcknowledgedBitrate(estimate_1 * 0.9);
 
         let mut feedback_count: i64 = 1;
-        while (feedback_count < 5 && result.state != LossBasedState::Increasing) {
+        while feedback_count < 5 && result.state != LossBasedState::Increasing {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 &test.CreatePacketResultsWithReceivedPackets(
                     /*first_packet_timestamp=*/
@@ -2296,7 +2296,7 @@ mod test {
         loss_based_bandwidth_estimator.SetAcknowledgedBitrate(estimate_1 / 2);
 
         let mut feedback_count: i64 = 1;
-        while (feedback_count < 5 && result.state != LossBasedState::Increasing) {
+        while feedback_count < 5 && result.state != LossBasedState::Increasing {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 &test.CreatePacketResultsWithReceivedPackets(
                     /*first_packet_timestamp=*/
@@ -2678,7 +2678,7 @@ mod test {
             use_in_start_phase: true,
             ..Default::default()
         });
-        let mut loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
+        let loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
         // Make sure that the estimator is not ready to use in start phase because of
         // lacking TWCC feedback.
         assert!(!loss_based_bandwidth_estimator.ReadyToUseInStartPhase());
@@ -2956,7 +2956,7 @@ mod test {
 
         // Eventually  the estimator recovers to delay based state.
         let mut feedback_count: i64 = 2;
-        while (feedback_count < 5 && result.state != LossBasedState::DelayBasedEstimate) {
+        while feedback_count < 5 && result.state != LossBasedState::DelayBasedEstimate {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 /*feedback = */
                 &test.CreatePacketResultsWithReceivedPackets(
@@ -3060,9 +3060,9 @@ mod test {
             loss_based_bandwidth_estimator
                 .GetLossBasedResult()
                 .bandwidth_estimate
-                .kbps(),
-            result_after_loss.bandwidth_estimate.kbps(),
-            epsilon = 100
+                .kbps_float(),
+            result_after_loss.bandwidth_estimate.kbps_float(),
+            epsilon = 100.0
         );
     }
 
@@ -3078,8 +3078,8 @@ mod test {
         let mut loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
         loss_based_bandwidth_estimator.SetBandwidthEstimate(DataRate::KilobitsPerSec(1000));
         let mut feedback_id: i64 = 0;
-        while (loss_based_bandwidth_estimator.GetLossBasedResult().state
-            != LossBasedState::Decreasing)
+        while loss_based_bandwidth_estimator.GetLossBasedResult().state
+            != LossBasedState::Decreasing
         {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 &test.CreatePacketResultsWith100pLossRate(
@@ -3093,8 +3093,8 @@ mod test {
             feedback_id += 1;
         }
 
-        while (loss_based_bandwidth_estimator.GetLossBasedResult().state
-            != LossBasedState::IncreaseUsingPadding)
+        while loss_based_bandwidth_estimator.GetLossBasedResult().state
+            != LossBasedState::IncreaseUsingPadding
         {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 &test.CreatePacketResultsWithReceivedPackets(
@@ -3169,8 +3169,8 @@ mod test {
         acknowledged_bitrate = DataRate::KilobitsPerSec(26);
         loss_based_bandwidth_estimator.SetAcknowledgedBitrate(acknowledged_bitrate);
         let mut feedback_id: i64 = 1;
-        while (loss_based_bandwidth_estimator.GetLossBasedResult().state
-            != LossBasedState::IncreaseUsingPadding)
+        while loss_based_bandwidth_estimator.GetLossBasedResult().state
+            != LossBasedState::IncreaseUsingPadding
         {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 &test.CreatePacketResultsWithReceivedPackets(
@@ -3187,8 +3187,8 @@ mod test {
             Timestamp::Zero() + ObservationDurationLowerBound * feedback_id;
         // The state is IncreaseUsingPadding for a while without changing the
         // estimate, which is limited by 2 * acked rate.
-        while (loss_based_bandwidth_estimator.GetLossBasedResult().state
-            == LossBasedState::IncreaseUsingPadding)
+        while loss_based_bandwidth_estimator.GetLossBasedResult().state
+            == LossBasedState::IncreaseUsingPadding
         {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 &test.CreatePacketResultsWithReceivedPackets(
@@ -3360,8 +3360,8 @@ mod test {
         }
 
         let mut feedback_id: i64 = 7;
-        while (loss_based_bandwidth_estimator.GetLossBasedResult().state
-            != LossBasedState::Increasing)
+        while loss_based_bandwidth_estimator.GetLossBasedResult().state
+            != LossBasedState::Increasing
         {
             loss_based_bandwidth_estimator.UpdateBandwidthEstimate(
                 &test.CreatePacketResultsWithReceivedPackets(
@@ -3371,8 +3371,8 @@ mod test {
                 /*delay_based_estimate=*/ DataRate::PlusInfinity(),
                 /*in_alr=*/ false,
             );
-            if (loss_based_bandwidth_estimator.GetLossBasedResult().state
-                == LossBasedState::Decreasing)
+            if loss_based_bandwidth_estimator.GetLossBasedResult().state
+                == LossBasedState::Decreasing
             {
                 // In the hold duration, the estimate can not go higher than estimate at
                 // hold.
@@ -3382,8 +3382,8 @@ mod test {
                         .bandwidth_estimate
                         <= estimate_at_hold
                 );
-            } else if (loss_based_bandwidth_estimator.GetLossBasedResult().state
-                == LossBasedState::Increasing)
+            } else if loss_based_bandwidth_estimator.GetLossBasedResult().state
+                == LossBasedState::Increasing
             {
                 // After the hold duration, the estimate can increase again.
                 assert!(
@@ -3758,7 +3758,7 @@ mod test {
 
     #[test]
     fn EstimateDoesNotBackOffDueToPacketReorderingBetweenFeedback() {
-        let mut test = LossBasedBweV2Test::default();
+        let test = LossBasedBweV2Test::default();
         let config = ShortObservationConfig(LossBasedBweV2Config::default());
         let mut loss_based_bandwidth_estimator = LossBasedBweV2::new(config);
         const StartBitrate: DataRate = DataRate::KilobitsPerSec(2500);

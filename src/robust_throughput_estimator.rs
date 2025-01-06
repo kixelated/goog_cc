@@ -157,7 +157,7 @@ impl RobustThroughputEstimator {
 
 impl AcknowledgedBitrateEstimatorInterface for RobustThroughputEstimator {
     fn incoming_packet_feedback(&mut self, packet_feedback_vector: &[PacketResult]) {
-        assert!(packet_feedback_vector.is_sorted_by_key(|x| x.receive_time));
+        //assert!(packet_feedback_vector.is_sorted_by_key(|x| x.receive_time));
         for packet in packet_feedback_vector {
             // Ignore packets without valid send or receive times.
             // (This should not happen in production since lost packets are filtered
