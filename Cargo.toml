@@ -1,12 +1,17 @@
 [package]
 name = "goog_cc"
+description = "A direct Rust port of the Google Congestion Control algorithm from WebRTC"
+repository = "https://github.com/kixelated/goog_cc"
+
 version = "0.1.0"
 edition = "2021"
 
+authors = ["The WebRTC project (AUTHORS)", "Luke Curley <kixelated@gmail.com>"]
+license-file = "LICENSE"
+
 [dependencies]
 tracing = "0.1"
-approx = "0.5"
-lazy_static = "1.5"
 
 [dev-dependencies]
+approx = "0.5"
 test-trace = "0.3"

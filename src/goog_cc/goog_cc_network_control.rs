@@ -149,14 +149,11 @@ impl GoogCcNetworkController {
             safe_reset_on_route_change: field_trials.safe_reset_on_route_change.enabled,
             safe_reset_acknowledged_rate: field_trials.safe_reset_on_route_change.ack,
             use_min_allocatable_as_lower_bound: field_trials
-                .min_alloc_as_lower_bound
-                .unwrap_or(true),
+                .min_alloc_as_lower_bound,
             ignore_probes_lower_than_network_estimate: field_trials
-                .ignore_probes_lower_than_network_state_estimate
-                .unwrap_or(true),
+                .ignore_probes_lower_than_network_state_estimate,
             limit_probes_lower_than_throughput_estimate: field_trials
-                .limit_probes_lower_than_throughput_estimate
-                .unwrap_or(true),
+                .limit_probes_lower_than_throughput_estimate,
             pace_at_max_of_bwe_and_lower_link_capacity: field_trials
                 .pace_at_max_of_bwe_and_lower_link_capacity,
             limit_pacingfactor_by_upper_link_capacity_estimate: field_trials

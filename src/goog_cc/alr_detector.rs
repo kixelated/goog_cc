@@ -8,7 +8,9 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use crate::{experiments::AlrExperimentSettings, pacing::IntervalBudget, rtc};
+use std::time::Instant;
+
+use crate::{experiments::AlrExperimentSettings, pacing::IntervalBudget};
 
 #[derive(Clone, Debug)]
 pub struct AlrDetectorConfig {
@@ -49,6 +51,9 @@ pub struct AlrDetector {
 
     alr_budget: IntervalBudget,
     alr_started_time_ms: Option<i64>,
+
+    // Replacement for rtc_time
+    start: Instant,
 }
 
 impl Default for AlrDetector {
@@ -64,6 +69,7 @@ impl AlrDetector {
             last_send_time_ms: None,
             alr_budget: IntervalBudget::new(0, true),
             alr_started_time_ms: None,
+            start: Instant::now(),
         }
     }
 
@@ -86,7 +92,7 @@ impl AlrDetector {
         if self.alr_budget.budget_ratio() > self.conf.start_budget_level_ratio
             && self.alr_started_time_ms.is_none()
         {
-            self.alr_started_time_ms.replace(rtc::time_millis());
+            self.alr_started_time_ms.replace(self.start.elapsed().as_millis() as i64);
         } else if self.alr_budget.budget_ratio() < self.conf.stop_budget_level_ratio
             && self.alr_started_time_ms.is_some()
         {

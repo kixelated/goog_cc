@@ -113,7 +113,6 @@ name = "goog_cc"
 version = "0.1.0"
 dependencies = [
  "approx",
- "lazy_static",
  "test-trace",
  "tracing",
 ]
