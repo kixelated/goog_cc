@@ -14,6 +14,11 @@ All licensing from the original source code is preserved under a BSD-style licen
 Thanks to the WebRTC project authors for their hard work on this implementation.
 All I did was port it to Rust.
 
+## Updates
+I will periodically update this crate with the latest changes from the WebRTC project.
+
+The current version: [da2a3d6c4d](https://webrtc.googlesource.com/src/+/da2a3d6c4d) (2024-12-09)
+
 ## Notable Changes
 **NetworkStateEstimator and NetworkStatePredictor have been removed.**
 They are not implemented in the WebRTC source code and are flagged with a "subject to change" comment.
