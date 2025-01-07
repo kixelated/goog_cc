@@ -343,7 +343,7 @@ impl GoogCcNetworkController {
 
             update.target_rate = Some(target_rate_msg);
 
-            let probes = self.probe_controller.set_estimated_bitrate(
+            let mut probes = self.probe_controller.set_estimated_bitrate(
                 loss_based_target_rate,
                 get_bandwidth_limited_cause(
                     self.bandwidth_estimation.loss_based_state(),
@@ -352,7 +352,7 @@ impl GoogCcNetworkController {
                 ),
                 at_time,
             );
-            update.probe_cluster_configs = probes;
+            update.probe_cluster_configs.append(&mut probes);
             update.pacer_config = Some(self.get_pacing_rates(at_time));
             tracing::debug!(
                 "bwe {} pushback_target_bps={} estimate_bps={}",
@@ -497,7 +497,7 @@ impl NetworkControllerInterface for GoogCcNetworkController {
 
     fn on_process_interval(&mut self, msg: ProcessInterval) -> NetworkControlUpdate {
         let mut update = NetworkControlUpdate::default();
-        if let Some(initial_config) = self.initial_config.clone() {
+        if let Some(initial_config) = self.initial_config.take() {
             update.probe_cluster_configs = self.reset_constraints(initial_config.constraints);
             update.pacer_config = Some(self.get_pacing_rates(msg.at_time));
 
@@ -518,12 +518,11 @@ impl NetworkControllerInterface for GoogCcNetworkController {
                 .stream_based_config
                 .max_total_allocated_bitrate;
             if let Some(total_bitrate) = total_bitrate {
-                let probes = self
+                let mut probes = self
                     .probe_controller
                     .on_max_total_allocated_bitrate(total_bitrate, msg.at_time);
-                update.probe_cluster_configs = probes;
+                update.probe_cluster_configs.append(&mut probes);
             }
-            self.initial_config = None;
         }
 
         if let (Some(congestion_window_pushback_controller), Some(pacer_queue)) = (
@@ -866,8 +865,8 @@ impl NetworkControllerInterface for GoogCcNetworkController {
 
         if recovered_from_overuse {
             self.probe_controller.set_alr_start_time_ms(alr_start_time);
-            let probes = self.probe_controller.request_probe(report.feedback_time);
-            update.probe_cluster_configs = probes;
+            let mut probes = self.probe_controller.request_probe(report.feedback_time);
+            update.probe_cluster_configs.append(&mut probes);
         }
 
         // No valid RTT could be because send-side BWE isn't used, in which case
@@ -927,6 +926,7 @@ fn get_bandwidth_limited_cause(
 #[cfg(test)]
 mod test {
     use approx::assert_relative_eq;
+    use test_trace::test;
 
     use super::*;
 
@@ -1161,7 +1161,7 @@ mod test {
     }
     */
 
-    fn create_controller(field_trials: FieldTrials) -> GoogCcNetworkController {
+    fn create_controller(field_trials: FieldTrials, feedback_only: bool) -> GoogCcNetworkController {
         let config = NetworkControllerConfig {
             field_trials,
             constraints: TargetRateConstraints {
@@ -1174,7 +1174,7 @@ mod test {
         };
 
         let goog_cc_config = GoogCcConfig {
-            feedback_only: true,
+            feedback_only,
         };
 
         GoogCcNetworkController::new(config, goog_cc_config)
@@ -1182,7 +1182,7 @@ mod test {
 
     #[test]
     fn initialize_target_rate_on_first_process_interval_after_network_available() {
-        let mut controller = create_controller(Default::default());
+        let mut controller = create_controller(FieldTrials::default(), false);
 
         let _ = controller.on_network_availability(NetworkAvailability {
             at_time: Timestamp::from_millis(123456),
@@ -1210,7 +1210,7 @@ mod test {
 
     #[test]
     fn reacts_to_changed_network_conditions() {
-        let mut controller = create_controller(Default::default());
+        let mut controller = create_controller(FieldTrials::default(), false);
         let mut current_time: Timestamp = Timestamp::from_millis(123);
         controller.on_network_availability(NetworkAvailability {
             at_time: current_time,
@@ -1254,7 +1254,7 @@ mod test {
 
     #[test]
     fn on_network_route_changed() {
-        let mut controller = create_controller(Default::default());
+        let mut controller = create_controller(FieldTrials::default(), false);
         let current_time: Timestamp = Timestamp::from_millis(123);
         controller.on_network_availability(NetworkAvailability {
             at_time: current_time,
@@ -1291,7 +1291,7 @@ mod test {
 
     #[test]
     fn probe_on_route_change() {
-        let mut controller = create_controller(Default::default());
+        let mut controller = create_controller(FieldTrials::default(), false);
         let mut current_time: Timestamp = Timestamp::from_millis(123);
         controller.on_network_availability(NetworkAvailability {
             at_time: current_time,
@@ -1326,7 +1326,7 @@ mod test {
 
     #[test]
     fn probe_after_route_change_when_transport_writable() {
-        let mut controller = create_controller(Default::default());
+        let mut controller = create_controller(FieldTrials::default(), false);
         let current_time: Timestamp = Timestamp::from_millis(123);
 
         let mut update: NetworkControlUpdate =
@@ -1357,7 +1357,7 @@ mod test {
     // Feedbacks which show an increasing delay cause the estimation to be reduced.
     #[test]
     fn updates_delay_based_estimate() {
-        let mut controller = create_controller(Default::default());
+        let mut controller = create_controller(FieldTrials::default(), false);
         const RUN_TIME_MS: i64 = 6000;
         let mut current_time: Timestamp = Timestamp::from_millis(123);
         controller.on_network_availability(NetworkAvailability {
@@ -1393,7 +1393,7 @@ mod test {
             pace_at_max_of_bwe_and_lower_link_capacity: Some(true),
             ..Default::default()
         };
-        let mut controller = create_controller(field_trials);
+        let mut controller = create_controller(field_trials, false);
         let mut current_time: Timestamp = Timestamp::from_millis(123);
         controller.on_network_availability(NetworkAvailability {
             at_time: current_time,
@@ -1469,7 +1469,7 @@ mod test {
             limit_pacing_factor_by_upper_link_capacity_estimate: Some(true),
             ..Default::default()
         };
-        let mut controller = create_controller(field_trials);
+        let mut controller = create_controller(field_trials, false);
         let mut current_time: Timestamp = Timestamp::from_millis(123);
         controller.on_network_availability(NetworkAvailability {
             at_time: current_time,
@@ -2123,8 +2123,8 @@ mod test {
     */
 
     #[test]
-    fn calculates_rtt_from_transpor_feedback() {
-        let mut controller = create_controller(Default::default());
+    fn calculates_rtt_from_transport_feedback() {
+        let mut controller = create_controller(FieldTrials::default(), true);
         let mut current_time: Timestamp = Timestamp::from_millis(123);
         let one_way_delay: TimeDelta = TimeDelta::from_millis(10);
         let mut rtt: Option<TimeDelta> = None;

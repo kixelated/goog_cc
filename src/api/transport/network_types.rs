@@ -342,6 +342,7 @@ impl TransportPacketsFeedback {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct NetworkEstimate {
     pub at_time: Timestamp,
     // Deprecated, use TargetTransferRate::target_rate instead.
@@ -364,6 +365,7 @@ impl Default for NetworkEstimate {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct PacerConfig {
     pub at_time: Timestamp,
     // Pacer should send at most data_window data over time_window duration.
@@ -393,6 +395,7 @@ impl PacerConfig {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct ProbeClusterConfig {
     pub at_time: Timestamp,
     pub target_data_rate: DataRate,
@@ -417,6 +420,7 @@ impl Default for ProbeClusterConfig {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct TargetTransferRate {
     pub at_time: Timestamp,
     // The estimate on which the target rate is based on.
@@ -441,7 +445,7 @@ impl Default for TargetTransferRate {
 // Contains updates of network controller comand state. Using optionals to
 // indicate whether a member has been updated. The array of probe clusters
 // should be used to send out probes if not empty.
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct NetworkControlUpdate {
     pub congestion_window: Option<DataSize>,
     pub pacer_config: Option<PacerConfig>,
