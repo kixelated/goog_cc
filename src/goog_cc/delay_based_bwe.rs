@@ -13,8 +13,9 @@ use crate::{
         transport::{BandwidthUsage, PacketResult, TransportPacketsFeedback},
         units::{DataRate, DataSize, TimeDelta, Timestamp},
     },
+    experiments::FieldTrials,
+    goog_cc::{DelayIncreaseDetectorInterface, InterArrivalDelta, TrendlineEstimator},
     remote_bitrate_estimator::{AimdRateControl, RateControlInput},
-    DelayIncreaseDetectorInterface, FieldTrials, InterArrivalDelta, TrendlineEstimator,
 };
 
 // WebRTC-Bwe-SeparateAudioPackets
@@ -384,7 +385,7 @@ impl DelayBasedBwe {
 #[cfg(test)]
 mod test {
     use crate::api::transport::{PacedPacketInfo, SentPacket};
-    use crate::{
+    use crate::goog_cc::{
         AcknowledgedBitrateEstimator, AcknowledgedBitrateEstimatorInterface, ProbeBitrateEstimator,
         RobustThroughputEstimatorSettings,
     };

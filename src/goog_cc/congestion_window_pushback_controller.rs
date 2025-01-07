@@ -8,7 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use crate::{api::units::DataSize, experiments::RateControlSettings, FieldTrials};
+use crate::{
+    api::units::DataSize,
+    experiments::{FieldTrials, RateControlSettings},
+};
 
 // This class enables pushback from congestion window directly to video encoder.
 // When the congestion window is filling up, the video encoder target bitrate

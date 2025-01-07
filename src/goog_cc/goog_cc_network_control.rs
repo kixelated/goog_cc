@@ -10,13 +10,27 @@
 
 use std::collections::VecDeque;
 
-use experiments::RateControlSettings;
-use remote_bitrate_estimator::CONGESTION_CONTROLLER_MIN_BITRATE;
-
-// lul this struct uses everything
 use crate::{
-    api::{transport::*, units::*, *},
-    *,
+    api::{
+        network_control::{NetworkControllerConfig, NetworkControllerInterface},
+        transport::{
+            BandwidthUsage, NetworkAvailability, NetworkControlUpdate, NetworkEstimate,
+            NetworkRouteChange, NetworkStateEstimate, PacedPacketInfo, PacerConfig,
+            ProbeClusterConfig, ProcessInterval, ReceivedPacket, RemoteBitrateReport,
+            RoundTripTimeUpdate, SentPacket, StreamsConfig, TargetRateConstraints,
+            TargetTransferRate, TransportLossReport, TransportPacketsFeedback,
+        },
+        units::{DataRate, DataSize, TimeDelta, Timestamp},
+    },
+    experiments::{FieldTrials, RateControlSettings},
+    goog_cc::AcknowledgedBitrateEstimator,
+    remote_bitrate_estimator::CONGESTION_CONTROLLER_MIN_BITRATE,
+};
+
+use super::{
+    AcknowledgedBitrateEstimatorInterface, AlrDetector, BandwidthLimitedCause,
+    CongestionWindowPushbackController, DelayBasedBwe, DelayBasedBweResult, LossBasedState,
+    ProbeBitrateEstimator, ProbeController, SendSideBandwidthEstimation,
 };
 
 #[derive(Clone, Debug)]
@@ -38,7 +52,7 @@ pub struct GoogCcConfig {
     // These two are purposely left out because they are not implemented... except by Google?
     // network_state_estimator: Box<dyn NetworkStateEstimator>,
     // network_state_predictor: Box<dyn NetworkStatePredictor>,
-    feedback_only: bool,
+    pub feedback_only: bool,
 }
 
 pub struct GoogCcNetworkController {
@@ -893,6 +907,10 @@ impl NetworkControllerInterface for GoogCcNetworkController {
         self.set_network_state_estimate(Some(estimate));
         NetworkControlUpdate::default()
     }
+
+    fn get_process_interval() -> TimeDelta {
+        TimeDelta::from_millis(25)
+    }
 }
 
 fn get_bandwidth_limited_cause(
@@ -927,6 +945,8 @@ fn get_bandwidth_limited_cause(
 mod test {
     use approx::assert_relative_eq;
     use test_trace::test;
+
+    use crate::api::transport::PacketResult;
 
     use super::*;
 
@@ -1161,7 +1181,10 @@ mod test {
     }
     */
 
-    fn create_controller(field_trials: FieldTrials, feedback_only: bool) -> GoogCcNetworkController {
+    fn create_controller(
+        field_trials: FieldTrials,
+        feedback_only: bool,
+    ) -> GoogCcNetworkController {
         let config = NetworkControllerConfig {
             field_trials,
             constraints: TargetRateConstraints {
@@ -1173,9 +1196,7 @@ mod test {
             ..Default::default()
         };
 
-        let goog_cc_config = GoogCcConfig {
-            feedback_only,
-        };
+        let goog_cc_config = GoogCcConfig { feedback_only };
 
         GoogCcNetworkController::new(config, goog_cc_config)
     }
@@ -1501,6 +1522,12 @@ mod test {
         });
         assert!(update.pacer_config.is_some());
         assert!(update.target_rate.is_some());
+        println!(
+            "pacer_config: {:?}, target_rate: {:?}, initial_bitrate: {:?}",
+            update.pacer_config.unwrap().data_rate(),
+            update.target_rate.unwrap().target_rate,
+            INITIAL_BITRATE
+        );
         assert!(update.target_rate.unwrap().target_rate >= INITIAL_BITRATE);
         assert_eq!(
             update.pacer_config.unwrap().data_rate(),

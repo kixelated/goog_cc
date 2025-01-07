@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use crate::FieldTrials;
+use crate::experiments::FieldTrials;
 
 use super::{
     transport::*,
@@ -74,18 +74,21 @@ pub trait NetworkControllerInterface {
     ) -> NetworkControlUpdate;
     // Called with network state estimate updates.
     fn on_network_state_estimate(&mut self, msg: NetworkStateEstimate) -> NetworkControlUpdate;
+
+    // Returns the interval by which the network controller expects
+    // OnProcessInterval calls.
+    fn get_process_interval() -> TimeDelta;
 }
 
+/*
 // NetworkControllerFactoryInterface is an interface for creating a network
 // controller.
 pub trait NetworkControllerFactoryInterface {
     // Used to create a new network controller, requires an observer to be
     // provided to handle callbacks.
     fn create(config: NetworkControllerConfig) -> impl NetworkControllerInterface;
-    // Returns the interval by which the network controller expects
-    // OnProcessInterval calls.
-    fn get_process_interval() -> TimeDelta;
 }
+*/
 
 // Under development, subject to change without notice.
 /* Purposely removed because nothing implements it (except for secret Google stuff?)
