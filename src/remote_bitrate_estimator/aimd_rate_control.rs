@@ -775,7 +775,7 @@ mod test {
             DataRate::from_bits_per_sec(500_000)
         );
 
-        let network_estimate= NetworkStateEstimate {
+        let network_estimate = NetworkStateEstimate {
             link_capacity_upper: DataRate::from_bits_per_sec(300_000),
             ..Default::default()
         };

@@ -153,7 +153,7 @@ impl RttBasedBackoff {
             rtt_limit: if !config.disabled {
                 config.configured_limit
             } else {
-                TimeDelta::zero()
+                TimeDelta::plus_infinity()
             },
             last_propagation_rtt_update: Timestamp::plus_infinity(),
             last_propagation_rtt: TimeDelta::zero(),

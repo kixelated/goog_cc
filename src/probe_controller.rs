@@ -1743,7 +1743,7 @@ mod test {
             clock,
         );
         // Expect the controller to send a new probe after 5s has passed.
-        let state_estimate= NetworkStateEstimate {
+        let state_estimate = NetworkStateEstimate {
             link_capacity_upper: DataRate::from_kilobits_per_sec(6),
             ..Default::default()
         };
@@ -1786,7 +1786,7 @@ mod test {
             clock,
         );
         // Expect the controller to send a new probe after 5s has passed.
-        let state_estimate= NetworkStateEstimate {
+        let state_estimate = NetworkStateEstimate {
             link_capacity_upper: DataRate::from_bits_per_sec(700),
             ..Default::default()
         };
@@ -1834,7 +1834,7 @@ mod test {
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].target_data_rate, MAX_BITRATE);
 
-        let state_estimate= NetworkStateEstimate {
+        let state_estimate = NetworkStateEstimate {
             link_capacity_upper: DataRate::from_bits_per_sec(8000),
             ..Default::default()
         };
@@ -1872,9 +1872,9 @@ mod test {
         assert!(!probes.is_empty());
         assert!(probes[0].target_duration < TimeDelta::from_millis(100));
 
-        let state_estimate= NetworkStateEstimate {
-        link_capacity_upper: DataRate::from_kilobits_per_sec(6),
-        ..Default::default()
+        let state_estimate = NetworkStateEstimate {
+            link_capacity_upper: DataRate::from_kilobits_per_sec(6),
+            ..Default::default()
         };
         probe_controller.set_network_state_estimate(state_estimate);
         clock += TimeDelta::from_seconds(5);
@@ -2001,7 +2001,7 @@ mod test {
         let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
-        let state_estimate= NetworkStateEstimate {
+        let state_estimate = NetworkStateEstimate {
             link_capacity_upper: 5 * START_BITRATE,
             ..Default::default()
         };
@@ -2052,7 +2052,7 @@ mod test {
         let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
-        let mut state_estimate= NetworkStateEstimate {
+        let mut state_estimate = NetworkStateEstimate {
             link_capacity_upper: START_BITRATE,
             ..Default::default()
         };
@@ -2105,7 +2105,7 @@ mod test {
         let probes = probe_controller.process(clock);
         assert!(probes.is_empty());
 
-        let state_estimate= NetworkStateEstimate {
+        let state_estimate = NetworkStateEstimate {
             link_capacity_upper: 3 * START_BITRATE,
             ..Default::default()
         };

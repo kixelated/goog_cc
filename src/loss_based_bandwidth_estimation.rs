@@ -255,8 +255,7 @@ fn get_increase_factor(config: &LossBasedControlConfig, mut rtt: TimeDelta) -> f
         unreachable!(); // Only on misconfiguration.
     }
     let rtt_offset = rtt - config.increase_low_rtt;
-    let relative_offset =
-    (rtt_offset / rtt_range).clamp(0.0, 1.0);
+    let relative_offset = (rtt_offset / rtt_range).clamp(0.0, 1.0);
     let factor_range = config.max_increase_factor - config.min_increase_factor;
     config.min_increase_factor + (1.0 - relative_offset) * factor_range
 }

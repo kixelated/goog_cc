@@ -321,11 +321,12 @@ impl GoogCcNetworkController {
             let mut target_rate_msg = TargetTransferRate {
                 at_time,
                 stable_target_rate,
-                network_estimate: NetworkEstimate{at_time,
-                round_trip_time,
-                loss_rate_ratio: fraction_loss as f32 / 255.0,
-                bwe_period,
-                ..Default::default()
+                network_estimate: NetworkEstimate {
+                    at_time,
+                    round_trip_time,
+                    loss_rate_ratio: fraction_loss as f32 / 255.0,
+                    bwe_period,
+                    ..Default::default()
                 },
                 ..Default::default()
             };
@@ -1411,11 +1412,11 @@ mod test {
         // OnNetworkStateEstimate does not trigger processing a new estimate. So add a
         // dummy loss report to trigger a BWE update in the next process interval.
         let loss_report = TransportLossReport {
-        start_time: current_time,
-        end_time: current_time,
-        receive_time: current_time,
-        packets_received_delta: 50,
-        packets_lost_delta: 1,
+            start_time: current_time,
+            end_time: current_time,
+            receive_time: current_time,
+            packets_received_delta: 50,
+            packets_lost_delta: 1,
         };
         controller.on_transport_loss_report(loss_report);
         let update = controller.on_process_interval(ProcessInterval {
