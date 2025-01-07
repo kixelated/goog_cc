@@ -83,10 +83,10 @@ pub struct FieldTrials {
     pub limit_probes_lower_than_throughput_estimate: Option<bool>,
 
     /// WebRTC-Bwe-PaceAtMaxOfBweAndLowerLinkCapacity
-    pub pace_at_max_of_bwe_and_lower_link_capacity: Option<bool>,
+    pub pace_at_max_of_bwe_and_lower_link_capacity: bool,
 
     /// WebRTC-Bwe-LimitPacingFactorByUpperLinkCapacityEstimate
-    pub limit_pacing_factor_by_upper_link_capacity_estimate: Option<bool>,
+    pub limit_pacing_factor_by_upper_link_capacity_estimate: bool,
 
     /// WebRTC-Bwe-SafeResetOnRouteChange
     pub safe_reset_on_route_change: SafeResetOnRouteChange,

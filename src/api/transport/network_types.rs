@@ -7,7 +7,7 @@ use super::EcnMarking;
 // Represents constraints and rates related to the currently enabled streams.
 // This is used as input to the congestion controller via the StreamsConfig
 // struct.
-#[derive(Default)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct BitrateAllocationLimits {
     // The total minimum send bitrate required by all sending streams.
     pub min_allocatable_rate: DataRate,
@@ -21,7 +21,7 @@ pub struct BitrateAllocationLimits {
 // Use StreamsConfig for information about streams that is required for specific
 // adjustments to the algorithms in network controllers. Especially useful
 // for experiments.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct StreamsConfig {
     pub at_time: Timestamp,
     pub requests_alr_probing: Option<bool>,
@@ -51,7 +51,7 @@ impl Default for StreamsConfig {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct TargetRateConstraints {
     pub at_time: Timestamp,
     pub min_data_rate: Option<DataRate>,
@@ -72,6 +72,7 @@ impl Default for TargetRateConstraints {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct NetworkAvailability {
     pub at_time: Timestamp,
     pub network_available: bool,
@@ -86,6 +87,7 @@ impl Default for NetworkAvailability {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct NetworkRouteChange {
     pub at_time: Timestamp,
     // The TargetRateConstraints are set here so they can be changed synchronously
@@ -102,7 +104,7 @@ impl Default for NetworkRouteChange {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct PacedPacketInfo {
     pub send_bitrate: DataRate,
     pub probe_cluster_id: i64,
@@ -150,7 +152,7 @@ impl PartialEq for PacedPacketInfo {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct SentPacket {
     pub send_time: Timestamp,
     // Size of packet with overhead up to IP layer.
@@ -184,6 +186,7 @@ impl Default for SentPacket {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct ReceivedPacket {
     pub send_time: Timestamp,
     pub receive_time: Timestamp,
@@ -202,6 +205,7 @@ impl Default for ReceivedPacket {
 
 // Transport level feedback
 
+#[derive(Debug, Clone, Copy)]
 pub struct RemoteBitrateReport {
     pub receive_time: Timestamp,
     pub bandwidth: DataRate,
@@ -216,6 +220,7 @@ impl Default for RemoteBitrateReport {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct RoundTripTimeUpdate {
     pub receive_time: Timestamp,
     pub round_trip_time: TimeDelta,
@@ -232,6 +237,7 @@ impl Default for RoundTripTimeUpdate {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct TransportLossReport {
     pub receive_time: Timestamp,
     pub start_time: Timestamp,
@@ -252,7 +258,7 @@ impl Default for TransportLossReport {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct PacketResult {
     pub sent_packet: SentPacket,
     pub receive_time: Timestamp,
@@ -301,6 +307,7 @@ impl PartialEq for PacketResult {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TransportPacketsFeedback {
     pub feedback_time: Timestamp,
     pub data_in_flight: DataSize,
@@ -342,7 +349,7 @@ impl TransportPacketsFeedback {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct NetworkEstimate {
     pub at_time: Timestamp,
     // Deprecated, use TargetTransferRate::target_rate instead.
@@ -365,7 +372,7 @@ impl Default for NetworkEstimate {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct PacerConfig {
     pub at_time: Timestamp,
     // Pacer should send at most data_window data over time_window duration.
@@ -395,7 +402,7 @@ impl PacerConfig {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct ProbeClusterConfig {
     pub at_time: Timestamp,
     pub target_data_rate: DataRate,
@@ -420,7 +427,7 @@ impl Default for ProbeClusterConfig {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct TargetTransferRate {
     pub at_time: Timestamp,
     // The estimate on which the target rate is based on.
@@ -478,9 +485,10 @@ impl Default for ProcessInterval {
 }
 
 // Under development, subject to change without notice.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct NetworkStateEstimate {
     pub confidence: f64,
+
     // The time the estimate was received/calculated.
     pub update_time: Timestamp,
     pub last_receive_time: Timestamp,

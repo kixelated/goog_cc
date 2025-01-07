@@ -187,7 +187,6 @@ mod test {
         let a: DataRate = DataRate::from_kilobits_per_sec(300);
         let b: DataRate = DataRate::from_kilobits_per_sec(210);
         assert!(a > b);
-        println!("{:?}", a);
     }
 
     #[test]

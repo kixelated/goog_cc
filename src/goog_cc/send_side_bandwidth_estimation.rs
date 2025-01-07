@@ -236,8 +236,8 @@ impl SendSideBandwidthEstimation {
     const MAX_RTCP_FEEDBACK_INTERVAL: TimeDelta = TimeDelta::from_millis(5000);
 
     pub fn new(field_trials: FieldTrials) -> Self {
-        let mut low_loss_threshold = 0.0;
-        let mut high_loss_threshold = 0.0;
+        let mut low_loss_threshold = 0.02;
+        let mut high_loss_threshold = 0.1;
         let mut bitrate_threshold_kbps = 0.0;
 
         if field_trials.loss_experiment.enabled {

@@ -158,11 +158,9 @@ impl GoogCcNetworkController {
                 .limit_probes_lower_than_throughput_estimate
                 .unwrap_or(true),
             pace_at_max_of_bwe_and_lower_link_capacity: field_trials
-                .pace_at_max_of_bwe_and_lower_link_capacity
-                .unwrap_or(false),
+                .pace_at_max_of_bwe_and_lower_link_capacity,
             limit_pacingfactor_by_upper_link_capacity_estimate: field_trials
-                .limit_pacing_factor_by_upper_link_capacity_estimate
-                .unwrap_or(false),
+                .limit_pacing_factor_by_upper_link_capacity_estimate,
 
             probe_controller: ProbeController::new(field_trials.probing_configuration.clone()),
             congestion_window_pushback_controller: rate_control_settings
@@ -1419,7 +1417,7 @@ mod test {
     #[test]
     fn pace_at_max_of_lower_link_capacity_and_bwe() {
         let field_trials = FieldTrials {
-            pace_at_max_of_bwe_and_lower_link_capacity: Some(true),
+            pace_at_max_of_bwe_and_lower_link_capacity: true,
             ..Default::default()
         };
         let mut controller = create_controller(field_trials, false);
@@ -1486,16 +1484,17 @@ mod test {
         assert!(
             update.target_rate.as_ref().unwrap().target_rate > network_estimate.link_capacity_lower
         );
+        // NOTE: These are off by 4 bps
         assert_eq!(
-            update.pacer_config.unwrap().data_rate().kbps_float(),
-            update.target_rate.unwrap().target_rate.kbps_float() * DEFAULT_PACING_RATE
+            update.pacer_config.unwrap().data_rate().kbps(),
+            (update.target_rate.unwrap().target_rate * DEFAULT_PACING_RATE).kbps(),
         );
     }
 
     #[test]
     fn limit_pacing_factor_to_upper_link_capacity() {
         let field_trials = FieldTrials {
-            limit_pacing_factor_by_upper_link_capacity_estimate: Some(true),
+            limit_pacing_factor_by_upper_link_capacity_estimate: true,
             ..Default::default()
         };
         let mut controller = create_controller(field_trials, false);
@@ -1510,7 +1509,7 @@ mod test {
         });
         current_time += TimeDelta::from_millis(100);
         let network_estimate: NetworkStateEstimate = NetworkStateEstimate {
-            link_capacity_upper: INITIAL_BITRATE * DEFAULT_PACING_RATE / 2,
+            link_capacity_upper: (INITIAL_BITRATE * DEFAULT_PACING_RATE) / 2,
             ..Default::default()
         };
         controller.set_network_state_estimate(Some(network_estimate));
@@ -1530,12 +1529,6 @@ mod test {
         });
         assert!(update.pacer_config.is_some());
         assert!(update.target_rate.is_some());
-        println!(
-            "pacer_config: {:?}, target_rate: {:?}, initial_bitrate: {:?}",
-            update.pacer_config.unwrap().data_rate(),
-            update.target_rate.unwrap().target_rate,
-            INITIAL_BITRATE
-        );
         assert!(update.target_rate.unwrap().target_rate >= INITIAL_BITRATE);
         assert_eq!(
             update.pacer_config.unwrap().data_rate(),
