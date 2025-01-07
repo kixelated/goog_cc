@@ -17,7 +17,7 @@ use crate::{
     FieldTrials, LinkCapacityEstimator,
 };
 
-use super::{CONGESTION_CONTROLLER_MIN_BITRATE, RateControlInput};
+use super::{RateControlInput, CONGESTION_CONTROLLER_MIN_BITRATE};
 
 // WebRTC-BweBackOffFactor
 #[derive(Debug, Clone)]
@@ -205,8 +205,10 @@ impl AimdRateControl {
     // As above. To be used if overusing before we have measured a throughput.
     pub fn initial_time_to_reduce_further(&mut self, at_time: Timestamp) -> bool {
         self.valid_estimate()
-            && self
-                .time_to_reduce_further(at_time, self.latest_estimate() / 2 - DataRate::from_bits_per_sec(1))
+            && self.time_to_reduce_further(
+                at_time,
+                self.latest_estimate() / 2 - DataRate::from_bits_per_sec(1),
+            )
     }
 
     pub fn latest_estimate(&self) -> DataRate {
@@ -416,7 +418,8 @@ impl AimdRateControl {
                 };
                 new_bitrate = upper_bound.min(new_bitrate);
             }
-            if network_estimate.link_capacity_lower.is_finite() && new_bitrate < self.current_bitrate
+            if network_estimate.link_capacity_lower.is_finite()
+                && new_bitrate < self.current_bitrate
             {
                 new_bitrate = self
                     .current_bitrate
@@ -522,7 +525,8 @@ mod test {
             INITIAL_TIME,
         );
         assert!(
-            (aimd_rate_control.get_near_max_increase_rate_bps_per_second() - 14_000.0).abs() <= 1_000.0,
+            (aimd_rate_control.get_near_max_increase_rate_bps_per_second() - 14_000.0).abs()
+                <= 1_000.0,
         );
         assert_eq!(
             aimd_rate_control.get_expected_bandwidth_period(),
@@ -574,8 +578,9 @@ mod test {
         let new_estimate: DataRate = aimd_rate_control.latest_estimate();
         assert_eq!(new_estimate, prev_estimate);
         assert!(
-            (new_estimate.bps() - (1.5f64 * ACKED_BITRATE + DataRate::from_bits_per_sec(10_000)).bps())
-                .abs()
+            (new_estimate.bps()
+                - (1.5f64 * ACKED_BITRATE + DataRate::from_bits_per_sec(10_000)).bps())
+            .abs()
                 < 2_000
         );
     }
@@ -645,7 +650,10 @@ mod test {
             ),
             now,
         );
-        assert_eq!(aimd_rate_control.get_expected_bandwidth_period(), MIN_BWE_PERIOD);
+        assert_eq!(
+            aimd_rate_control.get_expected_bandwidth_period(),
+            MIN_BWE_PERIOD
+        );
     }
 
     #[test]
@@ -661,7 +669,10 @@ mod test {
             RateControlInput::new(BandwidthUsage::Overusing, Some(acked_bitrate)),
             now,
         );
-        assert_eq!(aimd_rate_control.get_expected_bandwidth_period(), MAX_BWE_PERIOD);
+        assert_eq!(
+            aimd_rate_control.get_expected_bandwidth_period(),
+            MAX_BWE_PERIOD
+        );
     }
 
     #[test]
@@ -683,7 +694,7 @@ mod test {
             RateControlInput::new(BandwidthUsage::Normal, Some(INITIAL_BITRATE)),
             now,
         );
-        for _ in [0..100] {
+        for _ in 0..100 {
             aimd_rate_control.update(RateControlInput::new(BandwidthUsage::Normal, None), now);
             now += TimeDelta::from_millis(100);
         }
@@ -742,8 +753,10 @@ mod test {
         let field_trials = Default::default();
         let mut aimd_rate_control = AimdRateControl::new(&field_trials, true);
         aimd_rate_control.set_estimate(DataRate::from_bits_per_sec(300_000), INITIAL_TIME);
-        let mut network_estimate = NetworkStateEstimate::default();
-        network_estimate.link_capacity_upper = DataRate::from_bits_per_sec(400_000);
+        let network_estimate = NetworkStateEstimate {
+            link_capacity_upper: DataRate::from_bits_per_sec(400_000),
+            ..Default::default()
+        };
         aimd_rate_control.set_network_state_estimate(Some(network_estimate));
         aimd_rate_control.set_estimate(DataRate::from_bits_per_sec(500_000), INITIAL_TIME);
         assert_eq!(
@@ -762,8 +775,11 @@ mod test {
             DataRate::from_bits_per_sec(500_000)
         );
 
-        let mut network_estimate: NetworkStateEstimate = NetworkStateEstimate::default();
-        network_estimate.link_capacity_upper = DataRate::from_bits_per_sec(300_000);
+        let network_estimate= NetworkStateEstimate {
+            link_capacity_upper: DataRate::from_bits_per_sec(300_000),
+            ..Default::default()
+        };
+
         aimd_rate_control.set_network_state_estimate(Some(network_estimate));
         aimd_rate_control.set_estimate(DataRate::from_bits_per_sec(700_000), INITIAL_TIME);
         assert_eq!(
@@ -790,8 +806,10 @@ mod test {
             DataRate::from_bits_per_sec(500_000)
         );
 
-        let mut network_estimate = NetworkStateEstimate::default();
-        network_estimate.link_capacity_upper = DataRate::from_bits_per_sec(300_000);
+        let network_estimate = NetworkStateEstimate {
+            link_capacity_upper: DataRate::from_bits_per_sec(300_000),
+            ..Default::default()
+        };
         aimd_rate_control.set_network_state_estimate(Some(network_estimate));
         aimd_rate_control.set_estimate(DataRate::from_bits_per_sec(700_000), INITIAL_TIME);
         assert_eq!(
@@ -804,8 +822,10 @@ mod test {
     fn set_estimate_lower_limited_by_network_estimate() {
         let field_trials = Default::default();
         let mut aimd_rate_control = AimdRateControl::new(&field_trials, true);
-        let mut network_estimate = NetworkStateEstimate::default();
-        network_estimate.link_capacity_lower = DataRate::from_bits_per_sec(400_000);
+        let network_estimate = NetworkStateEstimate {
+            link_capacity_lower: DataRate::from_bits_per_sec(400_000),
+            ..Default::default()
+        };
         aimd_rate_control.set_network_state_estimate(Some(network_estimate));
         aimd_rate_control.set_estimate(DataRate::from_bits_per_sec(100_000), INITIAL_TIME);
         // 0.85 is default backoff factor. (`beta_`)
@@ -821,8 +841,10 @@ mod test {
         let mut aimd_rate_control = AimdRateControl::new(&field_trials, true);
         aimd_rate_control.set_estimate(DataRate::from_kilobits_per_sec(200), INITIAL_TIME);
         assert_eq!(aimd_rate_control.latest_estimate().kbps(), 200);
-        let mut network_estimate = NetworkStateEstimate::default();
-        network_estimate.link_capacity_lower = DataRate::from_kilobits_per_sec(400);
+        let network_estimate = NetworkStateEstimate {
+            link_capacity_lower: DataRate::from_kilobits_per_sec(400),
+            ..Default::default()
+        };
         aimd_rate_control.set_network_state_estimate(Some(network_estimate));
         // Ignore the next SetEstimate, since the estimate is lower than 85% of
         // the network estimate.
@@ -873,8 +895,10 @@ mod test {
         const INITIAL_BITRATE: DataRate = DataRate::from_bits_per_sec(123_000);
         aimd_rate_control.set_estimate(INITIAL_BITRATE, now);
         aimd_rate_control.set_in_application_limited_region(false);
-        let mut network_estimate = NetworkStateEstimate::default();
-        network_estimate.link_capacity_upper = DataRate::from_kilobits_per_sec(150);
+        let network_estimate = NetworkStateEstimate {
+            link_capacity_upper: DataRate::from_bits_per_sec(150_000),
+            ..Default::default()
+        };
         aimd_rate_control.set_network_state_estimate(Some(network_estimate));
 
         for _ in 0..100 {

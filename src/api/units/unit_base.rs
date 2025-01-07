@@ -9,9 +9,11 @@ macro_rules! unit_base {
             pub const fn zero() -> Self {
                 Self(0)
             }
+
             pub const fn plus_infinity() -> Self {
                 Self(i64::MAX)
             }
+
             pub const fn minus_infinity() -> Self {
                 Self(i64::MIN)
             }
@@ -19,9 +21,11 @@ macro_rules! unit_base {
             pub const fn is_zero(&self) -> bool {
                 self.0 == 0
             }
+
             pub const fn is_finite(&self) -> bool {
                 !self.is_infinite()
             }
+
             pub const fn is_infinite(&self) -> bool {
                 self.0 == i64::MAX || self.0 == i64::MIN
             }
@@ -67,7 +71,7 @@ macro_rules! unit_base {
             }
 
             #[allow(dead_code)]
-            const fn to_fraction(&self, denominator: i64) -> i64 {
+            const fn to_fraction(self, denominator: i64) -> i64 {
                 self.divide_round_to_nearest(denominator)
             }
 
@@ -89,13 +93,13 @@ macro_rules! unit_base {
             }
 
             #[allow(dead_code)]
-            fn to_fraction_float(&self, denominator: f64) -> f64 {
+            fn to_fraction_float(self, denominator: f64) -> f64 {
                 assert!(denominator >= 0.0);
                 self.to_value_float() / denominator
             }
 
             #[allow(dead_code)]
-            const fn to_fraction_or(&self, denominator: i64, fallback_value: i64) -> i64 {
+            const fn to_fraction_or(self, denominator: i64, fallback_value: i64) -> i64 {
                 assert!(denominator >= 0);
                 if self.is_finite() {
                     self.divide_round_to_nearest(denominator)
@@ -104,12 +108,12 @@ macro_rules! unit_base {
                 }
             }
 
-            pub const fn to_multiple(&self, factor: i64) -> i64 {
+            pub const fn to_multiple(self, factor: i64) -> i64 {
                 assert!(factor >= 0);
                 self.to_value() * factor
             }
 
-            pub fn to_multiple_float(&self, factor: f64) -> f64 {
+            pub fn to_multiple_float(self, factor: f64) -> f64 {
                 assert!(factor >= 0.0);
                 self.to_value_float() * factor
             }
@@ -141,13 +145,13 @@ macro_rules! unit_base {
                 }
             }
 
-            const fn to_value(&self) -> i64 {
+            const fn to_value(self) -> i64 {
                 assert!(self.is_finite());
                 self.0
             }
 
             #[allow(dead_code)]
-            const fn to_value_or(&self, fallback_value: i64) -> i64 {
+            const fn to_value_or(self, fallback_value: i64) -> i64 {
                 if self.is_finite() {
                     self.0
                 } else {
@@ -155,7 +159,7 @@ macro_rules! unit_base {
                 }
             }
 
-            const fn to_value_float(&self) -> f64 {
+            const fn to_value_float(self) -> f64 {
                 if self.is_plus_infinity() {
                     f64::INFINITY
                 } else if self.is_minus_infinity() {
@@ -398,23 +402,23 @@ mod test {
             Self::from_fraction_float(1000.0, kilo)
         }
 
-        pub const fn to_kilo(&self) -> i64 {
+        pub const fn to_kilo(self) -> i64 {
             self.to_fraction(1000)
         }
 
-        pub fn to_kilo_float(&self) -> f64 {
+        pub fn to_kilo_float(self) -> f64 {
             self.to_fraction_float(1000.0)
         }
 
-        pub const fn to_kilo_or(&self, fallback: i64) -> i64 {
+        pub const fn to_kilo_or(self, fallback: i64) -> i64 {
             self.to_fraction_or(1000, fallback)
         }
 
-        pub const fn to_milli(&self) -> i64 {
+        pub const fn to_milli(self) -> i64 {
             self.to_multiple(1000)
         }
 
-        pub fn to_milli_float(&self) -> f64 {
+        pub fn to_milli_float(self) -> f64 {
             self.to_multiple_float(1000.0)
         }
     }
@@ -588,6 +592,7 @@ mod test {
     #[test]
     #[should_panic]
     fn crashes_when_created_from_nan2() {
+        #[allow(clippy::zero_divided_by_zero)]
         TestUnit::from_value_float(0.0 / 0.0);
     }
 

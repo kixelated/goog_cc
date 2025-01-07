@@ -71,6 +71,7 @@ impl InterArrivalDelta {
     // `timestamp_delta` (output) is the computed send time delta.
     // `arrival_time_delta` (output) is the computed arrival-time delta.
     // `packet_size_delta` (output) is the computed size delta.
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_deltas(
         &mut self,
         send_time: Timestamp,

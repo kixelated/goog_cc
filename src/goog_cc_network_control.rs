@@ -281,7 +281,10 @@ impl GoogCcNetworkController {
             let mut pushback_rate: i64 = congestion_window_pushback_controller
                 .update_target_bitrate(loss_based_target_rate.bps() as _)
                 as _;
-            pushback_rate = self.bandwidth_estimation.get_min_bitrate().max(pushback_rate);
+            pushback_rate = self
+                .bandwidth_estimation
+                .get_min_bitrate()
+                .max(pushback_rate);
             pushback_target_rate = DataRate::from_bits_per_sec(pushback_rate);
             if self
                 .rate_control_settings
@@ -292,7 +295,8 @@ impl GoogCcNetworkController {
                     / loss_based_target_rate.bps_float();
             }
         }
-        let mut stable_target_rate: DataRate = self.bandwidth_estimation.get_estimated_link_capacity();
+        let mut stable_target_rate: DataRate =
+            self.bandwidth_estimation.get_estimated_link_capacity();
         stable_target_rate = std::cmp::min(stable_target_rate, pushback_target_rate);
 
         if (loss_based_target_rate != self.last_loss_based_target_rate)
@@ -314,8 +318,18 @@ impl GoogCcNetworkController {
 
             let bwe_period: TimeDelta = self.delay_based_bwe.get_expected_bwe_period();
 
-            let mut target_rate_msg = TargetTransferRate::default();
-            target_rate_msg.at_time = at_time;
+            let mut target_rate_msg = TargetTransferRate {
+                at_time,
+                stable_target_rate,
+                network_estimate: NetworkEstimate{at_time,
+                round_trip_time,
+                loss_rate_ratio: fraction_loss as f32 / 255.0,
+                bwe_period,
+                ..Default::default()
+                },
+                ..Default::default()
+            };
+
             if self
                 .rate_control_settings
                 .use_congestion_window_drop_frame_only()
@@ -325,11 +339,6 @@ impl GoogCcNetworkController {
             } else {
                 target_rate_msg.target_rate = pushback_target_rate;
             }
-            target_rate_msg.stable_target_rate = stable_target_rate;
-            target_rate_msg.network_estimate.at_time = at_time;
-            target_rate_msg.network_estimate.round_trip_time = round_trip_time;
-            target_rate_msg.network_estimate.loss_rate_ratio = fraction_loss as f32 / 255.0;
-            target_rate_msg.network_estimate.bwe_period = bwe_period;
 
             update.target_rate = Some(target_rate_msg);
 
@@ -446,9 +455,10 @@ impl GoogCcNetworkController {
 
 impl NetworkControllerInterface for GoogCcNetworkController {
     fn on_network_availability(&mut self, msg: NetworkAvailability) -> NetworkControlUpdate {
-        let mut update = NetworkControlUpdate::default();
-        update.probe_cluster_configs = self.probe_controller.on_network_availability(msg);
-        update
+        NetworkControlUpdate {
+            probe_cluster_configs: self.probe_controller.on_network_availability(msg),
+            ..Default::default()
+        }
     }
 
     fn on_network_route_change(&mut self, mut msg: NetworkRouteChange) -> NetworkControlUpdate {
@@ -476,8 +486,10 @@ impl NetworkControllerInterface for GoogCcNetworkController {
         self.delay_based_bwe = DelayBasedBwe::new(&self.field_trials);
         self.bandwidth_estimation.on_route_change();
         self.probe_controller.reset(msg.at_time);
-        let mut update = NetworkControlUpdate::default();
-        update.probe_cluster_configs = self.reset_constraints(msg.constraints);
+        let mut update = NetworkControlUpdate {
+            probe_cluster_configs: self.reset_constraints(msg.constraints),
+            ..Default::default()
+        };
         self.maybe_trigger_on_network_changed(&mut update, msg.at_time);
         update
     }
@@ -520,13 +532,16 @@ impl NetworkControllerInterface for GoogCcNetworkController {
             congestion_window_pushback_controller.update_pacing_queue(pacer_queue.bytes())
         };
         self.bandwidth_estimation.update_estimate(msg.at_time);
-        let start_time_ms: Option<i64> = self.alr_detector.get_application_limited_region_start_time();
+        let start_time_ms: Option<i64> = self
+            .alr_detector
+            .get_application_limited_region_start_time();
         self.probe_controller.set_alr_start_time_ms(start_time_ms);
 
         let mut probes = self.probe_controller.process(msg.at_time);
         update.probe_cluster_configs.append(&mut probes);
 
-        if self.rate_control_settings.use_congestion_window() && !self.feedback_max_rtts.is_empty() {
+        if self.rate_control_settings.use_congestion_window() && !self.feedback_max_rtts.is_empty()
+        {
             self.update_congestion_window_size();
         }
 
@@ -656,8 +671,10 @@ impl NetworkControllerInterface for GoogCcNetworkController {
         &mut self,
         constraints: TargetRateConstraints,
     ) -> NetworkControlUpdate {
-        let mut update = NetworkControlUpdate::default();
-        update.probe_cluster_configs = self.reset_constraints(constraints);
+        let mut update = NetworkControlUpdate {
+            probe_cluster_configs: self.reset_constraints(constraints),
+            ..Default::default()
+        };
         self.maybe_trigger_on_network_changed(&mut update, constraints.at_time);
         update
     }
@@ -757,7 +774,9 @@ impl NetworkControllerInterface for GoogCcNetworkController {
                 self.lost_packets_since_last_loss_update = 0;
             }
         }
-        let alr_start_time: Option<i64> = self.alr_detector.get_application_limited_region_start_time();
+        let alr_start_time: Option<i64> = self
+            .alr_detector
+            .get_application_limited_region_start_time();
 
         if self.previously_in_alr && alr_start_time.is_none() {
             let now_ms: i64 = report.feedback_time.ms();
@@ -867,7 +886,10 @@ impl NetworkControllerInterface for GoogCcNetworkController {
         update
     }
 
-    fn on_network_state_estimate(&mut self, estimate: NetworkStateEstimate) -> NetworkControlUpdate {
+    fn on_network_state_estimate(
+        &mut self,
+        estimate: NetworkStateEstimate,
+    ) -> NetworkControlUpdate {
         self.set_network_state_estimate(Some(estimate));
         NetworkControlUpdate::default()
     }
@@ -957,13 +979,15 @@ mod test {
         min_rate: Option<DataRate>,
         max_rate: Option<DataRate>,
     ) -> NetworkRouteChange {
-        let mut route_change = NetworkRouteChange::default();
-        route_change.at_time = time;
-        route_change.constraints.at_time = time;
-        route_change.constraints.min_data_rate = min_rate;
-        route_change.constraints.max_data_rate = max_rate;
-        route_change.constraints.starting_rate = start_rate;
-        route_change
+        NetworkRouteChange {
+            at_time: time,
+            constraints: TargetRateConstraints {
+                at_time: time,
+                starting_rate: start_rate,
+                min_data_rate: min_rate,
+                max_data_rate: max_rate,
+            },
+        }
     }
 
     fn create_packet_result(
@@ -972,13 +996,16 @@ mod test {
         payload_size: usize,
         pacing_info: PacedPacketInfo,
     ) -> PacketResult {
-        let mut packet_result = PacketResult::default();
-        packet_result.sent_packet = SentPacket::default();
-        packet_result.sent_packet.send_time = send_time;
-        packet_result.sent_packet.size = DataSize::from_bytes(payload_size as _);
-        packet_result.sent_packet.pacing_info = pacing_info;
-        packet_result.receive_time = arrival_time;
-        packet_result
+        PacketResult {
+            sent_packet: SentPacket {
+                send_time,
+                size: DataSize::from_bytes(payload_size as _),
+                pacing_info,
+                ..Default::default()
+            },
+            receive_time: arrival_time,
+            ..Default::default()
+        }
     }
 
     // Simulate sending packets and receiving transport feedback during
@@ -989,7 +1016,7 @@ mod test {
         delay: i64,
         current_time: &mut Timestamp,
     ) -> Option<DataRate> {
-        let mut update : NetworkControlUpdate;
+        let mut update: NetworkControlUpdate;
         let mut target_bitrate: Option<DataRate> = None;
         let mut delay_buildup: i64 = 0;
         let start_time_ms: i64 = current_time.ms();
@@ -1006,9 +1033,11 @@ mod test {
             if let Some(target_rate) = update.target_rate {
                 target_bitrate = Some(target_rate.target_rate);
             }
-            let mut feedback = TransportPacketsFeedback::default();
-            feedback.feedback_time = packet.receive_time;
-            feedback.packet_feedbacks.push(packet);
+            let feedback = TransportPacketsFeedback {
+                feedback_time: packet.receive_time,
+                packet_feedbacks: vec![packet],
+                ..Default::default()
+            };
             update = controller.on_transport_packets_feedback(feedback);
             if let Some(target_rate) = update.target_rate {
                 target_bitrate = Some(target_rate.target_rate);
@@ -1132,16 +1161,21 @@ mod test {
     */
 
     fn create_controller(field_trials: FieldTrials) -> GoogCcNetworkController {
-        let mut config = NetworkControllerConfig::default();
-        config.field_trials = field_trials;
-        config.constraints.at_time = Timestamp::zero();
-        config.constraints.min_data_rate = Some(DataRate::from_kilobits_per_sec(0));
-        config.constraints.max_data_rate = Some(DataRate::from_kilobits_per_sec(5 * INITIAL_BITRATE_KBPS));
-        config.constraints.starting_rate = Some(DataRate::from_kilobits_per_sec(INITIAL_BITRATE_KBPS));
+        let config = NetworkControllerConfig {
+            field_trials,
+            constraints: TargetRateConstraints {
+                at_time: Timestamp::zero(),
+                min_data_rate: Some(DataRate::from_kilobits_per_sec(0)),
+                max_data_rate: Some(DataRate::from_kilobits_per_sec(5 * INITIAL_BITRATE_KBPS)),
+                starting_rate: Some(DataRate::from_kilobits_per_sec(INITIAL_BITRATE_KBPS)),
+            },
+            ..Default::default()
+        };
 
         let goog_cc_config = GoogCcConfig {
             feedback_only: true,
         };
+
         GoogCcNetworkController::new(config, goog_cc_config)
     }
 
@@ -1149,11 +1183,10 @@ mod test {
     fn initialize_target_rate_on_first_process_interval_after_network_available() {
         let mut controller = create_controller(Default::default());
 
-        let _ =
-            controller.on_network_availability(NetworkAvailability {
-                at_time: Timestamp::from_millis(123456),
-                network_available: true,
-            });
+        let _ = controller.on_network_availability(NetworkAvailability {
+            at_time: Timestamp::from_millis(123456),
+            network_available: true,
+        });
         let update = controller.on_process_interval(ProcessInterval {
             at_time: Timestamp::from_millis(123456),
             ..Default::default()
@@ -1178,10 +1211,10 @@ mod test {
     fn reacts_to_changed_network_conditions() {
         let mut controller = create_controller(Default::default());
         let mut current_time: Timestamp = Timestamp::from_millis(123);
-            controller.on_network_availability(NetworkAvailability {
-                at_time: current_time,
-                network_available: true,
-            });
+        controller.on_network_availability(NetworkAvailability {
+            at_time: current_time,
+            network_available: true,
+        });
         controller.on_process_interval(ProcessInterval {
             at_time: current_time,
             ..Default::default()
@@ -1222,10 +1255,10 @@ mod test {
     fn on_network_route_changed() {
         let mut controller = create_controller(Default::default());
         let current_time: Timestamp = Timestamp::from_millis(123);
-            controller.on_network_availability(NetworkAvailability {
-                at_time: current_time,
-                network_available: true,
-            });
+        controller.on_network_availability(NetworkAvailability {
+            at_time: current_time,
+            network_available: true,
+        });
         let new_bitrate: DataRate = DataRate::from_bits_per_sec(200000);
 
         let update = controller.on_network_route_change(create_route_change(
@@ -1244,7 +1277,8 @@ mod test {
         // If the bitrate is reset to -1, the new starting bitrate will be
         // the minimum default bitrate.
         const DEFAULT_MIN_BITRATE: DataRate = DataRate::from_kilobits_per_sec(5);
-        let update = controller.on_network_route_change(create_route_change(current_time, None, None, None));
+        let update =
+            controller.on_network_route_change(create_route_change(current_time, None, None, None));
         assert_eq!(update.target_rate.unwrap().target_rate, DEFAULT_MIN_BITRATE);
         assert_relative_eq!(
             update.pacer_config.unwrap().data_rate().bps_float(),
@@ -1258,10 +1292,10 @@ mod test {
     fn probe_on_route_change() {
         let mut controller = create_controller(Default::default());
         let mut current_time: Timestamp = Timestamp::from_millis(123);
-            controller.on_network_availability(NetworkAvailability {
-                at_time: current_time,
-                network_available: true,
-            });
+        controller.on_network_availability(NetworkAvailability {
+            at_time: current_time,
+            network_available: true,
+        });
         current_time += TimeDelta::from_seconds(3);
 
         let update = controller.on_network_route_change(create_route_change(
@@ -1333,14 +1367,22 @@ mod test {
         // The test must run and insert packets/feedback long enough that the
         // BWE computes a valid estimate. This is first done in an environment which
         // simulates no bandwidth limitation, and therefore not built-up delay.
-        let target_bitrate_before_delay: Option<DataRate> =
-            packet_transmission_and_feedback_block(&mut controller, RUN_TIME_MS, 0, &mut current_time);
+        let target_bitrate_before_delay: Option<DataRate> = packet_transmission_and_feedback_block(
+            &mut controller,
+            RUN_TIME_MS,
+            0,
+            &mut current_time,
+        );
         assert!(target_bitrate_before_delay.is_some());
 
         // Repeat, but this time with a building delay, and make sure that the
         // estimation is adjusted downwards.
-        let target_bitrate_after_delay: Option<DataRate> =
-            packet_transmission_and_feedback_block(&mut controller, RUN_TIME_MS, 50, &mut current_time);
+        let target_bitrate_after_delay: Option<DataRate> = packet_transmission_and_feedback_block(
+            &mut controller,
+            RUN_TIME_MS,
+            50,
+            &mut current_time,
+        );
         assert!(target_bitrate_after_delay.unwrap() < target_bitrate_before_delay.unwrap());
     }
 
@@ -1352,10 +1394,10 @@ mod test {
         };
         let mut controller = create_controller(field_trials);
         let mut current_time: Timestamp = Timestamp::from_millis(123);
-            controller.on_network_availability(NetworkAvailability {
-                at_time: current_time,
-                network_available: true,
-            });
+        controller.on_network_availability(NetworkAvailability {
+            at_time: current_time,
+            network_available: true,
+        });
         controller.on_process_interval(ProcessInterval {
             at_time: current_time,
             ..Default::default()
@@ -1368,12 +1410,13 @@ mod test {
         controller.set_network_state_estimate(Some(network_estimate));
         // OnNetworkStateEstimate does not trigger processing a new estimate. So add a
         // dummy loss report to trigger a BWE update in the next process interval.
-        let mut loss_report = TransportLossReport::default();
-        loss_report.start_time = current_time;
-        loss_report.end_time = current_time;
-        loss_report.receive_time = current_time;
-        loss_report.packets_received_delta = 50;
-        loss_report.packets_lost_delta = 1;
+        let loss_report = TransportLossReport {
+        start_time: current_time,
+        end_time: current_time,
+        receive_time: current_time,
+        packets_received_delta: 50,
+        packets_lost_delta: 1,
+        };
         controller.on_transport_loss_report(loss_report);
         let update = controller.on_process_interval(ProcessInterval {
             at_time: current_time,
@@ -1397,12 +1440,13 @@ mod test {
         controller.set_network_state_estimate(Some(network_estimate));
         // Again, we need to inject a dummy loss report to trigger an update of the
         // BWE in the next process interval.
-        let mut loss_report = TransportLossReport::default();
-        loss_report.start_time = current_time;
-        loss_report.end_time = current_time;
-        loss_report.receive_time = current_time;
-        loss_report.packets_received_delta = 50;
-        loss_report.packets_lost_delta = 0;
+        let loss_report = TransportLossReport {
+            start_time: current_time,
+            end_time: current_time,
+            receive_time: current_time,
+            packets_received_delta: 50,
+            packets_lost_delta: 0,
+        };
         controller.on_transport_loss_report(loss_report);
         let update = controller.on_process_interval(ProcessInterval {
             at_time: current_time,
@@ -1426,10 +1470,10 @@ mod test {
         };
         let mut controller = create_controller(field_trials);
         let mut current_time: Timestamp = Timestamp::from_millis(123);
-            controller.on_network_availability(NetworkAvailability {
-                at_time: current_time,
-                network_available: true,
-            });
+        controller.on_network_availability(NetworkAvailability {
+            at_time: current_time,
+            network_available: true,
+        });
         controller.on_process_interval(ProcessInterval {
             at_time: current_time,
             ..Default::default()
@@ -1442,12 +1486,13 @@ mod test {
         controller.set_network_state_estimate(Some(network_estimate));
         // OnNetworkStateEstimate does not trigger processing a new estimate. So add a
         // dummy loss report to trigger a BWE update in the next process interval.
-        let mut loss_report = TransportLossReport::default();
-        loss_report.start_time = current_time;
-        loss_report.end_time = current_time;
-        loss_report.receive_time = current_time;
-        loss_report.packets_received_delta = 50;
-        loss_report.packets_lost_delta = 1;
+        let loss_report = TransportLossReport {
+            start_time: current_time,
+            end_time: current_time,
+            receive_time: current_time,
+            packets_received_delta: 50,
+            packets_lost_delta: 1,
+        };
         controller.on_transport_loss_report(loss_report);
         let update = controller.on_process_interval(ProcessInterval {
             at_time: current_time,

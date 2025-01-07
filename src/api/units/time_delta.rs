@@ -260,7 +260,10 @@ mod test {
             TimeDelta::from_seconds(MAX_INT as i64).us(),
             MAX_INT as i64 * 1000000
         );
-        assert_eq!(TimeDelta::from_millis(MAX_INT as i64).us(), MAX_INT as i64 * 1000);
+        assert_eq!(
+            TimeDelta::from_millis(MAX_INT as i64).us(),
+            MAX_INT as i64 * 1000
+        );
     }
 
     #[test]
@@ -271,7 +274,10 @@ mod test {
         const MILLIS_DOUBLE: f64 = MICROS as f64 * 1e-3;
         const SECONDS_DOUBLE: f64 = MILLIS_DOUBLE * 1e-3;
 
-        assert_eq!(TimeDelta::from_micros(MICROS).seconds_float(), SECONDS_DOUBLE);
+        assert_eq!(
+            TimeDelta::from_micros(MICROS).seconds_float(),
+            SECONDS_DOUBLE
+        );
         assert_eq!(TimeDelta::from_seconds_float(SECONDS_DOUBLE).us(), MICROS);
 
         assert_eq!(TimeDelta::from_micros(MICROS).ms_float(), MILLIS_DOUBLE);
@@ -342,7 +348,10 @@ mod test {
         assert_eq!((VALUE * INT32).us(), VALUE.us() * INT32 as i64);
         assert_eq!(VALUE * INT32, INT32 * VALUE);
 
-        assert_eq!((VALUE * UNSIGNED_INT).us(), VALUE.us() * UNSIGNED_INT as i64);
+        assert_eq!(
+            (VALUE * UNSIGNED_INT).us(),
+            VALUE.us() * UNSIGNED_INT as i64
+        );
         assert_eq!(VALUE * UNSIGNED_INT, UNSIGNED_INT * VALUE);
 
         assert_relative_eq!(

@@ -58,7 +58,11 @@ impl Default for LinkCapacityTracker {
 
 impl LinkCapacityTracker {
     // Call when a new delay-based estimate is available.
-    pub fn update_delay_based_estimate(&mut self, at_time: Timestamp, delay_based_bitrate: DataRate) {
+    pub fn update_delay_based_estimate(
+        &mut self,
+        at_time: Timestamp,
+        delay_based_bitrate: DataRate,
+    ) {
         if delay_based_bitrate < self.last_delay_based_estimate {
             self.capacity_estimate_bps = self
                 .capacity_estimate_bps
@@ -431,7 +435,9 @@ impl SendSideBandwidthEstimation {
         }
 
         if self.loss_based_bandwidth_estimator_v2_ready_for_use() {
-            let result = self.loss_based_bandwidth_estimator_v2.get_loss_based_result();
+            let result = self
+                .loss_based_bandwidth_estimator_v2
+                .get_loss_based_result();
             self.loss_based_state = result.state;
             self.update_target_bitrate(result.bandwidth_estimate, at_time);
             return;
@@ -608,7 +614,11 @@ impl SendSideBandwidthEstimation {
         self.min_bitrate_configured.bps()
     }
 
-    pub fn set_acknowledged_rate(&mut self, acknowledged_rate: Option<DataRate>, at_time: Timestamp) {
+    pub fn set_acknowledged_rate(
+        &mut self,
+        acknowledged_rate: Option<DataRate>,
+        at_time: Timestamp,
+    ) {
         self.acknowledged_rate = acknowledged_rate;
         let acknowledged_rate = match acknowledged_rate {
             Some(rate) => rate,
@@ -636,7 +646,11 @@ impl SendSideBandwidthEstimation {
         }
         if self.loss_based_bandwidth_estimator_v2_enabled() {
             self.loss_based_bandwidth_estimator_v2
-                .update_bandwidth_estimate(&report.packet_feedbacks, self.delay_based_limit, in_alr);
+                .update_bandwidth_estimate(
+                    &report.packet_feedbacks,
+                    self.delay_based_limit,
+                    in_alr,
+                );
             self.update_estimate(report.feedback_time);
         }
     }
@@ -741,8 +755,14 @@ mod test {
     fn test_probing(use_delay_based: bool) {
         let mut bwe = SendSideBandwidthEstimation::new(Default::default());
         let mut now_ms: i64 = 0;
-        bwe.set_min_max_bitrate(DataRate::from_bits_per_sec(100000), DataRate::from_bits_per_sec(1500000));
-        bwe.set_send_bitrate(DataRate::from_bits_per_sec(200000), Timestamp::from_millis(now_ms));
+        bwe.set_min_max_bitrate(
+            DataRate::from_bits_per_sec(100000),
+            DataRate::from_bits_per_sec(1500000),
+        );
+        bwe.set_send_bitrate(
+            DataRate::from_bits_per_sec(200000),
+            Timestamp::from_millis(now_ms),
+        );
 
         const REMB_BPS: i64 = 1000000;
         const SECOND_REMB_BPS: i64 = REMB_BPS + 500000;
@@ -756,9 +776,15 @@ mod test {
 
         // Initial REMB applies immediately.
         if use_delay_based {
-            bwe.update_delay_based_estimate(Timestamp::from_millis(now_ms), DataRate::from_bits_per_sec(REMB_BPS));
+            bwe.update_delay_based_estimate(
+                Timestamp::from_millis(now_ms),
+                DataRate::from_bits_per_sec(REMB_BPS),
+            );
         } else {
-            bwe.update_receiver_estimate(Timestamp::from_millis(now_ms), DataRate::from_bits_per_sec(REMB_BPS));
+            bwe.update_receiver_estimate(
+                Timestamp::from_millis(now_ms),
+                DataRate::from_bits_per_sec(REMB_BPS),
+            );
         }
         bwe.update_estimate(Timestamp::from_millis(now_ms));
         assert_eq!(REMB_BPS, bwe.target_rate().bps());
@@ -819,7 +845,10 @@ mod test {
             /*number_of_packets=*/ 100,
             Timestamp::from_millis(now_ms),
         );
-        bwe.update_rtt(TimeDelta::from_millis(RTT_MS), Timestamp::from_millis(now_ms));
+        bwe.update_rtt(
+            TimeDelta::from_millis(RTT_MS),
+            Timestamp::from_millis(now_ms),
+        );
 
         // Trigger an update 2 seconds later to not be rate limited.
         now_ms += 1000;

@@ -635,10 +635,8 @@ mod test {
         );
 
         // 50% loss
-        for i in 0..packet_feedback.len() {
-            if i % 2 == 1 {
-                packet_feedback[i].receive_time = Timestamp::plus_infinity();
-            }
+        for packet in packet_feedback.iter_mut().skip(1).step_by(2) {
+            packet.receive_time = Timestamp::plus_infinity();
         }
 
         packet_feedback.sort_by_key(|x| x.receive_time);

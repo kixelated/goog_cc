@@ -383,7 +383,7 @@ impl DelayBasedBwe {
 
 #[cfg(test)]
 mod test {
-    use crate::api::transport::PacedPacketInfo;
+    use crate::api::transport::{PacedPacketInfo, SentPacket};
     use crate::{
         AcknowledgedBitrateEstimator, AcknowledgedBitrateEstimatorInterface, ProbeBitrateEstimator,
         RobustThroughputEstimatorSettings,
@@ -633,21 +633,29 @@ mod test {
         ) {
             let receive_time = arrival_time + TimeDelta::from_millis(self.arrival_time_offset_ms);
 
-            let mut packet = PacketResult::default();
-            packet.receive_time = receive_time;
-            packet.sent_packet.send_time = send_time;
-            packet.sent_packet.size = DataSize::from_bytes(payload_size as _);
-            packet.sent_packet.pacing_info = pacing_info;
-            packet.sent_packet.sequence_number = self.next_sequence_number;
+            let packet = PacketResult {
+                receive_time,
+                sent_packet: SentPacket {
+                    send_time,
+                    size: DataSize::from_bytes(payload_size as _),
+                    pacing_info,
+                    sequence_number: self.next_sequence_number,
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+
             self.next_sequence_number += 1;
             if packet.sent_packet.pacing_info.probe_cluster_id != PacedPacketInfo::NOT_APROBE {
                 self.probe_bitrate_estimator
                     .handle_probe_and_estimate_bitrate(&packet);
             }
 
-            let mut msg = TransportPacketsFeedback::default();
-            msg.feedback_time = Timestamp::from_millis(self.clock.ms());
-            msg.packet_feedbacks.push(packet);
+            let msg = TransportPacketsFeedback {
+                feedback_time: Timestamp::from_millis(self.clock.ms()),
+                packet_feedbacks: vec![packet],
+                ..Default::default()
+            };
             self.acknowledged_bitrate_estimator
                 .incoming_packet_feedback(&msg.sorted_by_receive_time());
             let result = self.bitrate_estimator.incoming_packet_feedback_vector(
@@ -697,17 +705,20 @@ mod test {
 
             self.acknowledged_bitrate_estimator
                 .incoming_packet_feedback(&packets);
-            let mut msg = TransportPacketsFeedback::default();
-            msg.packet_feedbacks = packets;
-            msg.feedback_time = self.clock;
+            let msg = TransportPacketsFeedback {
+                packet_feedbacks: packets,
+                feedback_time: self.clock,
+                ..Default::default()
+            };
 
-            let result: DelayBasedBweResult = self.bitrate_estimator.incoming_packet_feedback_vector(
-                &msg,
-                self.acknowledged_bitrate_estimator.bitrate(),
-                self.probe_bitrate_estimator
-                    .fetch_and_reset_last_estimated_bitrate(),
-                /*in_alr*/ false,
-            );
+            let result: DelayBasedBweResult =
+                self.bitrate_estimator.incoming_packet_feedback_vector(
+                    &msg,
+                    self.acknowledged_bitrate_estimator.bitrate(),
+                    self.probe_bitrate_estimator
+                        .fetch_and_reset_last_estimated_bitrate(),
+                    /*in_alr*/ false,
+                );
             if result.updated {
                 self.bitrate_observer
                     .on_receive_bitrate_changed(result.target_bitrate.bps() as _);
@@ -789,7 +800,8 @@ mod test {
                         100,
                         Default::default(),
                     );
-                    self.clock += TimeDelta::from_millis(FRAME_INTERVAL_MS / TIMESTAMP_GROUP_LENGTH);
+                    self.clock +=
+                        TimeDelta::from_millis(FRAME_INTERVAL_MS / TIMESTAMP_GROUP_LENGTH);
                     send_time_ms += 1;
                 }
                 // Increase time until next batch to simulate over-use.
@@ -1270,7 +1282,8 @@ mod test {
 
         bwe.stream_generator
             .add_stream(RtpStream::new(FPS, START_BITRATE.bps()));
-        bwe.stream_generator.set_capacity_bps(INITIAL_CAPACITY.bps());
+        bwe.stream_generator
+            .set_capacity_bps(INITIAL_CAPACITY.bps());
 
         // Needed to initialize the AimdRateControl.
         bwe.bitrate_estimator.set_start_bitrate(START_BITRATE);

@@ -266,9 +266,15 @@ mod test {
 
         assert_eq!(DataRate::from_bits_per_sec(VALUE).bps_float(), DOUBLE_VALUE);
         assert_eq!(DataRate::from_bits_per_sec(VALUE).kbps_float(), DOUBLE_KBPS);
-        assert_eq!(DataRate::from_bits_per_sec(VALUE).kbps_float() as f32, FLOAT_KBPS);
+        assert_eq!(
+            DataRate::from_bits_per_sec(VALUE).kbps_float() as f32,
+            FLOAT_KBPS
+        );
         assert_eq!(DataRate::from_bits_per_sec_float(DOUBLE_VALUE).bps(), VALUE);
-        assert_eq!(DataRate::from_kilobits_per_sec_float(DOUBLE_KBPS).bps(), VALUE);
+        assert_eq!(
+            DataRate::from_kilobits_per_sec_float(DOUBLE_KBPS).bps(),
+            VALUE
+        );
 
         const INFINITY: f64 = f64::INFINITY;
         assert_eq!(DataRate::infinity().bps_float(), INFINITY);
@@ -358,7 +364,8 @@ mod test {
     }
 
     const JUST_SMALL_ENOUGH_FOR_DIVISION: i64 = i64::MAX / 8000000;
-    const TOOLARGE_FOR_DIVISION: DataSize = DataSize::from_bytes(JUST_SMALL_ENOUGH_FOR_DIVISION + 1);
+    const TOOLARGE_FOR_DIVISION: DataSize =
+        DataSize::from_bytes(JUST_SMALL_ENOUGH_FOR_DIVISION + 1);
 
     #[test]
     fn division_fails_on_large_size() {

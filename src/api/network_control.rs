@@ -68,8 +68,10 @@ pub trait NetworkControllerInterface {
     // Called when a protocol specific calculation of packet loss has been made.
     fn on_transport_loss_report(&mut self, msg: TransportLossReport) -> NetworkControlUpdate;
     // Called with per packet feedback regarding receive time.
-    fn on_transport_packets_feedback(&mut self, msg: TransportPacketsFeedback)
-        -> NetworkControlUpdate;
+    fn on_transport_packets_feedback(
+        &mut self,
+        msg: TransportPacketsFeedback,
+    ) -> NetworkControlUpdate;
     // Called with network state estimate updates.
     fn on_network_state_estimate(&mut self, msg: NetworkStateEstimate) -> NetworkControlUpdate;
 }

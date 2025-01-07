@@ -163,12 +163,16 @@ impl BitrateEstimator {
         if self.bitrate_estimate_kbps < 0.0 {
             return None;
         }
-        Some(DataRate::from_kilobits_per_sec_float(self.bitrate_estimate_kbps))
+        Some(DataRate::from_kilobits_per_sec_float(
+            self.bitrate_estimate_kbps,
+        ))
     }
 
     pub fn peek_rate(&self) -> Option<DataRate> {
         if self.current_window_ms > 0 {
-            return Some(DataSize::from_bytes(self.sum) / TimeDelta::from_millis(self.current_window_ms));
+            return Some(
+                DataSize::from_bytes(self.sum) / TimeDelta::from_millis(self.current_window_ms),
+            );
         }
         None
     }

@@ -252,7 +252,10 @@ mod test {
             Timestamp::from_seconds(MAX_INT as _).us(),
             MAX_INT as i64 * 1000000
         );
-        assert_eq!(Timestamp::from_millis(MAX_INT as _).us(), MAX_INT as i64 * 1000);
+        assert_eq!(
+            Timestamp::from_millis(MAX_INT as _).us(),
+            MAX_INT as i64 * 1000
+        );
     }
 
     #[test]
@@ -262,7 +265,10 @@ mod test {
         const MILLIS_DOUBLE: f64 = MICROS as f64 * 1e-3;
         const SECONDS_DOUBLE: f64 = MILLIS_DOUBLE * 1e-3;
 
-        assert_eq!(Timestamp::from_micros(MICROS).seconds_float(), SECONDS_DOUBLE);
+        assert_eq!(
+            Timestamp::from_micros(MICROS).seconds_float(),
+            SECONDS_DOUBLE
+        );
         assert_eq!(Timestamp::from_seconds_float(SECONDS_DOUBLE).us(), MICROS);
 
         assert_eq!(Timestamp::from_micros(MICROS).ms_float(), MILLIS_DOUBLE);
@@ -299,8 +305,14 @@ mod test {
         const DELTA_B: TimeDelta = TimeDelta::from_millis(VALUE_B);
 
         assert_eq!((TIME_A - TIME_B), TimeDelta::from_millis(VALUE_A - VALUE_B));
-        assert_eq!((TIME_B - DELTA_A), Timestamp::from_millis(VALUE_B - VALUE_A));
-        assert_eq!((TIME_B + DELTA_A), Timestamp::from_millis(VALUE_B + VALUE_A));
+        assert_eq!(
+            (TIME_B - DELTA_A),
+            Timestamp::from_millis(VALUE_B - VALUE_A)
+        );
+        assert_eq!(
+            (TIME_B + DELTA_A),
+            Timestamp::from_millis(VALUE_B + VALUE_A)
+        );
 
         let mut mutable_time: Timestamp = TIME_A;
         mutable_time += DELTA_B;

@@ -79,6 +79,7 @@ impl InterArrival {
     // `timestamp_delta` (output) is the computed timestamp delta.
     // `arrival_time_delta_ms` (output) is the computed arrival-time delta.
     // `packet_size_delta` (output) is the computed size delta.
+    #[allow(clippy::too_many_arguments)]
     pub fn compute_deltas(
         &mut self,
         timestamp: u32,
@@ -254,7 +255,12 @@ mod test {
         }
         // Test that neither inter_arrival instance complete the timestamp group from
         // the given data.
-        pub fn expect_false(&mut self, timestamp_us: i64, arrival_time_ms: i64, packet_size: usize) {
+        pub fn expect_false(
+            &mut self,
+            timestamp_us: i64,
+            arrival_time_ms: i64,
+            packet_size: usize,
+        ) {
             Self::internal_expect_false(
                 &mut self.inter_arrival_rtp,
                 Self::make_rtp_timestamp(timestamp_us),
@@ -273,6 +279,7 @@ mod test {
         // the given data and that all returned deltas are as expected (except
         // delta: Timestamp, which is rounded from us to different ranges and must
         // match within an interval, given in |timestamp_near].
+        #[allow(clippy::too_many_arguments)]
         pub fn expect_true(
             &mut self,
             timestamp_us: i64,
@@ -442,6 +449,7 @@ mod test {
             assert_eq!(909, dummy_packet_size);
         }
 
+        #[allow(clippy::too_many_arguments)]
         fn internal_expect_true(
             inter_arrival: &mut InterArrival,
             timestamp: u32,

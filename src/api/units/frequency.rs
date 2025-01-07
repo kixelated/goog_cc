@@ -221,7 +221,10 @@ mod test {
         assert_eq!((FREQUENCY_A + FREQUENCY_B).hertz(), VALUE_A + VALUE_B);
         assert_eq!((FREQUENCY_A - FREQUENCY_B).hertz(), VALUE_A - VALUE_B);
 
-        assert_eq!((Frequency::from_hertz(VALUE_A) * VALUE_B).hertz(), VALUE_A * VALUE_B);
+        assert_eq!(
+            (Frequency::from_hertz(VALUE_A) * VALUE_B).hertz(),
+            VALUE_A * VALUE_B
+        );
 
         assert_eq!((FREQUENCY_B / 10).hertz(), VALUE_B / 10);
         assert_eq!(FREQUENCY_B / FREQUENCY_A, VALUE_B as f64 / VALUE_A as f64);
@@ -240,7 +243,10 @@ mod test {
             freq_high.round_down_to(Frequency::from_hertz(1)),
             Frequency::from_hertz(23)
         );
-        assert_eq!(freq_high.round_to(Frequency::from_hertz(1)), Frequency::from_hertz(24));
+        assert_eq!(
+            freq_high.round_to(Frequency::from_hertz(1)),
+            Frequency::from_hertz(24)
+        );
         assert_eq!(
             freq_high.round_up_to(Frequency::from_hertz(1)),
             Frequency::from_hertz(24)
@@ -252,7 +258,10 @@ mod test {
             freq_low.round_down_to(Frequency::from_hertz(1)),
             Frequency::from_hertz(23)
         );
-        assert_eq!(freq_low.round_to(Frequency::from_hertz(1)), Frequency::from_hertz(23));
+        assert_eq!(
+            freq_low.round_to(Frequency::from_hertz(1)),
+            Frequency::from_hertz(23)
+        );
         assert_eq!(
             freq_low.round_up_to(Frequency::from_hertz(1)),
             Frequency::from_hertz(24)
@@ -278,6 +287,9 @@ mod test {
     fn time_delta_and_frequency() {
         assert_eq!(1 / Frequency::from_hertz(50), TimeDelta::from_millis(20));
         assert_eq!(1 / TimeDelta::from_millis(20), Frequency::from_hertz(50));
-        assert_eq!(Frequency::from_kilo_hertz(200) * TimeDelta::from_millis(2), 400.0);
+        assert_eq!(
+            Frequency::from_kilo_hertz(200) * TimeDelta::from_millis(2),
+            400.0
+        );
     }
 }
