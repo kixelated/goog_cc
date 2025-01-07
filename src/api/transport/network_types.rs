@@ -4,9 +4,9 @@ use crate::api::units::{DataRate, DataSize, TimeDelta, Timestamp};
 
 use super::EcnMarking;
 
-// Represents constraints and rates related to the currently enabled streams.
-// This is used as input to the congestion controller via the StreamsConfig
-// struct.
+/// Represents constraints and rates related to the currently enabled streams.
+/// This is used as input to the congestion controller via the StreamsConfig
+/// struct.
 #[derive(Default, Clone, Copy, Debug)]
 pub struct BitrateAllocationLimits {
     // The total minimum send bitrate required by all sending streams.
@@ -18,16 +18,16 @@ pub struct BitrateAllocationLimits {
     pub max_padding_rate: DataRate,
 }
 
-// Use StreamsConfig for information about streams that is required for specific
-// adjustments to the algorithms in network controllers. Especially useful
-// for experiments.
+/// Use StreamsConfig for information about streams that is required for specific
+/// adjustments to the algorithms in network controllers. Especially useful
+/// for experiments.
 #[derive(Debug, Clone, Copy)]
 pub struct StreamsConfig {
     pub at_time: Timestamp,
     pub requests_alr_probing: Option<bool>,
-    // If `enable_repeated_initial_probing` is set to true, Probes are sent
-    // periodically every 1s during the first 5s after the network becomes
-    // available. The probes ignores max_total_allocated_bitrate.
+    /// If `enable_repeated_initial_probing` is set to true, Probes are sent
+    /// periodically every 1s during the first 5s after the network becomes
+    /// available. The probes ignores max_total_allocated_bitrate.
     pub enable_repeated_initial_probing: Option<bool>,
     pub pacing_factor: Option<f64>,
 
@@ -56,8 +56,8 @@ pub struct TargetRateConstraints {
     pub at_time: Timestamp,
     pub min_data_rate: Option<DataRate>,
     pub max_data_rate: Option<DataRate>,
-    // The initial bandwidth estimate to base target rate on. This should be used
-    // as the basis for initial OnTargetTransferRate and OnPacerConfig callbacks.
+    /// The initial bandwidth estimate to base target rate on. This should be used
+    /// as the basis for initial OnTargetTransferRate and OnPacerConfig callbacks.
     pub starting_rate: Option<DataRate>,
 }
 
@@ -90,8 +90,8 @@ impl Default for NetworkAvailability {
 #[derive(Debug, Clone, Copy)]
 pub struct NetworkRouteChange {
     pub at_time: Timestamp,
-    // The TargetRateConstraints are set here so they can be changed synchronously
-    // when network route changes.
+    /// The TargetRateConstraints are set here so they can be changed synchronously
+    /// when network route changes.
     pub constraints: TargetRateConstraints,
 }
 
@@ -155,20 +155,20 @@ impl PartialEq for PacedPacketInfo {
 #[derive(Debug, Clone, Copy)]
 pub struct SentPacket {
     pub send_time: Timestamp,
-    // Size of packet with overhead up to IP layer.
+    /// Size of packet with overhead up to IP layer.
     pub size: DataSize,
-    // Size of preceeding packets that are not part of feedback.
+    /// Size of preceeding packets that are not part of feedback.
     pub prior_unacked_data: DataSize,
-    // Probe cluster id and parameters including bitrate, number of packets and
-    // number of bytes.
+    /// Probe cluster id and parameters including bitrate, number of packets and
+    /// number of bytes.
     pub pacing_info: PacedPacketInfo,
-    // True if the packet is an audio packet, false for video, padding, RTX etc.
+    /// True if the packet is an audio packet, false for video, padding, RTX etc.
     pub audio: bool,
-    // Transport independent sequence number, any tracked packet should have a
-    // sequence number that is unique over the whole call and increasing by 1 for
-    // each packet.
+    /// Transport independent sequence number, any tracked packet should have a
+    /// sequence number that is unique over the whole call and increasing by 1 for
+    /// each packet.
     pub sequence_number: i64,
-    // Tracked data in flight when the packet was sent, excluding unacked data.
+    /// Tracked data in flight when the packet was sent, excluding unacked data.
     pub data_in_flight: DataSize,
 }
 
@@ -313,7 +313,7 @@ pub struct TransportPacketsFeedback {
     pub data_in_flight: DataSize,
     pub packet_feedbacks: Vec<PacketResult>,
 
-    // Arrival times for messages without send time information.
+    /// Arrival times for messages without send time information.
     pub sendless_arrival_times: Vec<Timestamp>,
 }
 
@@ -329,7 +329,7 @@ impl Default for TransportPacketsFeedback {
 }
 
 impl TransportPacketsFeedback {
-    // NOTE: These returned Vec copies in the original C++ code. Use collect() if you want that behavior.
+    /// NOTE: These returned Vec copies in the original C++ code. Use collect() if you want that behavior.
     pub fn received_with_send_info(&self) -> impl Iterator<Item = &PacketResult> {
         self.packet_feedbacks.iter().filter(|fb| fb.is_received())
     }
@@ -352,7 +352,7 @@ impl TransportPacketsFeedback {
 #[derive(Debug, Clone, Copy)]
 pub struct NetworkEstimate {
     pub at_time: Timestamp,
-    // Deprecated, use TargetTransferRate::target_rate instead.
+    /// Deprecated, use TargetTransferRate::target_rate instead.
     pub bandwidth: DataRate,
     pub round_trip_time: TimeDelta,
     pub bwe_period: TimeDelta,
@@ -375,10 +375,10 @@ impl Default for NetworkEstimate {
 #[derive(Debug, Clone, Copy)]
 pub struct PacerConfig {
     pub at_time: Timestamp,
-    // Pacer should send at most data_window data over time_window duration.
+    /// Pacer should send at most data_window data over time_window duration.
     pub data_window: DataSize,
     pub time_window: TimeDelta,
-    // Pacer should send at least pad_window data over time_window duration.
+    /// Pacer should send at least pad_window data over time_window duration.
     pub pad_window: DataSize,
 }
 
@@ -406,9 +406,9 @@ impl PacerConfig {
 pub struct ProbeClusterConfig {
     pub at_time: Timestamp,
     pub target_data_rate: DataRate,
-    // Duration of a probe.
+    /// Duration of a probe.
     pub target_duration: TimeDelta,
-    // Delta time between sent bursts of packets during probe.
+    /// Delta time between sent bursts of packets during probe.
     pub min_probe_delta: TimeDelta,
     pub target_probe_count: i32,
     pub id: i32,
@@ -430,7 +430,7 @@ impl Default for ProbeClusterConfig {
 #[derive(Debug, Clone, Copy)]
 pub struct TargetTransferRate {
     pub at_time: Timestamp,
-    // The estimate on which the target rate is based on.
+    /// The estimate on which the target rate is based on.
     pub network_estimate: NetworkEstimate,
     pub target_rate: DataRate,
     pub stable_target_rate: DataRate,
@@ -449,9 +449,9 @@ impl Default for TargetTransferRate {
     }
 }
 
-// Contains updates of network controller comand state. Using optionals to
-// indicate whether a member has been updated. The array of probe clusters
-// should be used to send out probes if not empty.
+/// Contains updates of network controller comand state. Using optionals to
+/// indicate whether a member has been updated. The array of probe clusters
+/// should be used to send out probes if not empty.
 #[derive(Default, Debug, Clone)]
 pub struct NetworkControlUpdate {
     pub congestion_window: Option<DataSize>,
@@ -484,7 +484,7 @@ impl Default for ProcessInterval {
     }
 }
 
-// Under development, subject to change without notice.
+/// Under development, subject to change without notice.
 #[derive(Debug, Clone, Copy)]
 pub struct NetworkStateEstimate {
     pub confidence: f64,
