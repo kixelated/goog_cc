@@ -132,8 +132,6 @@ impl Default for RttBasedBackoffConfig {
 }
 
 pub struct RttBasedBackoff {
-    pub disabled: bool,
-    pub configured_limit: TimeDelta,
     pub drop_fraction: f64,
     pub drop_interval: TimeDelta,
     pub bandwidth_floor: DataRate,
@@ -146,8 +144,6 @@ pub struct RttBasedBackoff {
 impl RttBasedBackoff {
     pub fn new(config: &RttBasedBackoffConfig) -> Self {
         Self {
-            disabled: config.disabled,
-            configured_limit: config.configured_limit,
             drop_fraction: config.drop_fraction,
             drop_interval: config.drop_interval,
             bandwidth_floor: config.bandwidth_floor,

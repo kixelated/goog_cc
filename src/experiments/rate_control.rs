@@ -10,7 +10,7 @@
 
 use crate::{api::units::DataSize, experiments::FieldTrials};
 
-// WebRTC-CongestionWindow
+/// WebRTC-CongestionWindow
 #[derive(Clone, Debug)]
 pub struct CongestionWindowConfig {
     pub queue_size_ms: i64,                    // QueueSize
@@ -31,7 +31,7 @@ impl Default for CongestionWindowConfig {
     }
 }
 
-// WebRTC-VideoRateControl
+/// WebRTC-VideoRateControl
 #[derive(Clone, Debug)]
 pub struct VideoRateControlConfig {
     pub pacing_factor: Option<f64>,
@@ -86,25 +86,30 @@ impl RateControlSettings {
         }
     }
 
-    // When CongestionWindowPushback is enabled, the pacer is oblivious to
-    // the congestion window. The relation between outstanding data and
-    // the congestion window affects encoder allocations directly.
+    /// When CongestionWindowPushback is enabled, the pacer is oblivious to
+    /// the congestion window. The relation between outstanding data and
+    /// the congestion window affects encoder allocations directly.
     pub fn use_congestion_window(&self) -> bool {
         self.congestion_window_config.queue_size_ms > 0
     }
+
     pub fn get_congestion_window_additional_time_ms(&self) -> i64 {
         self.congestion_window_config.queue_size_ms
     }
+
     pub fn use_congestion_window_pushback(&self) -> bool {
         self.congestion_window_config.queue_size_ms > 0
             && self.congestion_window_config.min_bitrate_bps > 0
     }
+
     pub fn use_congestion_window_drop_frame_only(&self) -> bool {
         self.congestion_window_config.drop_frame_only
     }
+
     pub fn congestion_window_min_pushback_target_bitrate_bps(&self) -> u32 {
         self.congestion_window_config.min_bitrate_bps as _
     }
+
     pub fn congestion_window_initial_data_window(&self) -> Option<DataSize> {
         self.congestion_window_config.initial_data_window
     }

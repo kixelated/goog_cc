@@ -211,9 +211,12 @@ impl LossBasedBandwidthEstimation {
                 * (self.average_loss - self.average_loss_max);
         }
     }
+
+    /* unused
     pub fn get_estimate(&self) -> DataRate {
         self.loss_based_bitrate
     }
+    */
 
     fn loss_increase_threshold(&self) -> f64 {
         loss_from_bitrate(

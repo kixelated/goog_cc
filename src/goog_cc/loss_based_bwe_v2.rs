@@ -869,6 +869,7 @@ impl LossBasedBweV2 {
     }
 
     // For unit testing only.
+    #[cfg(test)]
     pub fn set_bandwidth_estimate(&mut self, bandwidth_estimate: DataRate) {
         if bandwidth_estimate.is_finite() {
             self.current_best_estimate.loss_limited_bandwidth = bandwidth_estimate;

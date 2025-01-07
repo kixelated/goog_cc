@@ -48,13 +48,21 @@ impl Default for SafeResetOnRouteChange {
     }
 }
 
+/// Google Congestion Control specific configuration.
+///
+/// NOTE: NetworkStateEstimator and NetworkStatePredictor have not been ported.
+/// These are optional traits and do not seem to be implemented, except perhaps by Google internally.
 pub struct GoogCcConfig {
-    // These two are purposely left out because they are not implemented... except by Google?
     // network_state_estimator: Box<dyn NetworkStateEstimator>,
     // network_state_predictor: Box<dyn NetworkStatePredictor>,
     pub feedback_only: bool,
 }
 
+/// Google Congestion Control.
+///
+/// This is the congestion controller used within WebRTC.
+/// It has been extracted from the libwebrtc source code and ported to Rust to avoid linking headaches.
+/// Use the [NetworkControllerInterface] to interact with this controller.
 pub struct GoogCcNetworkController {
     field_trials: FieldTrials,
 

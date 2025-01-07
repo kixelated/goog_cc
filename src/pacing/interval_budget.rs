@@ -47,9 +47,12 @@ impl IntervalBudget {
         );
     }
 
+    /* unused
     pub fn bytes_remaining(&self) -> usize {
         self.bytes_remaining.try_into().unwrap_or(0)
     }
+    */
+
     pub fn budget_ratio(&self) -> f64 {
         if self.max_bytes_in_budget == 0 {
             return 0.0;
@@ -57,7 +60,9 @@ impl IntervalBudget {
         self.bytes_remaining as f64 / self.max_bytes_in_budget as f64
     }
 
+    /* unused
     pub fn target_rate_kbps(&self) -> i64 {
         self.target_rate_kbps
     }
+    */
 }

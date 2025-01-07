@@ -160,15 +160,19 @@ impl AimdRateControl {
     pub fn valid_estimate(&self) -> bool {
         self.bitrate_is_initialized
     }
+
     pub fn set_start_bitrate(&mut self, start_bitrate: DataRate) {
         self.current_bitrate = start_bitrate;
         self.latest_estimated_throughput = self.current_bitrate;
         self.bitrate_is_initialized = true;
     }
+
     pub fn set_min_bitrate(&mut self, min_bitrate: DataRate) {
         self.min_configured_bitrate = min_bitrate;
         self.current_bitrate = self.current_bitrate.max(min_bitrate);
     }
+
+    /* unused
     pub fn get_feedback_interval(&self) -> TimeDelta {
         // Estimate how often we can send RTCP if we allocate up to 5% of bandwidth
         // to feedback.
@@ -179,6 +183,7 @@ impl AimdRateControl {
         const MAX_FEEDBACK_INTERVAL: TimeDelta = TimeDelta::from_millis(1000);
         interval.clamp(MIN_FEEDBACK_INTERVAL, MAX_FEEDBACK_INTERVAL)
     }
+    */
 
     // Returns true if the bitrate estimate hasn't been changed for more than
     // an RTT, or if the estimated_throughput is less than half of the current
@@ -243,6 +248,7 @@ impl AimdRateControl {
     pub fn set_in_application_limited_region(&mut self, in_alr: bool) {
         self.in_alr = in_alr;
     }
+
     pub fn set_estimate(&mut self, bitrate: DataRate, at_time: Timestamp) {
         self.bitrate_is_initialized = true;
         let prev_bitrate: DataRate = self.current_bitrate;
@@ -252,6 +258,8 @@ impl AimdRateControl {
             self.time_last_bitrate_decrease = at_time;
         }
     }
+
+    #[cfg(test)]
     pub fn set_network_state_estimate(&mut self, estimate: Option<NetworkStateEstimate>) {
         self.network_estimate = estimate;
     }

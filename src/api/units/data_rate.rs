@@ -8,9 +8,9 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-// DataRate is a class that represents a given data rate. This can be used to
-// represent bandwidth, encoding bitrate, etc. The internal storage is bits per
-// second (bps).
+//! DataRate is a class that represents a given data rate. This can be used to
+//! represent bandwidth, encoding bitrate, etc. The internal storage is bits per
+//! second (bps).
 
 use std::fmt;
 use std::ops::*;

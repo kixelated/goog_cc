@@ -1,4 +1,4 @@
-// WebRTC-ProbingScreenshareBwe
+/// WebRTC-ProbingScreenshareBwe
 // Apparently these are now unconfigurable constants?
 #[derive(Clone, Debug)]
 pub struct AlrExperimentSettings {
@@ -7,9 +7,9 @@ pub struct AlrExperimentSettings {
     pub alr_bandwidth_usage_percent: i64,
     pub alr_start_budget_level_percent: i64,
     pub alr_stop_budget_level_percent: i64,
-    // Will be sent to the receive side for stats slicing.
-    // Can be 0..6, because it's sent as a 3 bits value and there's also
-    // reserved value to indicate absence of experiment.
+    /// Will be sent to the receive side for stats slicing.
+    /// Can be 0..6, because it's sent as a 3 bits value and there's also
+    /// reserved value to indicate absence of experiment.
     pub group_id: i64,
 }
 

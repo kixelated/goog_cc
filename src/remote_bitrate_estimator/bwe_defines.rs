@@ -16,6 +16,7 @@ use crate::api::{
 pub const CONGESTION_CONTROLLER_MIN_BITRATE: DataRate = DataRate::from_bits_per_sec(5_000);
 pub const BITRATE_WINDOW: TimeDelta = TimeDelta::from_seconds(1);
 
+/* unused
 pub enum BweNames {
     ReceiverNoExtension = 0,
     ReceiverTOffset = 1,
@@ -23,6 +24,7 @@ pub enum BweNames {
     SendSideTransportSeqNum = 3,
     BweNamesMax = 4,
 }
+*/
 
 pub struct RateControlInput {
     pub bw_state: BandwidthUsage,

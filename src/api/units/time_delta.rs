@@ -8,16 +8,16 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-use std::fmt;
-
-// TimeDelta represents the difference between two timestamps. Commonly this can
-// be a duration. However since two Timestamps are not guaranteed to have the
-// same epoch (they might come from different computers, making exact
-// synchronisation infeasible), the duration covered by a TimeDelta can be
-// undefined. To simplify usage, it can be constructed and converted to
-// different units, specifically seconds (s), milliseconds (ms) and
-// microseconds (us).
+//! TimeDelta represents the difference between two timestamps. Commonly this can
+//! be a duration. However since two Timestamps are not guaranteed to have the
+//! same epoch (they might come from different computers, making exact
+//! synchronisation infeasible), the duration covered by a TimeDelta can be
+//! undefined. To simplify usage, it can be constructed and converted to
+//! different units, specifically seconds (s), milliseconds (ms) and
+//! microseconds (us).
 super::relative_unit!(TimeDelta);
+
+use std::fmt;
 
 impl TimeDelta {
     const ONE_SIDED: bool = false;

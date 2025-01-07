@@ -8,16 +8,16 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+//! Timestamp represents the time that has passed since some unspecified epoch.
+//! The epoch is assumed to be before any represented timestamps, this means that
+//! negative values are not valid. The most notable feature is that the
+//! difference of two Timestamps results in a TimeDelta.
+super::unit_base!(Timestamp);
+
 use std::fmt;
 use std::ops::*;
 
 use super::TimeDelta;
-
-// Timestamp represents the time that has passed since some unspecified epoch.
-// The epoch is assumed to be before any represented timestamps, this means that
-// negative values are not valid. The most notable feature is that the
-// difference of two Timestamps results in a TimeDelta.
-super::unit_base!(Timestamp);
 
 impl Timestamp {
     const ONE_SIDED: bool = false;

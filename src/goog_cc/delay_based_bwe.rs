@@ -92,6 +92,7 @@ impl DelayBasedBwe {
 
     // This ssrc is used to fulfill the current API but will be removed
     // after the API has been changed.
+    #[cfg(test)]
     const FIXED_SSRC: u32 = 0;
 
     pub fn new(field_trials: &FieldTrials) -> Self {
@@ -183,6 +184,8 @@ impl DelayBasedBwe {
     pub fn on_rtt_update(&mut self, avg_rtt: TimeDelta) {
         self.rate_control.set_rtt(avg_rtt);
     }
+
+    #[cfg(test)]
     pub fn latest_estimate(&self, ssrcs: &mut Vec<u32>, bitrate: &mut DataRate) -> bool {
         // Currently accessed from both the process thread (see
         // ModuleRtpRtcpImpl::Process()) and the configuration thread (see
@@ -210,6 +213,8 @@ impl DelayBasedBwe {
     pub fn get_expected_bwe_period(&self) -> TimeDelta {
         self.rate_control.get_expected_bandwidth_period()
     }
+
+    /* unused?
     pub fn trigger_overuse(
         &mut self,
         at_time: Timestamp,
@@ -218,9 +223,12 @@ impl DelayBasedBwe {
         let input = RateControlInput::new(BandwidthUsage::Overusing, link_capacity);
         self.rate_control.update(input, at_time)
     }
+    */
+
     pub fn last_estimate(&self) -> DataRate {
         self.prev_bitrate
     }
+
     pub fn last_state(&self) -> BandwidthUsage {
         self.prev_state
     }

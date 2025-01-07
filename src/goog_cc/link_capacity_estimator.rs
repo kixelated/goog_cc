@@ -47,15 +47,21 @@ impl LinkCapacityEstimator {
             DataRate::zero()
         }
     }
+
     pub fn reset(&mut self) {
         self.estimate_kbps.take();
     }
+
     pub fn on_overuse_detected(&mut self, acknowledged_rate: DataRate) {
         self.update(acknowledged_rate, 0.05);
     }
+
+    /* unused
     pub fn on_probe_rate(&mut self, probe_rate: DataRate) {
         self.update(probe_rate, 0.5);
     }
+    */
+
     pub fn has_estimate(&self) -> bool {
         self.estimate_kbps.is_some()
     }
