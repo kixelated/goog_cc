@@ -252,11 +252,11 @@ macro_rules! relative_unit {
             }
         }
 
-        impl ::std::ops::Mul<f64> for $ty {
+        impl ::std::ops::Mul<isize> for $ty {
             type Output = Self;
 
-            fn mul(self, rhs: f64) -> Self::Output {
-                Self::from_value_float((self.to_value_float() * rhs).round())
+            fn mul(self, rhs: isize) -> Self::Output {
+                Self::from_value(self.to_value() * rhs as i64)
             }
         }
 
@@ -276,11 +276,11 @@ macro_rules! relative_unit {
             }
         }
 
-        impl ::std::ops::Mul<f32> for $ty {
+        impl ::std::ops::Mul<i16> for $ty {
             type Output = Self;
 
-            fn mul(self, rhs: f32) -> Self::Output {
-                Self::from_value_float((self.to_value_float() * rhs as f64).round())
+            fn mul(self, rhs: i16) -> Self::Output {
+                Self::from_value(self.to_value() * rhs as i64)
             }
         }
 
@@ -289,6 +289,46 @@ macro_rules! relative_unit {
 
             fn mul(self, rhs: usize) -> Self::Output {
                 Self::from_value(self.to_value() * i64::try_from(rhs).unwrap())
+            }
+        }
+
+        impl ::std::ops::Mul<u64> for $ty {
+            type Output = Self;
+
+            fn mul(self, rhs: u64) -> Self::Output {
+                Self::from_value(self.to_value() * i64::try_from(rhs).unwrap())
+            }
+        }
+
+        impl ::std::ops::Mul<u32> for $ty {
+            type Output = Self;
+
+            fn mul(self, rhs: u32) -> Self::Output {
+                Self::from_value(self.to_value() * i64::try_from(rhs).unwrap())
+            }
+        }
+
+        impl ::std::ops::Mul<u16> for $ty {
+            type Output = Self;
+
+            fn mul(self, rhs: u16) -> Self::Output {
+                Self::from_value(self.to_value() * i64::try_from(rhs).unwrap())
+            }
+        }
+
+        impl ::std::ops::Mul<f64> for $ty {
+            type Output = Self;
+
+            fn mul(self, rhs: f64) -> Self::Output {
+                Self::from_value_float((self.to_value_float() * rhs).round())
+            }
+        }
+
+        impl ::std::ops::Mul<f32> for $ty {
+            type Output = Self;
+
+            fn mul(self, rhs: f32) -> Self::Output {
+                Self::from_value_float((self.to_value_float() * rhs as f64).round())
             }
         }
 
@@ -303,6 +343,14 @@ macro_rules! relative_unit {
                 } else {
                     Self::from_value(-self.to_value())
                 }
+            }
+        }
+
+        impl ::std::ops::Mul<$ty> for isize {
+            type Output = $ty;
+
+            fn mul(self, rhs: $ty) -> Self::Output {
+                rhs * self
             }
         }
 
@@ -322,7 +370,39 @@ macro_rules! relative_unit {
             }
         }
 
+        impl ::std::ops::Mul<$ty> for i16 {
+            type Output = $ty;
+
+            fn mul(self, rhs: $ty) -> Self::Output {
+                rhs * self
+            }
+        }
+
         impl ::std::ops::Mul<$ty> for usize {
+            type Output = $ty;
+
+            fn mul(self, rhs: $ty) -> Self::Output {
+                rhs * self
+            }
+        }
+
+        impl ::std::ops::Mul<$ty> for u64 {
+            type Output = $ty;
+
+            fn mul(self, rhs: $ty) -> Self::Output {
+                rhs * self
+            }
+        }
+
+        impl ::std::ops::Mul<$ty> for u32 {
+            type Output = $ty;
+
+            fn mul(self, rhs: $ty) -> Self::Output {
+                rhs * self
+            }
+        }
+
+        impl ::std::ops::Mul<$ty> for u16 {
             type Output = $ty;
 
             fn mul(self, rhs: $ty) -> Self::Output {
@@ -346,6 +426,12 @@ macro_rules! relative_unit {
             }
         }
 
+        impl ::std::ops::MulAssign<isize> for $ty {
+            fn mul_assign(&mut self, rhs: isize) {
+                *self = *self * rhs;
+            }
+        }
+
         impl ::std::ops::MulAssign<i64> for $ty {
             fn mul_assign(&mut self, rhs: i64) {
                 *self = *self * rhs;
@@ -358,8 +444,32 @@ macro_rules! relative_unit {
             }
         }
 
+        impl ::std::ops::MulAssign<i16> for $ty {
+            fn mul_assign(&mut self, rhs: i16) {
+                *self = *self * rhs;
+            }
+        }
+
         impl ::std::ops::MulAssign<usize> for $ty {
             fn mul_assign(&mut self, rhs: usize) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl ::std::ops::MulAssign<u64> for $ty {
+            fn mul_assign(&mut self, rhs: u64) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl ::std::ops::MulAssign<u32> for $ty {
+            fn mul_assign(&mut self, rhs: u32) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl ::std::ops::MulAssign<u16> for $ty {
+            fn mul_assign(&mut self, rhs: u16) {
                 *self = *self * rhs;
             }
         }

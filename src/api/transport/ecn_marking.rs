@@ -25,8 +25,9 @@
 //    1     0         ECT(0)
 //    1     1         CE
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EcnMarking {
+    #[default]
     NotEct = 0, // Not ECN-Capable Transport
     Ect1 = 1,   // ECN-Capable Transport
     Ect0 = 2,   // Not used by L4s (or webrtc.)

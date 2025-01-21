@@ -52,6 +52,7 @@ impl Default for SafeResetOnRouteChange {
 ///
 /// NOTE: NetworkStateEstimator and NetworkStatePredictor have not been ported.
 /// These are optional traits and do not seem to be implemented, except perhaps by Google internally.
+#[derive(Clone, Debug, Default)]
 pub struct GoogCcConfig {
     // network_state_estimator: Box<dyn NetworkStateEstimator>,
     // network_state_predictor: Box<dyn NetworkStatePredictor>,

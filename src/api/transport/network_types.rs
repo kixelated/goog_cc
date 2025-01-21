@@ -107,17 +107,17 @@ impl Default for NetworkRouteChange {
 #[derive(Debug, Clone, Copy)]
 pub struct PacedPacketInfo {
     pub send_bitrate: DataRate,
-    pub probe_cluster_id: i64,
+    pub probe_cluster_id: i32,
     pub probe_cluster_min_probes: i64,
     pub probe_cluster_min_bytes: i64,
     pub probe_cluster_bytes_sent: i64,
 }
 
 impl PacedPacketInfo {
-    pub const NOT_APROBE: i64 = -1;
+    pub const NOT_APROBE: i32 = -1;
 
     pub const fn new(
-        probe_cluster_id: i64,
+        probe_cluster_id: i32,
         probe_cluster_min_probes: i64,
         probe_cluster_min_bytes: i64,
     ) -> Self {

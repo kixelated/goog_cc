@@ -43,7 +43,7 @@ impl Default for AggregatedCluster {
 
 #[derive(Default)]
 pub struct ProbeBitrateEstimator {
-    clusters: HashMap<i64, AggregatedCluster>,
+    clusters: HashMap<i32, AggregatedCluster>,
     estimated_data_rate: Option<DataRate>,
 }
 
@@ -84,7 +84,7 @@ impl ProbeBitrateEstimator {
         &mut self,
         packet_feedback: &PacketResult,
     ) -> Option<DataRate> {
-        let cluster_id: i64 = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
+        let cluster_id: i32 = packet_feedback.sent_packet.pacing_info.probe_cluster_id;
         assert_ne!(cluster_id, PacedPacketInfo::NOT_APROBE);
 
         self.erase_old_clusters(packet_feedback.receive_time);
@@ -219,7 +219,7 @@ mod test {
         //                 to use that information.
         fn add_packet_feedback(
             &mut self,
-            probe_cluster_id: i64,
+            probe_cluster_id: i32,
             size_bytes: usize,
             send_time_ms: i64,
             arrival_time_ms: i64,
