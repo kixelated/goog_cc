@@ -92,7 +92,8 @@ impl AlrDetector {
         if self.alr_budget.budget_ratio() > self.conf.start_budget_level_ratio
             && self.alr_started_time_ms.is_none()
         {
-            self.alr_started_time_ms.replace(self.start.elapsed().as_millis() as i64);
+            self.alr_started_time_ms
+                .replace(self.start.elapsed().as_millis() as i64);
         } else if self.alr_budget.budget_ratio() < self.conf.stop_budget_level_ratio
             && self.alr_started_time_ms.is_some()
         {

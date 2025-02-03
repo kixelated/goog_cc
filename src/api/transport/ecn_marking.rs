@@ -29,7 +29,7 @@
 pub enum EcnMarking {
     #[default]
     NotEct = 0, // Not ECN-Capable Transport
-    Ect1 = 1,   // ECN-Capable Transport
-    Ect0 = 2,   // Not used by L4s (or webrtc.)
-    Ce = 3,     // Congestion experienced
+    Ect1 = 1, // ECN-Capable Transport
+    Ect0 = 2, // Not used by L4s (or webrtc.)
+    Ce = 3,   // Congestion experienced
 }
