@@ -3,7 +3,7 @@ name = "goog_cc"
 description = "A direct Rust port of the Google Congestion Control algorithm from WebRTC"
 repository = "https://github.com/kixelated/goog_cc"
 
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 authors = ["The WebRTC project (AUTHORS)", "Luke Curley <kixelated@gmail.com>"]
