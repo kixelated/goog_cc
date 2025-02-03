@@ -52,6 +52,7 @@ impl Default for SafeResetOnRouteChange {
 ///
 /// NOTE: NetworkStateEstimator and NetworkStatePredictor have not been ported.
 /// These are optional traits and do not seem to be implemented, except perhaps by Google internally.
+#[derive(Clone, Debug, Default)]
 pub struct GoogCcConfig {
     // network_state_estimator: Box<dyn NetworkStateEstimator>,
     // network_state_predictor: Box<dyn NetworkStatePredictor>,
@@ -148,8 +149,7 @@ impl GoogCcNetworkController {
             packet_feedback_only: goog_cc_config.feedback_only,
             safe_reset_on_route_change: field_trials.safe_reset_on_route_change.enabled,
             safe_reset_acknowledged_rate: field_trials.safe_reset_on_route_change.ack,
-            use_min_allocatable_as_lower_bound: field_trials
-                .min_alloc_as_lower_bound,
+            use_min_allocatable_as_lower_bound: field_trials.min_alloc_as_lower_bound,
             ignore_probes_lower_than_network_estimate: field_trials
                 .ignore_probes_lower_than_network_state_estimate,
             limit_probes_lower_than_throughput_estimate: field_trials
