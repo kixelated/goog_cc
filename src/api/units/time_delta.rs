@@ -17,7 +17,7 @@
 //! microseconds (us).
 super::relative_unit!(TimeDelta);
 
-use std::fmt;
+use std::{fmt, time::Duration};
 
 impl TimeDelta {
     const ONE_SIDED: bool = false;
@@ -120,6 +120,21 @@ impl fmt::Debug for TimeDelta {
         } else {
             write!(f, "{} s", self.seconds())
         }
+    }
+}
+
+// Custom
+impl From<Duration> for TimeDelta {
+    fn from(duration: Duration) -> Self {
+        Self::from_micros(duration.as_micros() as i64)
+    }
+}
+
+impl TryFrom<TimeDelta> for Duration {
+    type Error = std::num::TryFromIntError;
+
+    fn try_from(delta: TimeDelta) -> Result<Self, Self::Error> {
+        Ok(Duration::from_micros(delta.us().try_into()?))
     }
 }
 
