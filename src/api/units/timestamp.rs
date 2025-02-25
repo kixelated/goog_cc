@@ -179,7 +179,7 @@ impl From<Instant> for Timestamp {
 impl From<Timestamp> for Instant {
     fn from(timestamp: Timestamp) -> Self {
         let r = *REF;
-        let duration = Duration::from_micros(timestamp.us().abs() as u64);
+        let duration = Duration::from_micros(timestamp.us().unsigned_abs());
 
         if timestamp.0 > 0 {
             r.checked_add(duration).expect("Timestamp is too far in the future")
