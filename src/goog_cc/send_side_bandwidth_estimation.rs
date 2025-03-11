@@ -250,7 +250,7 @@ impl SendSideBandwidthEstimation {
             assert!(high_loss_threshold <= 1.0);
             assert!(low_loss_threshold <= high_loss_threshold);
             assert!(bitrate_threshold_kbps >= 0.0);
-            tracing::info!(
+            tracing::debug!(
                 "Enabled BweLossExperiment with parameters {:?}, {:?}, {:?}",
                 low_loss_threshold,
                 high_loss_threshold,

@@ -761,7 +761,7 @@ impl LossBasedBweV2 {
         if self.config.bound_best_candidate
             && bounded_bandwidth_estimate < best_candidate.loss_limited_bandwidth
         {
-            tracing::info!(
+            tracing::debug!(
                 "Resetting loss based BWE to {:?} due to loss. Avg loss rate: {:?}",
                 bounded_bandwidth_estimate,
                 self.average_reported_loss_ratio
@@ -820,7 +820,7 @@ impl LossBasedBweV2 {
             if self.loss_based_result.state != LossBasedState::Decreasing
                 && self.config.hold_duration_factor > 0.0
             {
-                tracing::info!(
+                tracing::debug!(
                     "Switch to HOLD. Bounded BWE: {:?}, duration: {:?}",
                     bounded_bandwidth_estimate,
                     self.last_hold_info.duration

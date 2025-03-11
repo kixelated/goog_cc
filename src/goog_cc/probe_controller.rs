@@ -375,7 +375,7 @@ impl ProbeController {
                 }
                 _ => DataRate::plus_infinity(),
             };
-            tracing::info!(
+            tracing::debug!(
                 "Measured bitrate: {:?} Minimum to probe further: {:?} upper limit: {:?}",
                 bitrate,
                 self.min_bitrate_to_probe_further,
@@ -437,7 +437,7 @@ impl ProbeController {
                 && time_since_drop < Self::BITRATE_DROP_TIMEOUT
                 && time_since_probe > Self::MIN_TIME_BETWEEN_ALR_PROBES
             {
-                tracing::info!("Detected big bandwidth drop, start probing.");
+                tracing::debug!("Detected big bandwidth drop, start probing.");
                 // Track how often we probe in response to bandwidth drop in ALR.
                 self.last_bwe_drop_probing_time = at_time;
                 return self.initiate_probing(at_time, &[suggested_probe], false);
@@ -474,7 +474,7 @@ impl ProbeController {
         if at_time - self.time_last_probing_initiated > Self::MAX_WAITING_TIME_FOR_PROBING_RESULT
             && matches!(self.state, State::WaitingForProbingResult)
         {
-            tracing::info!("kWaitingForProbingResult: timeout");
+            tracing::debug!("WaitingForProbingResult: timeout");
             self.update_state(State::ProbingComplete);
         }
         if self.estimated_bitrate.is_zero() || !matches!(self.state, State::ProbingComplete) {
@@ -525,7 +525,7 @@ impl ProbeController {
 
         if self.repeated_initial_probing_enabled && self.max_total_allocated_bitrate.is_zero() {
             self.last_allowed_repeated_initial_probe = at_time + self.config.initial_probing;
-            tracing::info!(
+            tracing::debug!(
                 "Repeated initial probing enabled, last allowed probe: {:?} now: {:?}",
                 self.last_allowed_repeated_initial_probe,
                 at_time
@@ -577,7 +577,7 @@ impl ProbeController {
             BandwidthLimitedCause::RttBasedBackOffHighRtt
             | BandwidthLimitedCause::DelayBasedLimitedDelayIncreased
             | BandwidthLimitedCause::LossLimitedBwe => {
-                tracing::info!(
+                tracing::debug!(
                     "Not sending probe in bandwidth limited state. {:?}",
                     self.bandwidth_limited_cause
                 );
@@ -596,7 +596,7 @@ impl ProbeController {
             Some(network_estimate) if network_estimate.link_capacity_upper.is_finite() => {
                 if self.config.network_state_interval.is_finite() {
                     if network_estimate.link_capacity_upper.is_zero() {
-                        tracing::info!("Not sending probe, Network state estimate is zero");
+                        tracing::debug!("Not sending probe, Network state estimate is zero");
                         return vec![];
                     }
                     max_probe_bitrate = std::cmp::min(

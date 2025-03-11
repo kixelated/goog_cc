@@ -211,7 +211,7 @@ impl TrendlineEstimator {
     pub fn new(mut settings: TrendlineEstimatorSettings) -> Self {
         settings.validate();
 
-        tracing::info!("Using Trendline filter for delay change estimation with settings {:?} and no network state predictor", settings);
+        tracing::debug!("Using Trendline filter for delay change estimation with settings {:?} and no network state predictor", settings);
         Self {
             settings,
             smoothing_coef: Self::DEFAULT_TRENDLINE_SMOOTHING_COEFF,
