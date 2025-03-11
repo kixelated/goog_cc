@@ -96,7 +96,7 @@ impl DelayBasedBwe {
     const FIXED_SSRC: u32 = 0;
 
     pub fn new(field_trials: &FieldTrials) -> Self {
-        tracing::info!(
+        tracing::debug!(
             "Initialized DelayBasedBwe with separate audio overuse detection: {:?}",
             field_trials.separate_audio_packets
         );
@@ -201,7 +201,7 @@ impl DelayBasedBwe {
     }
 
     pub fn set_start_bitrate(&mut self, start_bitrate: DataRate) {
-        tracing::info!("BWE Setting start bitrate to: {:?}", start_bitrate);
+        tracing::debug!("BWE Setting start bitrate to: {:?}", start_bitrate);
         self.rate_control.set_start_bitrate(start_bitrate);
     }
     pub fn set_min_bitrate(&mut self, min_bitrate: DataRate) {

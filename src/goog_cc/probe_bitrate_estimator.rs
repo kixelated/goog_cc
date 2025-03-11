@@ -146,7 +146,7 @@ impl ProbeBitrateEstimator {
             || receive_interval <= TimeDelta::zero()
             || receive_interval > Self::MAX_PROBE_INTERVAL
         {
-            tracing::info!("Probing unsuccessful, invalid send/receive interval [cluster id: {}] [send interval: {:?}] [receive interval: {:?}]",
+            tracing::debug!("Probing unsuccessful, invalid send/receive interval [cluster id: {}] [send interval: {:?}] [receive interval: {:?}]",
                       cluster_id, send_interval, receive_interval);
             return None;
         }
@@ -166,12 +166,12 @@ impl ProbeBitrateEstimator {
 
         let ratio: f64 = receive_rate / send_rate;
         if ratio > Self::MAX_VALID_RATIO {
-            tracing::info!("Probing unsuccessful, receive/send ratio too high [cluster id: {}] [send: {:?}/{:?} = {:?}] [receive: {:?}/{:?} = {:?}] [ratio: {:?} > {:?}]",
+            tracing::debug!("Probing unsuccessful, receive/send ratio too high [cluster id: {}] [send: {:?}/{:?} = {:?}] [receive: {:?}/{:?} = {:?}] [ratio: {:?} > {:?}]",
                       cluster_id, send_size, send_interval, send_rate, receive_size, receive_interval, receive_rate, ratio, Self::MAX_VALID_RATIO);
             return None;
         }
 
-        tracing::info!("Probing successful [cluster id: {}] [send: {:?}/{:?} = {:?}] [receive: {:?}/{:?} = {:?}]",
+        tracing::debug!("Probing successful [cluster id: {}] [send: {:?}/{:?} = {:?}] [receive: {:?}/{:?} = {:?}]",
                     cluster_id, send_size, send_interval, send_rate, receive_size, receive_interval, receive_rate);
 
         let mut res: DataRate = std::cmp::min(send_rate, receive_rate);
