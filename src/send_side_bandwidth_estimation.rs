@@ -19,7 +19,7 @@ use crate::{
         units::{DataRate, TimeDelta, Timestamp},
     },
     experiments::FieldTrials,
-    goog_cc::{LossBasedBandwidthEstimation, LossBasedBweV2, LossBasedState},
+    LossBasedBandwidthEstimation, LossBasedBweV2, LossBasedState,
 };
 
 #[derive(Clone, Debug)]

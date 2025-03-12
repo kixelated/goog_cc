@@ -14,7 +14,7 @@ use crate::{
         units::{DataRate, DataSize, TimeDelta, Timestamp},
     },
     experiments::FieldTrials,
-    goog_cc::{DelayIncreaseDetectorInterface, InterArrivalDelta, TrendlineEstimator},
+    DelayIncreaseDetectorInterface, InterArrivalDelta, TrendlineEstimator,
     remote_bitrate_estimator::{AimdRateControl, RateControlInput},
 };
 
@@ -393,7 +393,7 @@ impl DelayBasedBwe {
 #[cfg(test)]
 mod test {
     use crate::api::transport::{PacedPacketInfo, SentPacket};
-    use crate::goog_cc::{
+    use crate::{
         AcknowledgedBitrateEstimator, AcknowledgedBitrateEstimatorInterface, ProbeBitrateEstimator,
         RobustThroughputEstimatorSettings,
     };

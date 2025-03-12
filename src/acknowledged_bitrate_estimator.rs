@@ -14,7 +14,7 @@ use crate::{
         units::{DataRate, Timestamp},
     },
     experiments::FieldTrials,
-    goog_cc::{AcknowledgedBitrateEstimatorInterface, BitrateEstimator, RobustThroughputEstimator},
+    AcknowledgedBitrateEstimatorInterface, BitrateEstimator, RobustThroughputEstimator,
 };
 
 pub struct AcknowledgedBitrateEstimator {
