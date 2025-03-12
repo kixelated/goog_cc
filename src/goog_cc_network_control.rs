@@ -23,7 +23,7 @@ use crate::{
         units::{DataRate, DataSize, TimeDelta, Timestamp},
     },
     experiments::{FieldTrials, RateControlSettings},
-    goog_cc::AcknowledgedBitrateEstimator,
+    AcknowledgedBitrateEstimator,
     remote_bitrate_estimator::CONGESTION_CONTROLLER_MIN_BITRATE,
 };
 
@@ -371,7 +371,7 @@ impl GoogCcNetworkController {
             );
             update.probe_cluster_configs.append(&mut probes);
             update.pacer_config = Some(self.get_pacing_rates(at_time));
-            tracing::debug!(
+            tracing::trace!(
                 "bwe {} pushback_target_bps={} estimate_bps={}",
                 at_time.ms(),
                 self.last_pushback_target_rate.bps(),

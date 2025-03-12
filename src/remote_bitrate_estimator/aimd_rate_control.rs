@@ -14,7 +14,7 @@ use crate::{
         units::{DataRate, DataSize, TimeDelta, Timestamp},
     },
     experiments::FieldTrials,
-    goog_cc::LinkCapacityEstimator,
+    LinkCapacityEstimator,
     remote_bitrate_estimator::BITRATE_WINDOW,
 };
 

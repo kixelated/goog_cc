@@ -15,7 +15,7 @@ use crate::{
         transport::PacketResult,
         units::{DataRate, DataSize, TimeDelta, Timestamp},
     },
-    goog_cc::AcknowledgedBitrateEstimatorInterface,
+    AcknowledgedBitrateEstimatorInterface,
 };
 
 // WebRTC-Bwe-RobustThroughputEstimatorSettings
